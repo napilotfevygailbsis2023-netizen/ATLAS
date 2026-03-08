@@ -1,27 +1,20 @@
-#!/usr/bin/env python3
-# ── FILE: index.py ────────────────────────────────────────────────────────────
-# CHANGES: "Discover the Beauty of Luzon" hero is directly below navbar/tiles.
-#          Removed API credits from subtitle.
-#          All buttons working.
-
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
 
 HIGHLIGHTS = [
-    {"name":"Intramuros",     "city":"Manila",       "color":"#0038A8","cat":"Historical","icon":"🏛️"},
-    {"name":"Paoay Church",   "city":"Ilocos Norte", "color":"#C8930A","cat":"Heritage",  "icon":"⛪"},
-    {"name":"Taal Volcano",   "city":"Batangas",     "color":"#065F46","cat":"Nature",    "icon":"🌋"},
-    {"name":"Calle Crisologo","city":"Vigan",        "color":"#CE1126","cat":"Heritage",  "icon":"🏘️"},
+    {"name":"Intramuros",      "city":"Manila",       "color":"#0038A8","cat":"Historical","icon":"&#127963;"},
+    {"name":"Paoay Church",    "city":"Ilocos Norte", "color":"#C8930A","cat":"Heritage",  "icon":"&#9962;"},
+    {"name":"Taal Volcano",    "city":"Batangas",     "color":"#065F46","cat":"Nature",    "icon":"&#127755;"},
+    {"name":"Calle Crisologo", "city":"Vigan",        "color":"#CE1126","cat":"Heritage",  "icon":"&#127968;"},
 ]
-
 OFFERS = [
-    {"title":"Book a Tour Guide",    "desc":"Get a certified local guide for your Luzon trip",      "color":"#0038A8","href":"/guides.py",   "icon":"🧭"},
-    {"title":"Check Live Weather",   "desc":"Plan safely with real-time forecasts for each city",   "color":"#CE1126","href":"/weather.py",  "icon":"🌤️"},
-    {"title":"Search Flights",       "desc":"Find the best domestic fares to Luzon destinations",   "color":"#C8930A","href":"/flights.py",  "icon":"✈️"},
+    {"title":"Book a Tour Guide",  "desc":"Get a certified local guide for your Luzon trip",     "color":"#0038A8","href":"/guides.py",  "icon":"&#129517;"},
+    {"title":"Check Live Weather", "desc":"Plan safely with real-time forecasts for each city",  "color":"#CE1126","href":"/weather.py", "icon":"&#127748;"},
+    {"title":"Search Flights",     "desc":"Find the best domestic fares to Luzon destinations",  "color":"#C8930A","href":"/flights.py", "icon":"&#9992;"},
 ]
 
-def render():
+def render(user=None):
     dest_cards = "".join(f"""
     <div class="dest-card" onclick="location.href='/attractions.py?city={h['city']}'">
       <div class="dest-card-img" style="background:linear-gradient(135deg,{h['color']},{h['color']}88)">
@@ -29,9 +22,9 @@ def render():
       </div>
       <div class="dest-card-body">
         <div style="font-weight:700;font-size:14px;margin-bottom:3px">{h['name']}</div>
-        <div style="font-size:12px;color:#6B7280;margin-bottom:10px">{h['city']} · {h['cat']}</div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:10px">{h['city']} - {h['cat']}</div>
         <button class="btn" style="background:{h['color']};color:#fff;padding:6px 14px;font-size:12px"
-          onclick="event.stopPropagation();location.href='/attractions.py?city={h['city']}'">Explore →</button>
+          onclick="event.stopPropagation();location.href='/attractions.py?city={h['city']}'">Explore</button>
       </div>
     </div>""" for h in HIGHLIGHTS)
 
@@ -44,7 +37,6 @@ def render():
     </div>""" for o in OFFERS)
 
     body = f"""
-    <!-- HERO — directly below navbar tiles -->
     <div class="hero">
       <div class="hero-bg"></div>
       <div class="hero-dots">
@@ -52,29 +44,26 @@ def render():
         <div class="hero-dot" style="background:#CE1126"></div>
         <div class="hero-dot" style="background:#FCD116"></div>
       </div>
-      <h1>Discover the <span class="blue">Beauty</span> of <span class="red">Luzon</span>,<br>Philippines</h1>
-      <p class="hero-sub">Your all-in-one travel companion — flights, weather, attractions, tour guides and more.</p>
+      <h1>Discover the <span class="blue">Beauty</span> of <span class="red">Luzon</span>, Philippines</h1>
+      <p class="hero-sub">Your all-in-one travel companion for flights, weather, attractions, tour guides and more.</p>
       <div class="search-box">
-        <span style="padding:0 10px 0 16px;display:flex;align-items:center;font-size:18px">🔍</span>
+        <span style="padding:0 10px 0 16px;display:flex;align-items:center;font-size:18px">&#128269;</span>
         <input id="hero-search" placeholder="Search destinations, attractions, restaurants..."/>
         <button onclick="doSearch()">Search</button>
       </div>
     </div>
-
     <div class="page-wrap">
       <div style="margin-bottom:8px">
         <div class="section-title">Top Luzon Destinations</div>
         <div class="section-sub">Hand-picked spots for your next adventure</div>
       </div>
       <div class="dest-grid">{dest_cards}</div>
-
       <div style="margin-bottom:8px">
         <div class="section-title">Plan Your Trip</div>
         <div class="section-sub">Everything you need in one place</div>
       </div>
       <div class="offer-grid">{offer_cards}</div>
     </div>
-
     <script>
     function doSearch() {{
       var q = document.getElementById('hero-search').value.trim();
@@ -85,8 +74,4 @@ def render():
       if (e.key === 'Enter') doSearch();
     }});
     </script>"""
-
-    return build_shell("Home", body, "home")
-
-if __name__ == "__main__":
-    print(render())
+    return build_shell("Home", body, "home", user=user)

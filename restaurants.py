@@ -68,7 +68,7 @@ def _card(r, i):
         '</div></div>'
     )
 
-def render(filter_city="All", keyword=""):
+def render(filter_city="All", keyword="", user=None):
     city = filter_city if filter_city != "All" else "Manila"
     filtered = fetch_restaurants(city, keyword)
     cities = ["All"] + sorted(CITY_COORDS.keys())
@@ -97,4 +97,4 @@ def render(filter_city="All", keyword=""):
       <div style="margin-bottom:16px;font-size:13px;color:#6B7280">{len(filtered)} restaurant(s) found</div>
       <div class="rest-grid3">{cards}</div>{empty}
     </div>"""
-    return build_shell("Restaurants", body, "restaurants")
+    return build_shell("Restaurants", body, "restaurants", user=user)

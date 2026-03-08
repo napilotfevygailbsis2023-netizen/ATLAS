@@ -1,10 +1,29 @@
-# template.py
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-def build_shell(page_title, body_content, active=""):
+def build_shell(page_title, body_content, active="", user=None):
     def na(p): return "active" if active == p else ""
     def ta(p): return "active" if active == p else ""
+
+    # Navbar auth section - changes based on login state
+    if user:
+        fname = user.get("fname","User")
+        lname = user.get("lname","")
+        auth_html = f"""
+        <div class="nav-auth">
+          <div class="user-pill">
+            <div class="user-avatar">{fname[0].upper()}</div>
+            <span class="user-name">{fname} {lname}</span>
+          </div>
+          <a href="/logout.py"><button class="btn-login">Log Out</button></a>
+        </div>"""
+    else:
+        auth_html = """
+        <div class="nav-auth">
+          <a href="/login.py"><button class="btn-login">Log In</button></a>
+          <a href="/register.py"><button class="btn-signup">Sign Up</button></a>
+        </div>"""
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -36,10 +55,7 @@ def build_shell(page_title, body_content, active=""):
       </div>
       <a href="#about" class="nav-link">About Us</a>
     </div>
-    <div class="nav-auth">
-      <a href="/login.py"><button class="btn-login">Log In</button></a>
-      <a href="/register.py"><button class="btn-signup">Sign Up</button></a>
-    </div>
+    {auth_html}
   </div>
 </nav>
 <div class="tiles-bar">
@@ -86,21 +102,16 @@ def build_shell(page_title, body_content, active=""):
     <div class="footer-cols">
       <div class="footer-col">
         <div class="footer-col-hdr">The Company</div>
-        <a href="/">Home</a>
-        <a href="#about">About Us</a>
-        <a href="/register.py">Register</a>
-        <a href="/login.py">Login</a>
+        <a href="/">Home</a><a href="#about">About Us</a>
+        <a href="/register.py">Register</a><a href="/login.py">Login</a>
       </div>
       <div class="footer-col">
         <div class="footer-col-hdr">Help</div>
-        <a href="#">FAQ</a>
-        <a href="#">How It Works</a>
-        <a href="#">Contact Us</a>
+        <a href="#">FAQ</a><a href="#">How It Works</a><a href="#">Contact Us</a>
       </div>
       <div class="footer-col">
         <div class="footer-col-hdr">Legalities</div>
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Use</a>
+        <a href="#">Privacy Policy</a><a href="#">Terms of Use</a>
       </div>
       <div class="footer-col">
         <div class="footer-col-hdr">Contact</div>
@@ -110,38 +121,15 @@ def build_shell(page_title, body_content, active=""):
       </div>
     </div>
   </div>
-  <div class="footer-bottom">
-    <span>&copy; 2026 ATLAS. All Rights Reserved.</span>
-  </div>
+  <div class="footer-bottom"><span>&copy; 2026 ATLAS. All Rights Reserved.</span></div>
 </footer>
 <script>
-function toggleDrop() {{
-  document.getElementById('cat-drop').classList.toggle('open');
-}}
-document.addEventListener('click', function(e) {{
-  var d = document.getElementById('cat-drop');
-  if (d && !d.contains(e.target)) d.classList.remove('open');
-}});
-function openBookingModal(name) {{
-  document.getElementById('modal-guide-name').textContent = name;
-  document.getElementById('booking-modal').style.display = 'flex';
-  document.body.style.overflow = 'hidden';
-}}
-function closeBooking() {{
-  document.getElementById('booking-modal').style.display = 'none';
-  document.body.style.overflow = '';
-}}
-function confirmBooking() {{
-  var name = document.getElementById('modal-guide-name').textContent;
-  closeBooking();
-  showToast('Booking sent to ' + name + '!');
-}}
-function showToast(msg) {{
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.style.display = 'block';
-  setTimeout(function() {{ t.style.display = 'none'; }}, 2800);
-}}
+function toggleDrop(){{document.getElementById('cat-drop').classList.toggle('open');}}
+document.addEventListener('click',function(e){{var d=document.getElementById('cat-drop');if(d&&!d.contains(e.target))d.classList.remove('open');}});
+function openBookingModal(name){{document.getElementById('modal-guide-name').textContent=name;document.getElementById('booking-modal').style.display='flex';document.body.style.overflow='hidden';}}
+function closeBooking(){{document.getElementById('booking-modal').style.display='none';document.body.style.overflow='';}}
+function confirmBooking(){{var name=document.getElementById('modal-guide-name').textContent;closeBooking();showToast('Booking sent to '+name+'!');}}
+function showToast(msg){{var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){{t.style.display='none';}},2800);}}
 </script>
 </body>
 </html>"""

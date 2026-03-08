@@ -31,7 +31,7 @@ def _card(g, i):
         '</div></div></div>'
     )
 
-def render(filter_city="All", filter_lang="All"):
+def render(filter_city="All", filter_lang="All", user=None):
     cities = ["All"] + sorted(set(g["city"] for g in GUIDES))
     city_opts = "".join(f'<option {"selected" if c==filter_city else ""}>{c}</option>' for c in cities)
     lang_opts = "".join(f'<option {"selected" if l==filter_lang else ""}>{l}</option>' for l in ["All","EN","FIL","ES","IL"])
@@ -60,4 +60,4 @@ def render(filter_city="All", filter_lang="All"):
       <div style="font-size:13px;color:#6B7280;margin-bottom:16px">{count}</div>
       <div class="page-grid3">{guide_html}</div>
     </div>"""
-    return build_shell("Tour Guides", body, "guides")
+    return build_shell("Tour Guides", body, "guides", user=user)

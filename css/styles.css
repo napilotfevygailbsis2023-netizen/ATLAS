@@ -343,3 +343,35 @@ tr:nth-child(even) td{background:#fff}
   .page-grid3 { grid-template-columns: 1fr; }
   .rest-grid3 { grid-template-columns: 1fr; }
 }
+
+/* ── USER PILL IN NAVBAR ── */
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #0038A8, #CE1126);
+  border-radius: 30px;
+  padding: 5px 14px 5px 6px;
+}
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.25);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+.nav-auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}

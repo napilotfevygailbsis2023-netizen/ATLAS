@@ -48,7 +48,7 @@ def fetch_forecast(city):
     except:
         return [("--","N/A","&#9728;")] * 7
 
-def render(location="Manila"):
+def render(location="Manila", user=None):
     if location not in CITIES:
         location = "Manila"
     wd = fetch_weather(location)
@@ -115,4 +115,4 @@ def render(location="Manila"):
         <div style="padding:16px 20px;display:flex;gap:8px;flex-wrap:wrap">{fc_cells}</div>
       </div>
     </div>"""
-    return build_shell("Weather", body, "weather")
+    return build_shell("Weather", body, "weather", user=user)

@@ -80,7 +80,7 @@ def _card(s):
         '</div></div></div></div>'
     )
 
-def render(filter_city="All", filter_cat="All", keyword=""):
+def render(filter_city="All", filter_cat="All", keyword="", user=None):
     city = filter_city if filter_city != "All" else "Manila"
     results = fetch_spots(city, keyword)
     if filter_cat != "All":
@@ -112,4 +112,4 @@ def render(filter_city="All", filter_cat="All", keyword=""):
       <div style="margin-bottom:16px;font-size:13px;color:#6B7280">{len(results)} attraction(s) found</div>
       <div class="page-grid3">{cards}</div>{empty}
     </div>"""
-    return build_shell("Attractions", body, "attractions")
+    return build_shell("Attractions", body, "attractions", user=user)

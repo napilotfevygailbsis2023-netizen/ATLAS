@@ -66,7 +66,7 @@ def _card(f):
         '</div></div>'
     )
 
-def render(filters=None):
+def render(filters=None, user=None):
     filters = filters or {}
     today = datetime.date.today().isoformat()
     in5   = (datetime.date.today() + datetime.timedelta(days=5)).isoformat()
@@ -108,4 +108,4 @@ def render(filters=None):
       document.getElementById('ret-date').min = this.value;
     }});
     </script>"""
-    return build_shell("Flights", body, "flights")
+    return build_shell("Flights", body, "flights", user=user)

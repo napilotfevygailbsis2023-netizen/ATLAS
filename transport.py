@@ -31,7 +31,7 @@ def _card(t):
         '</div></div>'
     )
 
-def render(filter_type="All", filter_from="All"):
+def render(filter_type="All", filter_from="All", user=None):
     filtered = [t for t in TRANSPORT
         if (filter_type=="All" or t["type"]==filter_type)
         and (filter_from=="All" or filter_from.lower() in t["route"].lower())]
@@ -60,4 +60,4 @@ def render(filter_type="All", filter_from="All"):
       <div style="font-size:13px;color:#6B7280;margin-bottom:16px">{len(filtered)} route(s) found</div>
       <div class="page-grid3">{cards}</div>{empty}
     </div>"""
-    return build_shell("Transportation", body, "transport")
+    return build_shell("Transportation", body, "transport", user=user)
