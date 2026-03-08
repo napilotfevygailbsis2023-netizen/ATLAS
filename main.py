@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-"""
-ATLAS — Luzon Travel Companion
-================================
-HOW TO RUN LOCALLY:
-    python main.py
-    Open: http://localhost:5000
-
-DEPLOYED ON RAILWAY:
-    Automatically runs on the assigned PORT
-"""
-
 import http.server, socketserver, urllib.parse, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -22,17 +11,18 @@ ROUTES = {
     "/":               lambda p: index.render(),
     "/index.py":       lambda p: index.render(),
     "/flights.py":     lambda p: flights.render(p),
-    "/weather.py":     lambda p: weather.render(p.get("location","Manila")),
-    "/attractions.py": lambda p: attractions.render(p.get("city","All"), p.get("cat","All"), p.get("kw","")),
-    "/restaurants.py": lambda p: restaurants.render(p.get("city","All"), p.get("kw","")),
-    "/guides.py":      lambda p: guides.render(p.get("city","All"), p.get("lang","All")),
-    "/transport.py":   lambda p: transport.render(p.get("type","All"), p.get("from","All")),
-    "/itinerary.py":   lambda p: itinerary.render(p.get("dest","Manila")),
+    "/weather.py":     lambda p: weather.render(p.get("location", "Manila")),
+    "/attractions.py": lambda p: attractions.render(p.get("city", "All"), p.get("cat", "All"), p.get("kw", "")),
+    "/restaurants.py": lambda p: restaurants.render(p.get("city", "All"), p.get("kw", "")),
+    "/guides.py":      lambda p: guides.render(p.get("city", "All"), p.get("lang", "All")),
+    "/transport.py":   lambda p: transport.render(p.get("type", "All"), p.get("from", "All")),
+    "/itinerary.py":   lambda p: itinerary.render(p.get("dest", "Manila")),
     "/login.py":       lambda p: login.render(),
     "/register.py":    lambda p: register.render(),
 }
 
-CSS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "styles.css")
+BASE = os.path.dirname(os.path.abspath(__file__))
+CSS  = os.path.join(BASE, "css", "styles.css")
 
 class ATLASHandler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
@@ -41,7 +31,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
         path   = parsed.path
 
         if path == "/css/styles.css":
-            with open(CSS_PATH, "rb") as f:
+            with open(CSS, "rb") as f:
                 css = f.read()
             self.send_response(200)
             self.send_header("Content-Type", "text/css; charset=utf-8")
@@ -67,10 +57,10 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     print("=" * 50)
-    print("  ATLAS — Luzon Travel Companion")
+    print("  ATLAS - Luzon Travel Companion")
     print("=" * 50)
     print(f"\n  Running at http://localhost:{PORT}")
-    print(f"  Ctrl+C to stop\n")
+    print("  Ctrl+C to stop\n")
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("0.0.0.0", PORT), ATLASHandler) as s:
         try:
