@@ -45,15 +45,40 @@ a{text-decoration:none;color:inherit}
 
 /* ── HERO ────────────────────────────────────────────────── */
 .hero{background:linear-gradient(135deg,#EEF2FF 0%,#FEE2E2 40%,#FFFDE7 100%);padding:72px 80px 80px;position:relative;overflow:hidden}
+.hero > *{position:relative;z-index:2}
+.hero-bg{
+  position:absolute;
+  inset:-30% -20% auto auto;
+  width:620px;
+  height:620px;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 35% 35%, rgba(0,56,168,.28), rgba(0,56,168,0) 55%),
+    radial-gradient(circle at 62% 62%, rgba(206,17,38,.24), rgba(206,17,38,0) 58%),
+    radial-gradient(circle at 72% 30%, rgba(252,209,22,.22), rgba(252,209,22,0) 52%);
+  filter: blur(2px);
+  animation: heroFloat 9s ease-in-out infinite;
+  pointer-events:none;
+  z-index:1;
+}
 .hero-dots{display:flex;gap:8px;margin-bottom:24px}
 .hero-dot{width:11px;height:11px;border-radius:50%}
-.hero h1{font-size:52px;font-weight:900;color:#1A1A2E;line-height:1.12;margin-bottom:16px;max-width:600px}
+.hero h1{font-size:52px;font-weight:900;color:#1A1A2E;line-height:1.12;margin-bottom:16px;max-width:600px;animation:titleRise .7s ease-out both}
 .hero h1 .blue{color:#0038A8}
 .hero h1 .red{color:#CE1126}
 .hero-sub{font-size:16px;color:#6B7280;margin-bottom:32px;max-width:500px;line-height:1.7}
 .search-box{display:flex;background:#fff;border-radius:50px;box-shadow:0 4px 20px rgba(0,0,0,.1);overflow:hidden;max-width:560px;border:1.5px solid #E5E7EB}
 .search-box input{flex:1;border:none;outline:none;padding:14px 18px;font-size:14px;color:#374151}
 .search-box button{background:#CE1126;color:#fff;border:none;padding:0 28px;font-weight:700;font-size:14px;cursor:pointer}
+@keyframes heroFloat{
+  0%{transform:translate(0, 0) scale(1)}
+  50%{transform:translate(-24px, 18px) scale(1.03)}
+  100%{transform:translate(0, 0) scale(1)}
+}
+@keyframes titleRise{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:translateY(0)}
+}
 
 /* ── SHARED PAGE ─────────────────────────────────────────── */
 .page-wrap{width:100%;box-sizing:border-box;padding:32px 40px;flex:1}

@@ -18,7 +18,7 @@ ROUTES = {
     "/attractions.py": lambda p, u: attractions.render(p.get("city","All"), p.get("cat","All"), p.get("kw",""), u),
     "/restaurants.py": lambda p, u: restaurants.render(p.get("city","All"), p.get("kw",""), u),
     "/guides.py":      lambda p, u: guides.render(p.get("city","All"), p.get("lang","All"), u),
-    "/transport.py":   lambda p, u: transport.render(p.get("type","All"), p.get("from","All"), u),
+    "/transport.py":   lambda p, u: transport.render(p.get("type","All"), p.get("from","All"), p.get("q",""), u),
     "/itinerary.py":   lambda p, u: itinerary.render(p.get("dest","Manila"), u),
     "/login.py":       lambda p, u: login.render(),
     "/register.py":    lambda p, u: register.render(),

@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, html
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
 from data import TRANSPORT
@@ -31,10 +31,14 @@ def _card(t):
         '</div></div>'
     )
 
-def render(filter_type="All", filter_from="All", user=None):
+def render(filter_type="All", filter_from="All", filter_q="", user=None):
+    q_text = (filter_q or "").strip()
+    q = q_text.lower()
+    safe_q = html.escape(q_text)
     filtered = [t for t in TRANSPORT
         if (filter_type=="All" or t["type"]==filter_type)
-        and (filter_from=="All" or filter_from.lower() in t["route"].lower())]
+        and (filter_from=="All" or filter_from.lower() in t["route"].lower())
+        and (not q or q in t["route"].lower() or q in t["name"].lower() or q in t["type"].lower())]
     all_from = ["All","Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay","Tuguegarao","Legazpi"]
     type_opts = "".join(f'<option {"selected" if x==filter_type else ""}>{x}</option>' for x in ["All","Bus","Van","Ferry","Train"])
     from_opts = "".join(f'<option {"selected" if x==filter_from else ""}>{x}</option>' for x in all_from)
@@ -53,6 +57,8 @@ def render(filter_type="All", filter_from="All", user=None):
           <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
             <div><label class="lbl">Transport Type</label><select class="inp" name="type" style="width:160px">{type_opts}</select></div>
             <div><label class="lbl">Departure Point</label><select class="inp" name="from" style="width:180px">{from_opts}</select></div>
+            <div style="flex:1;min-width:180px"><label class="lbl">Search Route</label>
+              <input class="inp" name="q" placeholder="e.g. Victory, Manila to Baguio" value="{safe_q}"/></div>
             <button class="btn" style="background:#065F46;color:#fff" type="submit">Search Routes</button>
           </form>
         </div>
