@@ -1,11 +1,19 @@
-import sys, os, urllib.request, urllib.parse, json, datetime
+import sys, os, urllib.request, urllib.parse, json, datetime, html
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
 from data import FLIGHTS as FALLBACK
 
 API_KEY = "eff886bb35240c10f8071ebbcbd235c5"
-PH_AIRPORTS = {"Manila":"MNL","Laoag":"LAO","Baguio":"BAG","Puerto Princesa":"PPS",
-                "Legazpi":"LGP","Tuguegarao":"TUG","Vigan":"VGN","Cebu":"CEB","Davao":"DVO"}
+DEPARTURE_AIRPORTS = {"Manila (MNL)": "MNL", "Pampanga (CRK)": "CRK"}
+
+# International sample flights from different countries when live API data is unavailable.
+INTERNATIONAL_FALLBACK = [
+    {"from": "Singapore Changi (SIN)", "to": "Tokyo Haneda (HND)", "airline": "Singapore Airlines", "dep": "08:10", "arr": "16:20", "dur": "7h 10m", "price": "Check airline", "seats": 9, "status": "Scheduled"},
+    {"from": "Dubai International (DXB)", "to": "London Heathrow (LHR)", "airline": "Emirates", "dep": "09:45", "arr": "14:10", "dur": "7h 25m", "price": "Check airline", "seats": 6, "status": "Scheduled"},
+    {"from": "Incheon International (ICN)", "to": "Sydney Kingsford Smith (SYD)", "airline": "Korean Air", "dep": "19:20", "arr": "07:10", "dur": "10h 50m", "price": "Check airline", "seats": 11, "status": "Scheduled"},
+    {"from": "Los Angeles (LAX)", "to": "Vancouver (YVR)", "airline": "Air Canada", "dep": "11:00", "arr": "13:55", "dur": "2h 55m", "price": "Check airline", "seats": 14, "status": "Scheduled"},
+    {"from": "Paris Charles de Gaulle (CDG)", "to": "Rome Fiumicino (FCO)", "airline": "Air France", "dep": "13:40", "arr": "15:45", "dur": "2h 05m", "price": "Check airline", "seats": 12, "status": "Scheduled"},
+]
 
 AIRLINE_COLORS = {"Philippine Airlines":"#0038A8","Cebu Pacific":"#C8930A",
                   "AirAsia":"#CE1126","PAL Express":"#0038A8"}
@@ -16,9 +24,12 @@ def fetch_flights(dep_iata="MNL"):
         with urllib.request.urlopen(url, timeout=6) as r:
             d = json.loads(r.read())
         results = []
-        for f in (d.get("data") or [])[:6]:
+        dep_iata = dep_iata.upper()
+        for f in (d.get("data") or [])[:10]:
             dep = f.get("departure",{})
             arr = f.get("arrival",{})
+            if (dep.get("iata") or "").upper() != dep_iata:
+                continue
             al  = f.get("airline",{}).get("name","Unknown")
             results.append({
                 "from": f"{dep.get('airport','?')} ({dep.get('iata','?')})",
@@ -31,7 +42,7 @@ def fetch_flights(dep_iata="MNL"):
                 "seats": 10,
                 "status": f.get("flight_status","scheduled").title()
             })
-        return results if results else FALLBACK
+        return results[:6] if results else FALLBACK
     except:
         return FALLBACK
 
@@ -42,7 +53,8 @@ def _card(f):
     airline = f["airline"]
     seats_color = "#CE1126" if f.get("seats",10) <= 5 else "#065F46"
     status = f.get("status","Scheduled")
-    toast = f"showToast('Booking {airline}: {origin} to {dest}')"
+    gf_q = urllib.parse.quote(f"{origin} to {dest}")
+    booking_link = f"https://www.google.com/travel/flights?q={gf_q}"
     return (
         '<div class="grid-card">'
         f'<div class="grid-card-top" style="background:linear-gradient(135deg,{col},{col}99)">'
@@ -62,7 +74,9 @@ def _card(f):
         f'<div class="info-stat"><div style="font-size:10px;color:#9CA3AF">Duration</div><div style="font-weight:700;font-size:13px">{f["dur"]}</div></div>'
         f'<div class="info-stat"><div style="font-size:10px;color:#9CA3AF">Price</div><div style="font-weight:700;font-size:12px;color:#CE1126">{f["price"]}</div></div>'
         '</div>'
-        f'<button class="btn" style="background:{col};color:#fff;width:100%;padding:9px" onclick="{toast}">Book Now</button>'
+        f'<a href="{booking_link}" target="_blank" style="display:block">'
+        f'<button class="btn" style="background:{col};color:#fff;width:100%;padding:9px">Book Now</button>'
+        '</a>'
         '</div></div>'
     )
 
@@ -70,42 +84,95 @@ def render(filters=None, user=None):
     filters = filters or {}
     today = datetime.date.today().isoformat()
     in5   = (datetime.date.today() + datetime.timedelta(days=5)).isoformat()
-    flights = fetch_flights("MNL")
+    dep_airport = filters.get("dep_airport", "MNL").upper()
+    if dep_airport not in DEPARTURE_AIRPORTS.values():
+        dep_airport = "MNL"
+    trip = filters.get("trip", "domestic")
+    if trip not in ("domestic", "international"):
+        trip = "domestic"
+    origin_q = (filters.get("origin", "") or "").strip().lower()
+    dest_q = (filters.get("destination", "") or "").strip().lower()
+    dep_date = filters.get("dep_date", today) or today
+    ret_date = filters.get("ret_date", in5) or in5
+
+    if trip == "international":
+        flights = INTERNATIONAL_FALLBACK[:]
+    else:
+        flights = fetch_flights(dep_airport)
+
+    if origin_q:
+        flights = [f for f in flights if origin_q in f["from"].lower()]
+    if dest_q:
+        flights = [f for f in flights if dest_q in f["to"].lower()]
+
     cards = "".join(_card(f) for f in flights)
-    airport_opts = "".join(f'<option>{k} ({v})</option>' for k,v in PH_AIRPORTS.items())
+    dep_airport_opts = "".join(
+        f'<option value="{v}" {"selected" if v == dep_airport else ""}>{k}</option>'
+        for k, v in DEPARTURE_AIRPORTS.items()
+    )
+    trip_opts = (
+        f'<option value="domestic" {"selected" if trip=="domestic" else ""}>Domestic</option>'
+        f'<option value="international" {"selected" if trip=="international" else ""}>International</option>'
+    )
+    safe_origin = html.escape(filters.get("origin", "") or "")
+    safe_dest = html.escape(filters.get("destination", "") or "")
 
     body = f"""
     <div class="page-wrap">
       <div style="margin-bottom:22px">
         <div class="section-title">Flight Search</div>
-        <div class="section-sub">Live domestic flights departing from Manila</div>
+        <div class="section-sub">Search domestic or international flights</div>
       </div>
       <div class="card" style="margin-bottom:24px">
         <div class="card-hdr" style="background:#0038A8"><span>Search Flights</span></div>
         <div class="card-body">
-          <div class="form-row">
-            <div><label class="lbl">Origin</label>
-              <select class="inp"><option>Manila (MNL)</option><option>Cebu (CEB)</option></select></div>
-            <div><label class="lbl">Destination</label>
-              <select class="inp">{airport_opts}</select></div>
-            <div><label class="lbl">Departure</label><input class="inp" type="date" id="dep-date" value="{today}"/></div>
-            <div><label class="lbl">Return</label><input class="inp" type="date" id="ret-date" value="{in5}"/></div>
-            <div><label class="lbl">Passengers</label>
-              <select class="inp"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5+</option></select></div>
-            <div><label class="lbl">Class</label>
-              <select class="inp"><option>Economy</option><option>Business</option><option>First Class</option></select></div>
-          </div>
-          <div style="text-align:right">
-            <button class="btn" style="background:#0038A8;color:#fff" onclick="showToast('Showing live flights from Manila...')">Search Flights</button>
-          </div>
+          <form method="get" onsubmit="return validateDates()">
+            <div class="form-row">
+              <div><label class="lbl">Trip Type</label>
+                <select class="inp" name="trip">{trip_opts}</select></div>
+              <div><label class="lbl">Live Feed Departure Airport</label>
+                <select class="inp" name="dep_airport">{dep_airport_opts}</select></div>
+              <div><label class="lbl">Origin (Any city/airport)</label>
+                <input class="inp" name="origin" placeholder="e.g. Manila, Singapore, LAX" value="{safe_origin}"/></div>
+              <div><label class="lbl">Destination (Any city/airport)</label>
+                <input class="inp" name="destination" placeholder="e.g. Cebu, Tokyo, London" value="{safe_dest}"/></div>
+              <div><label class="lbl">Departure Date</label><input class="inp" type="date" id="dep-date" name="dep_date" value="{dep_date}" min="{today}"/></div>
+              <div><label class="lbl">Return Date (Optional)</label><input class="inp" type="date" id="ret-date" name="ret_date" value="{ret_date}" min="{today}"/></div>
+              <div><label class="lbl">Passengers</label>
+                <select class="inp"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5+</option></select></div>
+              <div><label class="lbl">Class</label>
+                <select class="inp"><option>Economy</option><option>Business</option><option>First Class</option></select></div>
+            </div>
+            <div style="text-align:right">
+              <button class="btn" style="background:#0038A8;color:#fff" type="submit">Search Flights</button>
+            </div>
+          </form>
         </div>
       </div>
       <div style="font-size:13px;color:#6B7280;margin-bottom:16px">{len(flights)} live flight(s) found</div>
       <div class="page-grid3">{cards}</div>
     </div>
     <script>
-    document.getElementById('dep-date').addEventListener('change', function() {{
-      document.getElementById('ret-date').min = this.value;
-    }});
+    var dep = document.getElementById('dep-date');
+    var ret = document.getElementById('ret-date');
+    function syncMinDate() {{
+      ret.min = dep.value || '{today}';
+      if (ret.value && dep.value && ret.value < dep.value) {{
+        ret.value = dep.value;
+      }}
+    }}
+    function validateDates() {{
+      if (dep.value < '{today}') {{
+        showToast('Departure date cannot be in the past.');
+        return false;
+      }}
+      if (ret.value && ret.value < dep.value) {{
+        showToast('Return date must be on or after departure date.');
+        return false;
+      }}
+      return true;
+    }}
+    dep.addEventListener('change', syncMinDate);
+    syncMinDate();
     </script>"""
     return build_shell("Flights", body, "flights", user=user)
