@@ -35,12 +35,15 @@ def fetch_restaurants(city="Manila", keyword=""):
         for p in d.get("results", []):
             cats = p.get("categories", [{}])
             cuisine = cats[0].get("name", "Restaurant") if cats else "Restaurant"
+            name = p.get("name", "Unknown")
             results.append({
-                "name":   p.get("name", "Unknown"),
+                "name":   name,
                 "city":   city,
                 "type":   cuisine,
                 "price":  "Check restaurant",
                 "rating": round(p.get("rating", 8.0)/2, 1) if p.get("rating") else 4.0,
+                "desc":   f"{name} serves {cuisine.lower()} options and is a solid stop for travelers exploring {city}.",
+                "img":    f"https://source.unsplash.com/900x600/?{urllib.parse.quote(name + ' restaurant food')}",
                 "fsq_id": p.get("fsq_id","")
             })
         return results if results else FALLBACK
@@ -52,6 +55,8 @@ def _card(r, i):
     name = r["name"]
     city = r["city"]
     maps = f"https://www.google.com/maps/search/{urllib.parse.quote(name)}+{urllib.parse.quote(city)}+Philippines"
+    img = r.get("img") or f"https://source.unsplash.com/900x600/?{urllib.parse.quote(name + ' restaurant food')}"
+    desc = r.get("desc") or f"Popular {r['type']} dining in {city}, ideal for lunch or dinner while touring nearby attractions."
     full = int(round(r["rating"]))
     stars = "&#9733;" * full + "&#9734;" * (5 - full)
     return (
@@ -62,8 +67,10 @@ def _card(r, i):
         f'<div style="font-size:12px;color:rgba(255,255,255,.75)">{r["type"]}</div>'
         '</div>'
         '<div class="rest-card3-body">'
+        f'<img src="{img}" alt="{name}" style="width:100%;height:135px;object-fit:cover;border-radius:10px;margin-bottom:10px"/>'
         f'<div style="color:#F59E0B;font-size:13px;margin-bottom:6px">{stars} <span style="color:#9CA3AF;font-size:12px">{r["rating"]}</span></div>'
         f'<div style="font-size:12px;color:#6B7280;margin-bottom:3px">&#128205; {city}</div>'
+        f'<div style="font-size:12px;color:#6B7280;line-height:1.55;margin:8px 0 10px">{desc[:140]}...</div>'
         f'<div style="font-size:18px;font-weight:800;color:#CE1126;margin:10px 0 14px">{r["price"]}</div>'
         f'<a href="{maps}" target="_blank" style="display:block">'
         f'<button class="btn" style="background:{col};color:#fff;width:100%;padding:9px;font-size:13px">View Restaurant</button>'

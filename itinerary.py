@@ -36,5 +36,32 @@ def render(dest="Manila", user=None):
         <div class="section-sub">{len(days)}-day suggested travel plan</div>
       </div>
       {day_cards}
+      <div class="card" style="margin-top:20px">
+        <div class="card-hdr" style="background:#065F46"><span>Saved Attraction Picks</span></div>
+        <div class="card-body">
+          <div id="saved-itinerary-list" style="display:flex;flex-direction:column;gap:8px;color:#6B7280;font-size:13px">
+            No saved attractions yet. Add items from Tourist Attractions.
+          </div>
+        </div>
+      </div>
     </div>"""
+    body += """
+    <script>
+      (function() {
+        var key = 'atlas_itinerary_items';
+        var host = document.getElementById('saved-itinerary-list');
+        if (!host) return;
+        var items = [];
+        try {
+          items = JSON.parse(localStorage.getItem(key) || '[]');
+        } catch (e) {
+          items = [];
+        }
+        if (!items.length) return;
+        host.innerHTML = items.map(function(x, i) {
+          return '<div style="padding:8px 10px;border:1px solid #E5E7EB;border-radius:8px;background:#F9FAFB">'
+            + '<strong>' + (i + 1) + '. ' + x.name + '</strong> <span style="color:#9CA3AF">(' + x.city + ')</span></div>';
+        }).join('');
+      })();
+    </script>"""
     return build_shell("Itinerary", body, "itinerary", user=user)
