@@ -8,12 +8,15 @@ CAT_COLORS = {"Nature":"#065F46","Historical":"#0038A8","Heritage":"#C8930A","La
 CAT_ICONS  = {"Nature":"&#127807;","Historical":"&#127963;","Heritage":"&#9962;","Landmark":"&#127981;","Park":"&#127795;","Museum":"&#127963;"}
 
 CITY_COORDS = {
-    "Manila":       ("14.5995","120.9842"),
+    "Albay":       ("13.1391","123.7438"),
     "Baguio":       ("16.4023","120.5960"),
-    "Ilocos Norte": ("18.1977","120.5778"),
-    "Vigan":        ("17.5747","120.3873"),
-    "Batangas":     ("13.7565","121.0583"),
-    "Tagaytay":     ("14.1153","120.9621"),
+    "Bataan":       ("14.6417","120.4818"),
+    "Batangas":       ("13.7565","121.0583"),
+    "Ilocos Norte":       ("18.1977","120.5778"),
+    "Manila":       ("14.5995","120.9842"),
+    "Pangasinan":       ("15.8949","120.2863"),
+    "Tagaytay":       ("14.1153","120.9621"),
+    "Vigan":       ("17.5747","120.3873"),
 }
 
 ATTRACTION_CATS = "16000,16020,16032,16034,16035"  # landmarks, historic, parks, museums

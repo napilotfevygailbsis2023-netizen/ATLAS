@@ -4,9 +4,9 @@ from template import build_shell
 from data import WEATHER as FALLBACK
 
 API_KEY = "64a99b2ac477b0d12944d61cd3514ebd"
-CITIES  = ["Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay"]
+CITIES  = ["Albay","Baguio","Bataan","Batangas","Ilocos Norte","Manila","Pangasinan","Tagaytay","Vigan"]
 CITY_QUERY = {
-    "Manila":"Manila,PH","Baguio":"Baguio,PH","Ilocos Norte":"Laoag,PH",
+    "Manila":"Manila,PH","Baguio":"Baguio,PH","Ilocos Norte":"Laoag,PH","Albay":"Legazpi,PH","Pangasinan":"Dagupan,PH","Bataan":"Balanga,PH",
     "Vigan":"Vigan,PH","Batangas":"Batangas,PH","Tagaytay":"Tagaytay,PH"
 }
 ICONS = {"Clear":"&#9728;","Clouds":"&#9925;","Rain":"&#127783;","Drizzle":"&#127783;",

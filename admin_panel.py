@@ -3,7 +3,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import admin_db
 from datetime import datetime
 
-CITIES = ["Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay"]
+CITIES = ['Albay', 'Baguio', 'Bataan', 'Batangas', 'Ilocos Norte', 'Manila', 'Pangasinan', 'Tagaytay', 'Vigan']
 
 # ── SHELL ──
 def shell(title, body, active, admin):
@@ -13,7 +13,6 @@ def shell(title, body, active, admin):
     nav = [
         ("dashboard", "dashboard.svg", "Dashboard"),
         ("tourists",  "tourists.svg",  "Tourists"),
-        ("flights",   "flights.svg",   "Flights"),
         ("spots",     "spots.svg",     "Attractions"),
         ("restaurants","restaurants.svg","Restaurants"),
         ("guides",    "guides.svg",    "Tour Guides"),
@@ -23,7 +22,6 @@ def shell(title, body, active, admin):
     icons = {
         "dashboard":   "&#9732;",
         "tourists":    "&#128100;",
-        "flights":     "&#9992;",
         "spots":       "&#127963;",
         "restaurants": "&#127869;",
         "guides":      "&#129517;",
@@ -142,7 +140,6 @@ def dashboard(admin):
     recent = admin_db.get_recent_tourists(5)
     stat_cards = [
         ("&#128100;","Tourists","active","#DBEAFE","#1D4ED8", s["total_tourists"], s["active_tourists"], "registered"),
-        ("&#9992;","Flights","Listings","#DCFCE7","#16A34A", s["total_flights"], None, "in system"),
         ("&#127963;","Attractions","Listings","#FEF3C7","#D97706", s["total_spots"], None, "added"),
         ("&#127869;","Restaurants","Listings","#FCE7F3","#BE185D", s["total_rests"], None, "added"),
         ("&#129517;","Tour Guides","Listings","#EDE9FE","#7C3AED", s["total_guides"], None, "available"),

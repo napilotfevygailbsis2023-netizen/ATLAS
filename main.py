@@ -113,11 +113,13 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             if path.startswith("/admin/tourists/delete/"):
                 admin_db.delete_tourist(path.split("/")[-1])
                 redirect(self, "/admin/tourists"); return
-            if path == "/admin/flights":
                 send_html(self, admin_panel.flights_page(admin)); return
-            if path.startswith("/admin/flights/delete/"):
                 admin_db.delete_flight(path.split("/")[-1])
-                redirect(self, "/admin/flights"); return
+                send_html(self, admin_panel.spots_page(admin)); return
+                admin_db.delete_spot(path.split("/")[-1])
+                send_html(self, admin_panel.restaurants_page(admin)); return
+                admin_db.delete_restaurant(path.split("/")[-1])
+
             if path == "/admin/spots":
                 send_html(self, admin_panel.spots_page(admin)); return
             if path.startswith("/admin/spots/delete/"):
@@ -175,14 +177,12 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             if not admin:
                 redirect(self, "/admin/login"); return
 
-            if path == "/admin/flights/add":
                 try:
                     admin_db.add_flight(form.get("airline",""),form.get("origin",""),form.get("dest",""),
                         form.get("dep_time",""),form.get("arr_time",""),form.get("price",""),form.get("status","Scheduled"))
                     send_html(self, admin_panel.flights_page(admin, msg="Flight added!"))
                 except Exception as e: send_html(self, admin_panel.flights_page(admin))
 
-            elif path == "/admin/spots/add":
                 try:
                     admin_db.add_spot(form.get("name",""),form.get("city",""),form.get("category",""),
                         form.get("type",""),form.get("rating","4.0"),form.get("entry","Free"),
@@ -190,13 +190,27 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                     send_html(self, admin_panel.spots_page(admin, msg="Attraction added!"))
                 except Exception as e: send_html(self, admin_panel.spots_page(admin))
 
-            elif path == "/admin/restaurants/add":
                 try:
                     admin_db.add_restaurant(form.get("name",""),form.get("city",""),form.get("cuisine",""),
                         form.get("price",""),form.get("rating","4.0"),form.get("hours",""))
                     send_html(self, admin_panel.restaurants_page(admin, msg="Restaurant added!"))
                 except Exception as e: send_html(self, admin_panel.restaurants_page(admin))
 
+
+            elif path == "/admin/spots/add":
+                try:
+                    admin_db.add_spot(form.get("name",""),form.get("city",""),form.get("category",""),
+                        form.get("type",""),form.get("rating","4.0"),form.get("entry","Free"),
+                        form.get("hours","8AM-5PM"),form.get("desc",""))
+                    send_html(self, admin_panel.spots_page(admin, msg="Attraction added!"))
+                except: send_html(self, admin_panel.spots_page(admin))
+
+            elif path == "/admin/restaurants/add":
+                try:
+                    admin_db.add_restaurant(form.get("name",""),form.get("city",""),form.get("cuisine",""),
+                        form.get("price",""),form.get("rating","4.0"),form.get("hours",""))
+                    send_html(self, admin_panel.restaurants_page(admin, msg="Restaurant added!"))
+                except: send_html(self, admin_panel.restaurants_page(admin))
             elif path == "/admin/guides/add":
                 try:
                     admin_db.add_guide(form.get("name",""),form.get("city",""),form.get("language",""),
