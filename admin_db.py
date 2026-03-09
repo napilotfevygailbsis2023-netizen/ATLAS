@@ -9,20 +9,19 @@ def get_conn():
 
 def init_admin():
     conn = get_conn()
-    # admin accounts table
     conn.execute("""CREATE TABLE IF NOT EXISTS admins (
         id       INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
+        email    TEXT DEFAULT 'admin@atlas.ph',
+        fullname TEXT DEFAULT 'ATLAS Administrator',
         created  DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
-    # admin sessions
     conn.execute("""CREATE TABLE IF NOT EXISTS admin_sessions (
-        token   TEXT PRIMARY KEY,
+        token    TEXT PRIMARY KEY,
         admin_id INTEGER NOT NULL,
-        created DATETIME DEFAULT CURRENT_TIMESTAMP
+        created  DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
-    # custom spots table for admin CRUD
     conn.execute("""CREATE TABLE IF NOT EXISTS custom_spots (
         id       INTEGER PRIMARY KEY AUTOINCREMENT,
         name     TEXT NOT NULL,
@@ -35,7 +34,6 @@ def init_admin():
         desc     TEXT DEFAULT '',
         created  DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
-    # custom restaurants table
     conn.execute("""CREATE TABLE IF NOT EXISTS custom_restaurants (
         id       INTEGER PRIMARY KEY AUTOINCREMENT,
         name     TEXT NOT NULL,
@@ -46,21 +44,44 @@ def init_admin():
         hours    TEXT DEFAULT '10AM-10PM',
         created  DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
-    # page visit counter
-    conn.execute("""CREATE TABLE IF NOT EXISTS visits (
-        id      INTEGER PRIMARY KEY AUTOINCREMENT,
-        page    TEXT NOT NULL,
-        visited DATETIME DEFAULT CURRENT_TIMESTAMP
+    conn.execute("""CREATE TABLE IF NOT EXISTS custom_flights (
+        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+        airline  TEXT NOT NULL,
+        origin   TEXT NOT NULL,
+        dest     TEXT NOT NULL,
+        dep_time TEXT NOT NULL,
+        arr_time TEXT NOT NULL,
+        price    TEXT DEFAULT 'PHP 2,000',
+        status   TEXT DEFAULT 'Scheduled',
+        created  DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
-    # user status column
+    conn.execute("""CREATE TABLE IF NOT EXISTS custom_guides (
+        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+        name     TEXT NOT NULL,
+        city     TEXT NOT NULL,
+        language TEXT NOT NULL,
+        rate     TEXT DEFAULT 'PHP 1,500/day',
+        rating   REAL DEFAULT 4.5,
+        bio      TEXT DEFAULT '',
+        created  DATETIME DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS custom_transport (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        route     TEXT NOT NULL,
+        type      TEXT NOT NULL,
+        origin    TEXT NOT NULL,
+        dest      TEXT NOT NULL,
+        dep_time  TEXT NOT NULL,
+        fare      TEXT DEFAULT 'PHP 100',
+        created   DATETIME DEFAULT CURRENT_TIMESTAMP
+    )""")
     try:
         conn.execute("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'")
     except: pass
     conn.commit()
-    # seed default admin
     try:
         pw = hashlib.sha256("admin123".encode()).hexdigest()
-        conn.execute("INSERT INTO admins (username, password) VALUES (?,?)", ("admin", pw))
+        conn.execute("INSERT INTO admins (username,password) VALUES (?,?)", ("admin", pw))
         conn.commit()
     except: pass
     conn.close()
@@ -75,7 +96,7 @@ def admin_login(username, password):
     if row:
         token = secrets.token_hex(32)
         conn = get_conn()
-        conn.execute("INSERT INTO admin_sessions (token, admin_id) VALUES (?,?)", (token, row["id"]))
+        conn.execute("INSERT INTO admin_sessions (token,admin_id) VALUES (?,?)", (token, row["id"]))
         conn.commit(); conn.close()
         return token
     return None
@@ -97,32 +118,54 @@ def admin_logout(token):
         conn.commit(); conn.close()
     except: pass
 
+def update_admin_profile(admin_id, fullname, email, new_password=None):
+    conn = get_conn()
+    if new_password:
+        conn.execute("UPDATE admins SET fullname=?,email=?,password=? WHERE id=?",
+                     (fullname, email, hash_pw(new_password), admin_id))
+    else:
+        conn.execute("UPDATE admins SET fullname=?,email=? WHERE id=?",
+                     (fullname, email, admin_id))
+    conn.commit(); conn.close()
+
 # ── STATS ──
 def get_stats():
     conn = get_conn()
-    total_users   = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-    active_users  = conn.execute("SELECT COUNT(*) FROM users WHERE status='active' OR status IS NULL").fetchone()[0]
-    suspended     = conn.execute("SELECT COUNT(*) FROM users WHERE status='suspended'").fetchone()[0]
-    total_spots   = conn.execute("SELECT COUNT(*) FROM custom_spots").fetchone()[0]
-    total_rests   = conn.execute("SELECT COUNT(*) FROM custom_restaurants").fetchone()[0]
-    total_visits  = conn.execute("SELECT COUNT(*) FROM visits").fetchone()[0]
+    def count(sql):
+        try: return conn.execute(sql).fetchone()[0]
+        except: return 0
+    s = {
+        "total_tourists":  count("SELECT COUNT(*) FROM users"),
+        "active_tourists": count("SELECT COUNT(*) FROM users WHERE status='active' OR status IS NULL"),
+        "suspended":       count("SELECT COUNT(*) FROM users WHERE status='suspended'"),
+        "total_spots":     count("SELECT COUNT(*) FROM custom_spots"),
+        "total_rests":     count("SELECT COUNT(*) FROM custom_restaurants"),
+        "total_flights":   count("SELECT COUNT(*) FROM custom_flights"),
+        "total_guides":    count("SELECT COUNT(*) FROM custom_guides"),
+        "total_transport": count("SELECT COUNT(*) FROM custom_transport"),
+    }
     conn.close()
-    return {"total_users":total_users,"active_users":active_users,"suspended":suspended,
-            "total_spots":total_spots,"total_rests":total_rests,"total_visits":total_visits}
+    return s
 
-# ── USERS ──
-def get_all_users():
+def get_recent_tourists(limit=5):
+    conn = get_conn()
+    rows = conn.execute("SELECT id,fname,lname,email,created,status FROM users ORDER BY created DESC LIMIT ?", (limit,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+# ── TOURISTS ──
+def get_all_tourists():
     conn = get_conn()
     rows = conn.execute("SELECT id,fname,lname,email,created,status FROM users ORDER BY created DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
-def set_user_status(uid, status):
+def set_tourist_status(uid, status):
     conn = get_conn()
     conn.execute("UPDATE users SET status=? WHERE id=?", (status, uid))
     conn.commit(); conn.close()
 
-def delete_user(uid):
+def delete_tourist(uid):
     conn = get_conn()
     conn.execute("DELETE FROM sessions WHERE user_id=?", (uid,))
     conn.execute("DELETE FROM users WHERE id=?", (uid,))
@@ -138,7 +181,7 @@ def get_spots():
 def add_spot(name, city, category, stype, rating, entry, hours, desc):
     conn = get_conn()
     conn.execute("INSERT INTO custom_spots (name,city,category,type,rating,entry,hours,desc) VALUES (?,?,?,?,?,?,?,?)",
-                 (name,city,category,stype,float(rating),entry,hours,desc))
+                 (name, city, category, stype, float(rating), entry, hours, desc))
     conn.commit(); conn.close()
 
 def delete_spot(sid):
@@ -156,7 +199,7 @@ def get_restaurants():
 def add_restaurant(name, city, cuisine, price, rating, hours):
     conn = get_conn()
     conn.execute("INSERT INTO custom_restaurants (name,city,cuisine,price,rating,hours) VALUES (?,?,?,?,?,?)",
-                 (name,city,cuisine,price,float(rating),hours))
+                 (name, city, cuisine, price, float(rating), hours))
     conn.commit(); conn.close()
 
 def delete_restaurant(rid):
@@ -164,18 +207,58 @@ def delete_restaurant(rid):
     conn.execute("DELETE FROM custom_restaurants WHERE id=?", (rid,))
     conn.commit(); conn.close()
 
-# ── VISIT TRACKING ──
-def log_visit(page):
-    try:
-        conn = get_conn()
-        conn.execute("INSERT INTO visits (page) VALUES (?)", (page,))
-        conn.commit(); conn.close()
-    except: pass
-
-def get_visit_stats():
+# ── FLIGHTS CRUD ──
+def get_flights():
     conn = get_conn()
-    rows = conn.execute("SELECT page, COUNT(*) as cnt FROM visits GROUP BY page ORDER BY cnt DESC").fetchall()
+    rows = conn.execute("SELECT * FROM custom_flights ORDER BY created DESC").fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+def add_flight(airline, origin, dest, dep_time, arr_time, price, status):
+    conn = get_conn()
+    conn.execute("INSERT INTO custom_flights (airline,origin,dest,dep_time,arr_time,price,status) VALUES (?,?,?,?,?,?,?)",
+                 (airline, origin, dest, dep_time, arr_time, price, status))
+    conn.commit(); conn.close()
+
+def delete_flight(fid):
+    conn = get_conn()
+    conn.execute("DELETE FROM custom_flights WHERE id=?", (fid,))
+    conn.commit(); conn.close()
+
+# ── GUIDES CRUD ──
+def get_guides():
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM custom_guides ORDER BY created DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def add_guide(name, city, language, rate, rating, bio):
+    conn = get_conn()
+    conn.execute("INSERT INTO custom_guides (name,city,language,rate,rating,bio) VALUES (?,?,?,?,?,?)",
+                 (name, city, language, rate, float(rating), bio))
+    conn.commit(); conn.close()
+
+def delete_guide(gid):
+    conn = get_conn()
+    conn.execute("DELETE FROM custom_guides WHERE id=?", (gid,))
+    conn.commit(); conn.close()
+
+# ── TRANSPORT CRUD ──
+def get_transport():
+    conn = get_conn()
+    rows = conn.execute("SELECT * FROM custom_transport ORDER BY created DESC").fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def add_transport(route, ttype, origin, dest, dep_time, fare):
+    conn = get_conn()
+    conn.execute("INSERT INTO custom_transport (route,type,origin,dest,dep_time,fare) VALUES (?,?,?,?,?,?)",
+                 (route, ttype, origin, dest, dep_time, fare))
+    conn.commit(); conn.close()
+
+def delete_transport(tid):
+    conn = get_conn()
+    conn.execute("DELETE FROM custom_transport WHERE id=?", (tid,))
+    conn.commit(); conn.close()
 
 init_admin()
