@@ -1,83 +1,103 @@
-import sys, os, urllib.parse
+import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import db
 
-def render(error=""):
-    err = f'<div style="background:rgba(206,17,38,.15);border:1px solid rgba(206,17,38,.4);border-radius:6px;padding:9px 12px;color:#ffaaaa;font-size:13px;margin-bottom:12px">{error}</div>' if error else ""
+def _shell(right_content, error="", success=""):
+    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px;display:flex;align-items:center;gap:8px">&#9888; {error}</div>' if error else ""
+    suc = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:10px 14px;color:#065F46;font-size:13px;margin-bottom:18px;display:flex;align-items:center;gap:8px">&#10003; {success}</div>' if success else ""
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Log In - ATLAS</title>
 <link rel="stylesheet" href="/css/styles.css"/>
 <style>
-body{{margin:0;min-height:100vh;background:#0d1b2a;display:flex;align-items:center;justify-content:center;padding:24px}}
-.wrap{{display:flex;width:100%;max-width:720px;border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.5)}}
-.left{{flex:1;background:url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=900&q=80') center/cover;position:relative;min-height:440px;display:flex;flex-direction:column;justify-content:flex-end;padding:28px}}
-.left-overlay{{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.78),rgba(0,0,0,.08))}}
-.left-text{{position:relative;z-index:1}}
-.left-text h2{{font-size:30px;font-weight:900;color:#fff;text-transform:uppercase;line-height:1.15;margin-bottom:8px}}
-.left-text p{{color:rgba(255,255,255,.65);font-size:12px;line-height:1.7;margin-bottom:16px;max-width:220px}}
-.learn{{border:1.5px solid #fff;color:#fff;border-radius:30px;padding:7px 20px;font-size:12px;font-weight:700;background:transparent;cursor:pointer;font-family:inherit}}
-.right{{width:290px;flex-shrink:0;background:#1565C0;display:flex;flex-direction:column;justify-content:center;padding:36px 26px}}
-.brand{{display:flex;align-items:center;gap:8px;margin-bottom:18px}}
-.brand-box{{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#0038A8,#CE1126);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px}}
-.title{{color:#fff;font-size:20px;font-weight:700;margin-bottom:18px}}
-label{{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:4px}}
-input{{width:100%;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:9px 12px;color:#fff;font-size:13px;outline:none;margin-bottom:12px;font-family:inherit;box-sizing:border-box}}
-input::placeholder{{color:rgba(255,255,255,.35)}}
-input:focus{{border-color:#90CAF9;background:rgba(255,255,255,.2)}}
-.sbtn{{width:100%;background:#1976D2;color:#fff;border:none;border-radius:6px;padding:11px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:12px;font-family:inherit}}
-.sbtn:hover{{filter:brightness(1.15)}}
-.sep{{display:flex;align-items:center;gap:8px;margin:8px 0}}
-.sep::before,.sep::after{{content:'';flex:1;height:1px;background:rgba(255,255,255,.18)}}
-.sep span{{font-size:11px;color:rgba(255,255,255,.38)}}
-.alt{{width:100%;background:transparent;border:1.5px solid rgba(255,255,255,.28);color:#fff;border-radius:6px;padding:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}}
-.foot{{text-align:center;font-size:11px;color:rgba(255,255,255,.4);margin-top:10px}}
-.foot a{{color:rgba(255,255,255,.75);text-decoration:underline}}
-@media(max-width:600px){{.left{{display:none}}.right{{width:100%}}}}
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;background:#F8F4EF}}
+.split-left{{width:55%;background:linear-gradient(160deg,#CE1126 0%,#0038A8 60%,#1a1a2e 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
+.blob1{{position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.07);top:-80px;left:-80px}}
+.blob2{{position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.05);bottom:-60px;right:-60px}}
+.split-left-content{{position:relative;z-index:2;text-align:center;color:#fff}}
+.split-right{{width:45%;flex-shrink:0;background:linear-gradient(160deg,#F0F4FF 0%,#fff 35%);display:flex;flex-direction:column;justify-content:center;padding:52px 48px;min-height:100vh;overflow-y:auto}}
+.tab-row{{display:flex;background:#F3F4F6;border-radius:12px;padding:4px;margin-bottom:32px}}
+.tab{{flex:1;padding:10px;text-align:center;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;color:#6B7280;transition:.2s}}
+.tab.active{{background:#fff;color:#1F2937;box-shadow:0 1px 4px rgba(0,0,0,.1)}}
+.field{{margin-bottom:18px}}
+.field label{{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}}
+.field input{{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;transition:.2s;background:#F9FAFB}}
+.field input:focus{{border-color:#0038A8;background:#fff;box-shadow:0 0 0 3px rgba(0,56,168,.08)}}
+.submit-btn{{width:100%;padding:14px;background:linear-gradient(135deg,#CE1126,#0038A8);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;margin-top:4px}}
+.submit-btn:hover{{opacity:.92}}
+.divider{{display:flex;align-items:center;gap:12px;margin:20px 0;color:#9CA3AF;font-size:13px}}
+.divider::before,.divider::after{{content:'';flex:1;height:1px;background:#E5E7EB}}
+.back-link{{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);color:#fff;text-decoration:none;padding:8px 16px;border-radius:30px;font-size:13px;font-weight:600;z-index:999}}
+@media(max-width:700px){{.split-left{{display:none}}.split-right{{width:100%}}}}
 </style>
 </head>
 <body>
-<a href="/" style="position:fixed;top:18px;left:18px;z-index:999;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);color:#fff;text-decoration:none;padding:8px 14px;border-radius:30px;font-size:13px;font-weight:600">&#8592; Back</a>
-<div class="wrap">
-  <div class="left">
-    <div class="left-overlay"></div>
-    <div class="left-text">
-      <h2>Enjoy Luzon<br>Philippines</h2>
-      <p>Discover the beauty of Luzon - flights, weather, attractions and more.</p>
-      <a href="/"><button class="learn">Learn More</button></a>
+<a href="/" class="back-link">&#8592; Tourist Site</a>
+<div class="split-left">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div class="split-left-content">
+    <div style="font-size:72px;margin-bottom:20px">&#127963;</div>
+    <div style="font-size:36px;font-weight:900;line-height:1.2;margin-bottom:14px">Explore.<br/>Discover.<br/>Adventure.</div>
+    <div style="font-size:15px;opacity:.8;line-height:1.8;margin-bottom:32px;max-width:300px">Your Luzon travel companion for flights, attractions, restaurants and guided tours.</div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;opacity:.9">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">&#9992;</span> Real-time flight search</div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">&#127963;</span> Tourist attraction guides</div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">&#129517;</span> Verified local tour guides</div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">&#127748;</span> Live weather forecasts</div>
     </div>
   </div>
-  <div class="right">
-    <div class="brand">
-      <div class="brand-box">A</div>
-      <span style="font-weight:800;color:#fff;font-size:13px">ATLAS travel</span>
+</div>
+<div class="split-right">
+  <div style="margin-bottom:28px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="width:32px;height:32px;background:linear-gradient(135deg,#CE1126,#0038A8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px">A</div>
+      <span style="font-weight:900;font-size:18px;color:#1F2937">ATLAS</span>
     </div>
-    <div class="title">Log In</div>
-    {err}
-    <form method="post" action="/login.py">
-      <label>Email *</label>
-      <input type="email" name="email" placeholder="you@example.com" required/>
-      <label>Password *</label>
-      <input type="password" name="password" placeholder="Password" required/>
-      <button class="sbtn" type="submit">Continue &#8594;</button>
-    </form>
-    <div class="sep"><span>or</span></div>
-    <a href="/register.py"><button class="alt">Create Account</button></a>
-    <div class="foot">No account? <a href="/register.py">Sign Up</a></div>
+    <div style="font-size:13px;color:#6B7280">Luzon Travel Companion</div>
+  </div>
+  <div class="tab-row">
+    <a href="/login.py" class="tab active">Log In</a>
+    <a href="/register.py" class="tab">Create Account</a>
+  </div>
+  <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:6px">Welcome back!</div>
+  <div style="font-size:14px;color:#6B7280;margin-bottom:24px">Sign in to your ATLAS account</div>
+  {err}{suc}
+  {right_content}
+  <div style="text-align:center;margin-top:24px;font-size:13px;color:#6B7280">
+    Don't have an account? <a href="/register.py" style="color:#0038A8;font-weight:700">Sign Up</a>
   </div>
 </div>
 </body>
 </html>"""
 
+def render(error="", success=""):
+    form = """
+    <form method="post" action="/login.py" style="display:flex;flex-direction:column;gap:0">
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" name="email" placeholder="you@email.com" required/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" name="password" placeholder="Enter your password" required/>
+      </div>
+      <button class="submit-btn" type="submit">Log In &#8594;</button>
+    </form>"""
+    return _shell(form, error, success)
+
 def handle_post(form_data):
-    email    = form_data.get("email", "")
-    password = form_data.get("password", "")
+    email    = form_data.get("email","").strip()
+    password = form_data.get("password","").strip()
     if not email or not password:
         return None, render("Please fill in all fields.")
     ok, token, user = db.login_user(email, password)
-    if ok:
+    if ok is True:
         return token, None
+    if ok == "suspended":
+        return None, render("Your account has been suspended. Please contact support.")
     return None, render("Invalid email or password.")
