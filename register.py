@@ -3,98 +3,95 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import db
 
 def render(error="", success=""):
-    err = f'<div style="background:rgba(206,17,38,.15);border:1px solid rgba(206,17,38,.4);border-radius:6px;padding:9px 12px;color:#ffaaaa;font-size:13px;margin-bottom:10px">{error}</div>' if error else ""
-    suc = f'<div style="background:rgba(6,95,70,.3);border:1px solid rgba(6,95,70,.5);border-radius:6px;padding:9px 12px;color:#6EE7B7;font-size:13px;margin-bottom:10px">{success}</div>' if success else ""
+    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px;display:flex;align-items:center;gap:8px">&#9888; {error}</div>' if error else ""
+    suc = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:10px 14px;color:#065F46;font-size:13px;margin-bottom:18px;display:flex;align-items:center;gap:8px">&#10003; {success}</div>' if success else ""
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Sign Up - ATLAS</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Register - ATLAS</title>
 <link rel="stylesheet" href="/css/styles.css"/>
 <style>
-body{{margin:0;min-height:100vh;background:#0d1b2a;display:flex;align-items:center;justify-content:center;padding:24px}}
-.wrap{{display:flex;width:100%;max-width:720px;border-radius:16px;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.5)}}
-.left{{flex:1;background:url('https://images.unsplash.com/photo-1483729558449-99ef09a8c325?w=900&q=80') center/cover;position:relative;min-height:480px;display:flex;flex-direction:column;justify-content:flex-end;padding:28px}}
-.left-overlay{{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.78),rgba(0,0,0,.08))}}
-.left-text{{position:relative;z-index:1}}
-.left-text h2{{font-size:30px;font-weight:900;color:#fff;text-transform:uppercase;line-height:1.15;margin-bottom:8px}}
-.left-text p{{color:rgba(255,255,255,.65);font-size:12px;line-height:1.7;margin-bottom:16px;max-width:220px}}
-.learn{{border:1.5px solid #fff;color:#fff;border-radius:30px;padding:7px 20px;font-size:12px;font-weight:700;background:transparent;cursor:pointer;font-family:inherit}}
-.right{{width:290px;flex-shrink:0;background:#1565C0;display:flex;flex-direction:column;justify-content:center;padding:28px 24px}}
-.brand{{display:flex;align-items:center;gap:8px;margin-bottom:14px}}
-.brand-box{{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#0038A8,#CE1126);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px}}
-.title{{color:#fff;font-size:18px;font-weight:700;margin-bottom:14px}}
-label{{display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,.6);margin-bottom:3px}}
-input{{width:100%;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:8px 11px;color:#fff;font-size:13px;outline:none;margin-bottom:10px;font-family:inherit;box-sizing:border-box}}
-input::placeholder{{color:rgba(255,255,255,.35)}}
-input:focus{{border-color:#90CAF9;background:rgba(255,255,255,.2)}}
-.name-row{{display:grid;grid-template-columns:1fr 1fr;gap:8px}}
-.hint{{font-size:10px;color:rgba(255,255,255,.35);margin:-6px 0 8px}}
-.sbtn{{width:100%;background:#CE1126;color:#fff;border:none;border-radius:6px;padding:11px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:10px;font-family:inherit}}
-.sbtn:hover{{filter:brightness(1.15)}}
-.sep{{display:flex;align-items:center;gap:8px;margin:6px 0}}
-.sep::before,.sep::after{{content:'';flex:1;height:1px;background:rgba(255,255,255,.18)}}
-.sep span{{font-size:11px;color:rgba(255,255,255,.38)}}
-.alt{{width:100%;background:transparent;border:1.5px solid rgba(255,255,255,.28);color:#fff;border-radius:6px;padding:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}}
-.foot{{text-align:center;font-size:11px;color:rgba(255,255,255,.4);margin-top:10px}}
-.foot a{{color:rgba(255,255,255,.75);text-decoration:underline}}
-@media(max-width:600px){{.left{{display:none}}.right{{width:100%}}}}
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;background:#F8F4EF}}
+.split-left{{width:55%;background:linear-gradient(160deg,#0038A8 0%,#CE1126 60%,#1a1a2e 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
+.blob1{{position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.07);top:-80px;right:-80px}}
+.blob2{{position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.05);bottom:-60px;left:-60px}}
+.split-right{{width:45%;flex-shrink:0;background:linear-gradient(160deg,#FFF0F0 0%,#fff 35%);display:flex;flex-direction:column;justify-content:center;padding:48px;min-height:100vh;overflow-y:auto}}
+.tab-row{{display:flex;background:#F3F4F6;border-radius:12px;padding:4px;margin-bottom:28px}}
+.tab{{flex:1;padding:10px;text-align:center;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;color:#6B7280}}
+.tab.active{{background:#fff;color:#1F2937;box-shadow:0 1px 4px rgba(0,0,0,.1)}}
+.field{{margin-bottom:16px}}
+.field label{{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}}
+.field input{{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB}}
+.field input:focus{{border-color:#CE1126;background:#fff;box-shadow:0 0 0 3px rgba(206,17,38,.08)}}
+.submit-btn{{width:100%;padding:14px;background:linear-gradient(135deg,#CE1126,#0038A8);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}}
+.back-link{{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);color:#fff;text-decoration:none;padding:8px 16px;border-radius:30px;font-size:13px;font-weight:600;z-index:999}}
+@media(max-width:700px){{.split-left{{display:none}}.split-right{{width:100%}}}}
 </style>
 </head>
 <body>
-<a href="/" style="position:fixed;top:18px;left:18px;z-index:999;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.25);color:#fff;text-decoration:none;padding:8px 14px;border-radius:30px;font-size:13px;font-weight:600">&#8592; Back</a>
-<div class="wrap">
-  <div class="left">
-    <div class="left-overlay"></div>
-    <div class="left-text">
-      <h2>Join<br>ATLAS</h2>
-      <p>Create your free account and start planning your perfect Luzon adventure.</p>
-      <a href="/"><button class="learn">Explore First</button></a>
+<a href="/" class="back-link">&#8592; Tourist Site</a>
+<div class="split-left">
+  <div class="blob1"></div>
+  <div class="blob2"></div>
+  <div style="position:relative;z-index:2;text-align:center;color:#fff">
+    <div style="font-size:72px;margin-bottom:20px">&#127758;</div>
+    <div style="font-size:34px;font-weight:900;line-height:1.2;margin-bottom:14px">Join ATLAS<br/>Today!</div>
+    <div style="font-size:15px;opacity:.8;line-height:1.8;margin-bottom:32px;max-width:300px">Create your free account and start planning your perfect Luzon adventure.</div>
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;opacity:.9;text-align:left">
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px"><span style="font-size:22px">&#128197;</span><div><div style="font-weight:700">Itinerary Planner</div><div style="font-size:12px;opacity:.8">Build your custom day-by-day plan</div></div></div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px"><span style="font-size:22px">&#129517;</span><div><div style="font-weight:700">Book Tour Guides</div><div style="font-size:12px;opacity:.8">Connect with verified local guides</div></div></div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px"><span style="font-size:22px">&#9992;</span><div><div style="font-weight:700">Track Flights</div><div style="font-size:12px;opacity:.8">Real-time flight information</div></div></div>
     </div>
   </div>
-  <div class="right">
-    <div class="brand">
-      <div class="brand-box">A</div>
-      <span style="font-weight:800;color:#fff;font-size:13px">ATLAS travel</span>
+</div>
+<div class="split-right">
+  <div style="margin-bottom:24px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="width:32px;height:32px;background:linear-gradient(135deg,#CE1126,#0038A8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px">A</div>
+      <span style="font-weight:900;font-size:18px;color:#1F2937">ATLAS</span>
     </div>
-    <div class="title">Create Account</div>
-    {err}{suc}
-    <form method="post" action="/register.py">
-      <div class="name-row">
-        <div><label>First Name *</label><input type="text" name="fname" placeholder="Juan" required/></div>
-        <div><label>Last Name *</label><input type="text" name="lname" placeholder="Cruz" required/></div>
-      </div>
-      <label>Email *</label>
-      <input type="email" name="email" placeholder="you@example.com" required/>
-      <label>Password *</label>
-      <input type="password" name="password" placeholder="Min. 8 characters" required/>
-      <div class="hint">Minimum 8 characters</div>
-      <label>Confirm Password *</label>
-      <input type="password" name="confirm" placeholder="Repeat password" required/>
-      <button class="sbtn" type="submit">Create Account &#8594;</button>
-    </form>
-    <div class="sep"><span>or</span></div>
-    <a href="/login.py"><button class="alt">Sign In Instead</button></a>
-    <div class="foot">Have account? <a href="/login.py">Log In</a></div>
+    <div style="font-size:13px;color:#6B7280">Luzon Travel Companion</div>
+  </div>
+  <div class="tab-row">
+    <a href="/login.py" class="tab">Log In</a>
+    <a href="/register.py" class="tab active">Create Account</a>
+  </div>
+  <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:6px">Create your account</div>
+  <div style="font-size:14px;color:#6B7280;margin-bottom:22px">Start your Luzon adventure today — it's free!</div>
+  {err}{suc}
+  <form method="post" action="/register.py">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="field"><label>First Name *</label><input name="fname" placeholder="Juan" required/></div>
+      <div class="field"><label>Last Name *</label><input name="lname" placeholder="Dela Cruz" required/></div>
+    </div>
+    <div class="field"><label>Email Address *</label><input type="email" name="email" placeholder="you@email.com" required/></div>
+    <div class="field"><label>Password *</label><input type="password" name="password" placeholder="Create a strong password" required/></div>
+    <div class="field"><label>Confirm Password *</label><input type="password" name="password2" placeholder="Repeat your password" required/></div>
+    <button class="submit-btn" type="submit">Create Account &#8594;</button>
+  </form>
+  <div style="text-align:center;margin-top:20px;font-size:13px;color:#6B7280">
+    Already have an account? <a href="/login.py" style="color:#CE1126;font-weight:700">Log In</a>
   </div>
 </div>
 </body>
 </html>"""
 
 def handle_post(form_data):
-    fname   = form_data.get("fname","").strip()
-    lname   = form_data.get("lname","").strip()
-    email   = form_data.get("email","").strip()
-    pw      = form_data.get("password","")
-    confirm = form_data.get("confirm","")
-    if not all([fname, lname, email, pw, confirm]):
-        return False, render(error="Please fill in all fields.")
-    if len(pw) < 8:
-        return False, render(error="Password must be at least 8 characters.")
-    if pw != confirm:
+    fname = form_data.get("fname","").strip()
+    lname = form_data.get("lname","").strip()
+    email = form_data.get("email","").strip()
+    pw    = form_data.get("password","").strip()
+    pw2   = form_data.get("password2","").strip()
+    if not all([fname, lname, email, pw]):
+        return False, render(error="Please fill in all required fields.")
+    if pw != pw2:
         return False, render(error="Passwords do not match.")
+    if len(pw) < 6:
+        return False, render(error="Password must be at least 6 characters.")
     ok, msg = db.register_user(fname, lname, email, pw)
     if ok:
-        return True, render(success="Account created! <a href='/login.py' style='color:#6EE7B7;font-weight:700'>Log In now</a>")
+        return True, render(success="Account created! You can now log in.")
     return False, render(error=msg)

@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import index, flights, weather, attractions, restaurants, guides, transport, itinerary
 import login, register, db
 import admin_login, admin_panel, admin_db
+import guide_portal, guide_db
 
 PORT = int(os.environ.get("PORT", 5000))
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -18,8 +19,8 @@ ROUTES = {
     "/attractions.py": lambda p, u: attractions.render(p.get("city","All"), p.get("cat","All"), p.get("kw",""), u),
     "/restaurants.py": lambda p, u: restaurants.render(p.get("city","All"), p.get("kw",""), u),
     "/guides.py":      lambda p, u: guides.render(p.get("city","All"), p.get("lang","All"), u),
-    "/transport.py":   lambda p, u: transport.render(p.get("type","All"), p.get("from","All"), p.get("q",""), u),
-    "/itinerary.py":   lambda p, u: itinerary.render(p.get("dest","Manila"), u),
+    "/transport.py":   lambda p, u: transport.render(p.get("type","All"), p.get("from","All"), u),
+    "/itinerary.py":   lambda p, u: itinerary.render(p.get("dest","Manila"), p.get("days",None), u),
     "/login.py":       lambda p, u: login.render(),
     "/register.py":    lambda p, u: register.render(),
 }
@@ -77,6 +78,48 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(css)
             return
+
+
+        # ── GUIDE PORTAL GET ──
+        if path in ("/guide", "/guide/"):
+            send_html(self, guide_portal.render_login()); return
+        if path == "/guide/register":
+            send_html(self, guide_portal.render_register()); return
+        if path == "/guide/logout":
+            g_tok = get_token(cookie, "atlas_guide")
+            if g_tok: guide_db.logout_guide(g_tok)
+            redirect(self, "/guide", "atlas_guide=; Path=/; Max-Age=0"); return
+        if path == "/guide/dashboard":
+            g_tok = get_token(cookie, "atlas_guide")
+            guide = guide_db.get_guide_by_token(g_tok)
+            if not guide: redirect(self, "/guide"); return
+            send_html(self, guide_portal.render_dashboard(guide)); return
+        if path == "/guide/packages":
+            g_tok = get_token(cookie, "atlas_guide")
+            guide = guide_db.get_guide_by_token(g_tok)
+            if not guide: redirect(self, "/guide"); return
+            send_html(self, guide_portal.render_packages(guide)); return
+        if path == "/guide/bookings":
+            g_tok = get_token(cookie, "atlas_guide")
+            guide = guide_db.get_guide_by_token(g_tok)
+            if not guide: redirect(self, "/guide"); return
+            params = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(self.path).query))
+            send_html(self, guide_portal.render_bookings(guide, params.get("filter","all"))); return
+        if path == "/guide/availability":
+            g_tok = get_token(cookie, "atlas_guide")
+            guide = guide_db.get_guide_by_token(g_tok)
+            if not guide: redirect(self, "/guide"); return
+            send_html(self, guide_portal.render_availability(guide)); return
+        if path == "/guide/ratings":
+            g_tok = get_token(cookie, "atlas_guide")
+            guide = guide_db.get_guide_by_token(g_tok)
+            if not guide: redirect(self, "/guide"); return
+            send_html(self, guide_portal.render_ratings(guide)); return
+        if path == "/guide/profile":
+            g_tok = get_token(cookie, "atlas_guide")
+            guide = guide_db.get_guide_by_token(g_tok)
+            if not guide: redirect(self, "/guide"); return
+            send_html(self, guide_portal.render_profile(guide)); return
 
         # User logout
         if path == "/logout.py":
@@ -240,6 +283,85 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                     send_html(self, admin_panel.profile_page(updated, msg="Profile updated successfully!"))
             else:
                 self.send_error(404)
+
+
+        elif path == "/guide/login":
+            email = form.get("email",""); pw = form.get("password","")
+            ok, token, guide = guide_db.login_guide(email, pw)
+            if ok:
+                redirect(self, "/guide/dashboard", f"atlas_guide={token}; Path=/; Max-Age=86400")
+            else:
+                send_html(self, guide_portal.render_login(error="Invalid email or password."))
+
+        elif path == "/guide/register":
+            fname=form.get("fname","").strip(); lname=form.get("lname","").strip()
+            email=form.get("email","").strip(); pw=form.get("password","").strip()
+            pw2=form.get("password2","").strip(); phone=form.get("phone","").strip()
+            city=form.get("city","Manila")
+            if not all([fname,lname,email,pw,phone]):
+                send_html(self, guide_portal.render_register(error="Please fill in all required fields."))
+            elif pw != pw2:
+                send_html(self, guide_portal.render_register(error="Passwords do not match."))
+            elif len(pw) < 6:
+                send_html(self, guide_portal.render_register(error="Password must be at least 6 characters."))
+            else:
+                ok, msg = guide_db.register_guide(fname, lname, email, pw, phone, city)
+                if ok:
+                    send_html(self, guide_portal.render_login(success="Account created! Please log in."))
+                else:
+                    send_html(self, guide_portal.render_register(error=msg))
+
+        elif path.startswith("/guide/"):
+            g_tok = get_token(cookie, "atlas_guide")
+            guide = guide_db.get_guide_by_token(g_tok)
+            if not guide:
+                redirect(self, "/guide"); return
+            action = form.get("action","")
+            msg = ""; err = ""
+            if action == "add_package":
+                guide_db.add_package(guide["id"], form); msg = "Package added!"
+            elif action == "delete_package":
+                guide_db.delete_package(int(form.get("pkg_id",0)), guide["id"]); msg = "Package deleted."
+            elif action == "accept_booking":
+                guide_db.update_booking_status(int(form.get("booking_id",0)), guide["id"], "accepted"); msg = "Booking accepted!"
+            elif action == "reject_booking":
+                guide_db.update_booking_status(int(form.get("booking_id",0)), guide["id"], "rejected"); msg = "Booking rejected."
+            elif action == "cancel_booking":
+                guide_db.update_booking_status(int(form.get("booking_id",0)), guide["id"], "cancelled"); msg = "Booking cancelled."
+            elif action == "reschedule_booking":
+                new_date = form.get("new_date","")
+                guide_db.update_booking_status(int(form.get("booking_id",0)), guide["id"], "rescheduled", f"Rescheduled to {new_date}"); msg = f"Rescheduled to {new_date}!"
+            elif action == "update_availability":
+                avail = ",".join([v for k,v in urllib.parse.parse_qsl(body) if k=="days"])
+                if avail:
+                    conn = guide_db.get_conn()
+                    conn.execute("UPDATE tour_guides SET availability=? WHERE id=?", (avail, guide["id"]))
+                    conn.commit(); conn.close()
+                    guide = guide_db.get_guide_by_id(guide["id"])
+                msg = "Availability updated!"
+            elif action == "update_profile":
+                guide_db.update_guide_profile(guide["id"], form)
+                guide = guide_db.get_guide_by_id(guide["id"]); msg = "Profile updated!"
+            elif action == "change_password":
+                pw1=form.get("new_pw",""); pw2=form.get("new_pw2","")
+                if pw1 and pw1==pw2 and len(pw1)>=6:
+                    guide_db.change_guide_password(guide["id"], pw1); msg = "Password changed!"
+                else: err = "Passwords do not match or too short."
+            # Redirect to correct page
+            if path == "/guide/packages":
+                send_html(self, guide_portal.render_packages(guide, msg, err))
+            elif path == "/guide/bookings":
+                params = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(self.path).query))
+                send_html(self, guide_portal.render_bookings(guide, params.get("filter","all"), msg, err))
+            elif path == "/guide/availability":
+                send_html(self, guide_portal.render_availability(guide, msg, err))
+            elif path == "/guide/profile":
+                send_html(self, guide_portal.render_profile(guide, msg, err))
+            else:
+                send_html(self, guide_portal.render_dashboard(guide, msg, err))
+
+
+
         else:
             self.send_error(404)
 
@@ -251,6 +373,7 @@ if __name__ == "__main__":
     print("="*50)
     print(f"\n  Site:  http://localhost:{PORT}")
     print(f"  Admin: http://localhost:{PORT}/admin")
+    print(f"  Guide: http://localhost:{PORT}/guide")
     print(f"\n  Admin login: admin / admin123")
     print("  Ctrl+C to stop\n")
     socketserver.TCPServer.allow_reuse_address = True
