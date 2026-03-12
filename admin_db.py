@@ -23,26 +23,28 @@ def init_admin():
         created  DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS custom_spots (
-        id       INTEGER PRIMARY KEY AUTOINCREMENT,
-        name     TEXT NOT NULL,
-        city     TEXT NOT NULL,
-        category TEXT NOT NULL,
-        type     TEXT NOT NULL,
-        rating   REAL DEFAULT 4.0,
-        entry    TEXT DEFAULT 'Free',
-        hours    TEXT DEFAULT '8AM-5PM',
-        desc     TEXT DEFAULT '',
-        created  DATETIME DEFAULT CURRENT_TIMESTAMP
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        name      TEXT NOT NULL,
+        city      TEXT NOT NULL,
+        category  TEXT NOT NULL,
+        type      TEXT NOT NULL,
+        rating    REAL DEFAULT 4.0,
+        entry     TEXT DEFAULT 'Free',
+        hours     TEXT DEFAULT '8AM-5PM',
+        desc      TEXT DEFAULT '',
+        image_url TEXT DEFAULT '',
+        created   DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS custom_restaurants (
-        id       INTEGER PRIMARY KEY AUTOINCREMENT,
-        name     TEXT NOT NULL,
-        city     TEXT NOT NULL,
-        cuisine  TEXT NOT NULL,
-        price    TEXT DEFAULT 'PHP 200-400',
-        rating   REAL DEFAULT 4.0,
-        hours    TEXT DEFAULT '10AM-10PM',
-        created  DATETIME DEFAULT CURRENT_TIMESTAMP
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        name      TEXT NOT NULL,
+        city      TEXT NOT NULL,
+        cuisine   TEXT NOT NULL,
+        price     TEXT DEFAULT 'PHP 200-400',
+        rating    REAL DEFAULT 4.0,
+        hours     TEXT DEFAULT '10AM-10PM',
+        image_url TEXT DEFAULT '',
+        created   DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS custom_flights (
         id       INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,14 +58,15 @@ def init_admin():
         created  DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS custom_guides (
-        id       INTEGER PRIMARY KEY AUTOINCREMENT,
-        name     TEXT NOT NULL,
-        city     TEXT NOT NULL,
-        language TEXT NOT NULL,
-        rate     TEXT DEFAULT 'PHP 1,500/day',
-        rating   REAL DEFAULT 4.5,
-        bio      TEXT DEFAULT '',
-        created  DATETIME DEFAULT CURRENT_TIMESTAMP
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        name      TEXT NOT NULL,
+        city      TEXT NOT NULL,
+        language  TEXT NOT NULL,
+        rate      TEXT DEFAULT 'PHP 1,500/day',
+        rating    REAL DEFAULT 4.5,
+        bio       TEXT DEFAULT '',
+        image_url TEXT DEFAULT '',
+        created   DATETIME DEFAULT CURRENT_TIMESTAMP
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS custom_transport (
         id        INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,6 +81,13 @@ def init_admin():
     try:
         conn.execute("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'")
     except: pass
+    for tbl, col in [
+        ("custom_spots","image_url"),
+        ("custom_restaurants","image_url"),
+        ("custom_guides","image_url"),
+    ]:
+        try: conn.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} TEXT DEFAULT ''")
+        except: pass
     conn.commit()
     try:
         pw = hashlib.sha256("admin123".encode()).hexdigest()
@@ -160,6 +170,11 @@ def get_all_tourists():
     conn.close()
     return [dict(r) for r in rows]
 
+def archive_tourist(uid):
+    conn = get_conn()
+    conn.execute("UPDATE users SET status='archived' WHERE id=?", (uid,))
+    conn.commit(); conn.close()
+
 def set_tourist_status(uid, status):
     conn = get_conn()
     conn.execute("UPDATE users SET status=? WHERE id=?", (status, uid))
@@ -178,10 +193,10 @@ def get_spots():
     conn.close()
     return [dict(r) for r in rows]
 
-def add_spot(name, city, category, stype, rating, entry, hours, desc):
+def add_spot(name, city, category, stype, rating, entry, hours, desc, image_url=''):
     conn = get_conn()
-    conn.execute("INSERT INTO custom_spots (name,city,category,type,rating,entry,hours,desc) VALUES (?,?,?,?,?,?,?,?)",
-                 (name, city, category, stype, float(rating), entry, hours, desc))
+    conn.execute("INSERT INTO custom_spots (name,city,category,type,rating,entry,hours,desc,image_url) VALUES (?,?,?,?,?,?,?,?,?)",
+                 (name, city, category, stype, float(rating), entry, hours, desc, image_url))
     conn.commit(); conn.close()
 
 def delete_spot(sid):
@@ -196,10 +211,10 @@ def get_restaurants():
     conn.close()
     return [dict(r) for r in rows]
 
-def add_restaurant(name, city, cuisine, price, rating, hours):
+def add_restaurant(name, city, cuisine, price, rating, hours, image_url=''):
     conn = get_conn()
-    conn.execute("INSERT INTO custom_restaurants (name,city,cuisine,price,rating,hours) VALUES (?,?,?,?,?,?)",
-                 (name, city, cuisine, price, float(rating), hours))
+    conn.execute("INSERT INTO custom_restaurants (name,city,cuisine,price,rating,hours,image_url) VALUES (?,?,?,?,?,?,?)",
+                 (name, city, cuisine, price, float(rating), hours, image_url))
     conn.commit(); conn.close()
 
 def delete_restaurant(rid):
@@ -232,10 +247,10 @@ def get_guides():
     conn.close()
     return [dict(r) for r in rows]
 
-def add_guide(name, city, language, rate, rating, bio):
+def add_guide(name, city, language, rate, rating, bio, image_url=''):
     conn = get_conn()
-    conn.execute("INSERT INTO custom_guides (name,city,language,rate,rating,bio) VALUES (?,?,?,?,?,?)",
-                 (name, city, language, rate, float(rating), bio))
+    conn.execute("INSERT INTO custom_guides (name,city,language,rate,rating,bio,image_url) VALUES (?,?,?,?,?,?,?)",
+                 (name, city, language, rate, float(rating), bio, image_url))
     conn.commit(); conn.close()
 
 def delete_guide(gid):

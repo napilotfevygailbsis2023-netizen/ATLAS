@@ -146,7 +146,12 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             if path == "/admin/dashboard":
                 send_html(self, admin_panel.dashboard(admin)); return
             if path == "/admin/tourists":
-                send_html(self, admin_panel.tourists_page(admin)); return
+                tab = params.get("tab","active")
+                send_html(self, admin_panel.tourists_page(admin, tab=tab)); return
+            if path.startswith("/admin/tourists/archive/"):
+                uid = path.split("/")[-1]
+                admin_db.set_tourist_status(uid, "archived")
+                redirect(self, "/admin/tourists"); return
             if path.startswith("/admin/tourists/suspend/"):
                 admin_db.set_tourist_status(path.split("/")[-1], "suspended")
                 redirect(self, "/admin/tourists"); return
@@ -164,25 +169,35 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 admin_db.delete_restaurant(path.split("/")[-1])
 
             if path == "/admin/spots":
-                send_html(self, admin_panel.spots_page(admin)); return
+                pg = int(params.get("page","1") or "1")
+                send_html(self, admin_panel.spots_page(admin, page=pg)); return
             if path.startswith("/admin/spots/delete/"):
                 admin_db.delete_spot(path.split("/")[-1])
                 redirect(self, "/admin/spots"); return
             if path == "/admin/restaurants":
-                send_html(self, admin_panel.restaurants_page(admin)); return
+                pg = int(params.get("page","1") or "1")
+                send_html(self, admin_panel.restaurants_page(admin, page=pg)); return
             if path.startswith("/admin/restaurants/delete/"):
                 admin_db.delete_restaurant(path.split("/")[-1])
                 redirect(self, "/admin/restaurants"); return
             if path == "/admin/guides":
-                send_html(self, admin_panel.guides_page(admin)); return
+                pg = int(params.get("page","1") or "1")
+                tab = params.get("tab","registered")
+                send_html(self, admin_panel.guides_page(admin, page=pg, tab=tab)); return
             if path.startswith("/admin/guides/delete/"):
                 admin_db.delete_guide(path.split("/")[-1])
                 redirect(self, "/admin/guides"); return
             if path == "/admin/transport":
-                send_html(self, admin_panel.transport_page(admin)); return
+                pg = int(params.get("page","1") or "1")
+                send_html(self, admin_panel.transport_page(admin, page=pg)); return
             if path.startswith("/admin/transport/delete/"):
                 admin_db.delete_transport(path.split("/")[-1])
                 redirect(self, "/admin/transport"); return
+            if path == "/admin/flights":
+                send_html(self, admin_panel.flights_page(admin)); return
+            if path.startswith("/admin/flights/delete/"):
+                admin_db.delete_flight(path.split("/")[-1])
+                redirect(self, "/admin/flights"); return
             if path == "/admin/profile":
                 send_html(self, admin_panel.profile_page(admin)); return
             redirect(self, "/admin/dashboard"); return
@@ -195,10 +210,28 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_POST(self):
         path   = urllib.parse.urlparse(self.path).path
-        length = int(self.headers.get("Content-Length",0))
-        body   = self.rfile.read(length).decode("utf-8")
-        form   = dict(urllib.parse.parse_qsl(body))
         cookie = self.headers.get("Cookie","")
+        content_type = self.headers.get("Content-Type","")
+        length = int(self.headers.get("Content-Length",0))
+
+        # Handle multipart/form-data (file uploads)
+        if "multipart/form-data" in content_type:
+            environ = {"REQUEST_METHOD":"POST","CONTENT_TYPE":content_type,"CONTENT_LENGTH":length}
+            fp = self.rfile
+            fs = cgi.FieldStorage(fp=fp, headers=self.headers, environ=environ)
+            form = {}
+            files = {}
+            for key in fs.keys():
+                field = fs[key]
+                if hasattr(field, "filename") and field.filename:
+                    files[key] = (field.filename, field.file.read())
+                else:
+                    form[key] = field.value if hasattr(field,"value") else ""
+            body = ""
+        else:
+            body = self.rfile.read(length).decode("utf-8")
+            form = dict(urllib.parse.parse_qsl(body))
+            files = {}
 
         if path == "/login.py":
             token, err = login.handle_post(form)
@@ -242,45 +275,64 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
 
             elif path == "/admin/spots/add":
                 try:
+                    img_url = ""
+                    if "image_file" in files:
+                        fname, fdata = files["image_file"]
+                        if fdata: img_url = admin_panel.save_image(fdata, fname)
                     admin_db.add_spot(form.get("name",""),form.get("city",""),form.get("category",""),
                         form.get("type",""),form.get("rating","4.0"),form.get("entry","Free"),
-                        form.get("hours","8AM-5PM"),form.get("desc",""))
-                    send_html(self, admin_panel.spots_page(admin, msg="Attraction added!"))
-                except: send_html(self, admin_panel.spots_page(admin))
+                        form.get("hours","8AM-5PM"),form.get("desc",""),img_url)
+                    send_html(self, admin_panel.spots_page(admin, msg="Attraction added!", tab="list"))
+                except Exception as e: send_html(self, admin_panel.spots_page(admin, err=str(e)))
 
             elif path == "/admin/restaurants/add":
                 try:
+                    img_url = ""
+                    if "image_file" in files:
+                        fname, fdata = files["image_file"]
+                        if fdata: img_url = admin_panel.save_image(fdata, fname)
                     admin_db.add_restaurant(form.get("name",""),form.get("city",""),form.get("cuisine",""),
-                        form.get("price",""),form.get("rating","4.0"),form.get("hours",""))
-                    send_html(self, admin_panel.restaurants_page(admin, msg="Restaurant added!"))
-                except: send_html(self, admin_panel.restaurants_page(admin))
+                        form.get("price",""),form.get("rating","4.0"),form.get("hours",""),img_url)
+                    send_html(self, admin_panel.restaurants_page(admin, msg="Restaurant added!", tab="list"))
+                except Exception as e: send_html(self, admin_panel.restaurants_page(admin, err=str(e)))
             elif path == "/admin/guides/add":
                 try:
+                    img_url = ""
+                    if "image_file" in files:
+                        fname, fdata = files["image_file"]
+                        if fdata: img_url = admin_panel.save_image(fdata, fname)
                     admin_db.add_guide(form.get("name",""),form.get("city",""),form.get("language",""),
-                        form.get("rate",""),form.get("rating","4.5"),form.get("bio",""))
-                    send_html(self, admin_panel.guides_page(admin, msg="Tour guide added!"))
-                except Exception as e: send_html(self, admin_panel.guides_page(admin))
+                        form.get("rate",""),form.get("rating","4.5"),form.get("bio",""),img_url)
+                    send_html(self, admin_panel.guides_page(admin, msg="Tour guide added!", tab="added"))
+                except Exception as e: send_html(self, admin_panel.guides_page(admin, err=str(e)))
+
+            elif path == "/admin/flights/add":
+                try:
+                    admin_db.add_flight(form.get("airline",""),form.get("origin",""),form.get("dest",""),
+                        form.get("dep_time",""),form.get("arr_time",""),form.get("price",""),form.get("status","Scheduled"))
+                    send_html(self, admin_panel.flights_page(admin, msg="Flight added!"))
+                except Exception as e: send_html(self, admin_panel.flights_page(admin, err=str(e)))
 
             elif path == "/admin/transport/add":
                 try:
                     admin_db.add_transport(form.get("route",""),form.get("type",""),form.get("origin",""),
                         form.get("dest",""),form.get("dep_time",""),form.get("fare",""))
-                    send_html(self, admin_panel.transport_page(admin, msg="Route added!"))
-                except Exception as e: send_html(self, admin_panel.transport_page(admin))
+                    send_html(self, admin_panel.transport_page(admin, msg="Route added!", tab="list"))
+                except Exception as e: send_html(self, admin_panel.transport_page(admin, err=str(e)))
 
             elif path == "/admin/profile/update":
-                fullname = form.get("fullname","").strip()
-                email    = form.get("email","").strip()
-                new_pw   = form.get("new_password","").strip()
-                confirm  = form.get("confirm_password","").strip()
-                if new_pw and new_pw != confirm:
-                    send_html(self, admin_panel.profile_page(admin, error="Passwords do not match."))
-                elif new_pw and len(new_pw) < 8:
-                    send_html(self, admin_panel.profile_page(admin, error="Password must be at least 8 characters."))
+                new_pw  = form.get("new_password","").strip()
+                confirm = form.get("confirm_password","").strip()
+                if not new_pw:
+                    send_html(self, admin_panel.profile_page(admin, err="Please enter a new password."))
+                elif new_pw != confirm:
+                    send_html(self, admin_panel.profile_page(admin, err="Passwords do not match."))
+                elif len(new_pw) < 8:
+                    send_html(self, admin_panel.profile_page(admin, err="Password must be at least 8 characters."))
                 else:
-                    admin_db.update_admin_profile(admin["id"], fullname, email, new_pw if new_pw else None)
+                    admin_db.update_admin_profile(admin["id"], admin.get("fullname",""), admin.get("email",""), new_pw)
                     updated = admin_db.get_admin_by_token(a_tok)
-                    send_html(self, admin_panel.profile_page(updated, msg="Profile updated successfully!"))
+                    send_html(self, admin_panel.profile_page(updated, msg="Password changed successfully!"))
             else:
                 self.send_error(404)
 

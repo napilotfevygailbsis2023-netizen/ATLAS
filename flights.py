@@ -6,7 +6,6 @@ from data import FLIGHTS as FALLBACK
 API_KEY = "eff886bb35240c10f8071ebbcbd235c5"
 DEPARTURE_AIRPORTS = {"Manila (MNL)": "MNL", "Pampanga (CRK)": "CRK"}
 
-# International sample flights from different countries when live API data is unavailable.
 INTERNATIONAL_FALLBACK = [
     {"from": "Singapore Changi (SIN)", "to": "Tokyo Haneda (HND)", "airline": "Singapore Airlines", "dep": "08:10", "arr": "16:20", "dur": "7h 10m", "price": "Check airline", "seats": 9, "status": "Scheduled"},
     {"from": "Dubai International (DXB)", "to": "London Heathrow (LHR)", "airline": "Emirates", "dep": "09:45", "arr": "14:10", "dur": "7h 25m", "price": "Check airline", "seats": 6, "status": "Scheduled"},
@@ -51,7 +50,6 @@ def _card(f):
     origin = f["from"].split("(")[0].strip()
     dest   = f["to"].split("(")[0].strip()
     airline = f["airline"]
-    seats_color = "#CE1126" if f.get("seats",10) <= 5 else "#065F46"
     status = f.get("status","Scheduled")
     gf_q = urllib.parse.quote(f"{origin} to {dest}")
     booking_link = f"https://www.google.com/travel/flights?q={gf_q}"

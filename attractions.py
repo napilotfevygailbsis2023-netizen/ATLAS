@@ -24,8 +24,7 @@ CITY_COORDS = {
     "Vigan": ("17.5747", "120.3873"),
 }
 
-ATTRACTION_CATS = "16000,16020,16032,16034,16035"  # landmarks, historic, parks, museums
-
+ATTRACTION_CATS = "16000,16020,16032,16034,16035"
 
 def fetch_spots(city="Manila", keyword=""):
     try:
@@ -35,13 +34,7 @@ def fetch_spots(city="Manila", keyword=""):
             "https://api.foursquare.com/v3/places/search"
             f"?query={urllib.parse.quote(q)}&ll={lat},{lng}&radius=15000&limit=9&categories={ATTRACTION_CATS}"
         )
-        req = urllib.request.Request(
-            url,
-            headers={
-                "Authorization": FSQ_KEY,
-                "Accept": "application/json",
-            },
-        )
+        req = urllib.request.Request(url, headers={"Authorization": FSQ_KEY, "Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=6) as r:
             d = json.loads(r.read())
         results = []
@@ -56,24 +49,17 @@ def fetch_spots(city="Manila", keyword=""):
                 else "Landmark"
             )
             name = p.get("name", "Unknown")
-            results.append(
-                {
-                    "name": name,
-                    "city": city,
-                    "cat": cat_short,
-                    "rating": round(p.get("rating", 8.0) / 2, 1) if p.get("rating") else 4.0,
-                    "visits": "N/A",
-                    "entry": "Check on-site",
-                    "hours": "Check on-site",
-                    "desc": f"{name} in {p.get('location', {}).get('locality', city)} offers culture, scenery, and local history for travelers.",
-                    "img": f"https://source.unsplash.com/800x500/?{urllib.parse.quote(name + ' Philippines attraction')}",
-                    "fsq_id": p.get("fsq_id", ""),
-                }
-            )
+            results.append({
+                "name": name, "city": city, "cat": cat_short,
+                "rating": round(p.get("rating", 8.0) / 2, 1) if p.get("rating") else 4.0,
+                "visits": "N/A", "entry": "Check on-site", "hours": "Check on-site",
+                "desc": f"{name} in {p.get('location', {}).get('locality', city)} offers culture, scenery, and local history for travelers.",
+                "img": f"https://source.unsplash.com/800x500/?{urllib.parse.quote(name + ' Philippines attraction')}",
+                "fsq_id": p.get("fsq_id", ""),
+            })
         return results if results else FALLBACK
     except Exception:
         return FALLBACK
-
 
 def _card(s):
     col = CAT_COLORS.get(s["cat"], "#0038A8")
@@ -108,7 +94,6 @@ def _card(s):
         '</div></div></div></div>'
     )
 
-
 def render(filter_city="All", filter_cat="All", keyword="", user=None):
     city = filter_city if filter_city != "All" else "Manila"
     results = fetch_spots(city, keyword)
@@ -124,8 +109,7 @@ def render(filter_city="All", filter_cat="All", keyword="", user=None):
     cards = "".join(_card(s) for s in results)
     empty = (
         '<div class="guide-empty"><div style="font-size:40px;margin-bottom:10px">&#128269;</div><div style="font-weight:700;font-size:16px">No attractions found</div></div>'
-        if not results
-        else ""
+        if not results else ""
     )
 
     body = f"""
