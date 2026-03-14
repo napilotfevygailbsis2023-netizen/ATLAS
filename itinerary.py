@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
 from data import ITINERARIES, ITINERARIES_EXTRA, SPOTS as STATIC_SPOTS, RESTAURANTS as STATIC_RESTS
@@ -79,286 +79,363 @@ def render(dest="Manila", days=None, user=None):
     day_cards = ""
     for day in generated:
         acts = "".join(
-            f'<div class="act-row" style="display:flex;gap:12px;padding:7px 0;border-bottom:1px solid #F3F4F6">'
-            f'<div style="font-size:12px;color:#9CA3AF;min-width:50px;font-weight:600;padding-top:1px">{a[0]}</div>'
+            f'<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid #F3F4F6">'
+            f'<div style="font-size:12px;color:#9CA3AF;min-width:54px;font-weight:600;padding-top:1px">{a[0]}</div>'
             f'<div style="font-size:13px;color:#374151">{a[1]}</div>'
             f'</div>'
             for a in day["acts"]
         )
         day_cards += (
-            f'<div style="margin-bottom:16px;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">'
+            f'<div style="margin-bottom:14px;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">'
             f'<div style="background:{day["color"]};padding:12px 18px;color:#fff;font-weight:700;font-size:15px">{day["day"]}</div>'
             f'<div style="padding:4px 18px 10px;background:#fff">{acts}</div>'
             f'</div>'
         )
 
-    # Get all spots/restaurants for the add-item dropdowns
-    all_spots = [s["name"] for s in STATIC_SPOTS]
-    all_rests = [r["name"] for r in STATIC_RESTS]
-    spots_opts = "".join(f'<option value="{s}">{s}</option>' for s in sorted(all_spots))
-    rests_opts = "".join(f'<option value="{r}">{r}</option>' for r in sorted(all_rests))
+    # Build city-grouped spots and restaurants for JS dropdowns
+    spots_by_city = {}
+    for s in STATIC_SPOTS:
+        c = s.get("city", "")
+        spots_by_city.setdefault(c, []).append(s["name"])
+
+    rests_by_city = {}
+    for r in STATIC_RESTS:
+        c = r.get("city", "")
+        rests_by_city.setdefault(c, []).append(r["name"])
+
+    all_cities = sorted(CITY_HIGHLIGHTS.keys())
+    city_opts_html = "".join(f'<option value="{c}">{c}</option>' for c in all_cities)
+
+    spots_js = json.dumps(spots_by_city)
+    rests_js = json.dumps(rests_by_city)
 
     body = f"""
     <div class="page-wrap">
       <div style="margin-bottom:22px">
-        <div class="section-title">Itinerary Planner</div>
-        <div class="section-sub">Customize your travel plan — choose destination and days, or build your own from saved attractions</div>
+        <div class="section-title">My Itinerary Planner</div>
+        <div class="section-sub">Add places while browsing, then build your day-by-day plan here</div>
       </div>
 
-      <!-- GENERATE FORM -->
+      <!-- STEP 1: ADD PLACES -->
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#0038A8"><span>&#128197; Generate Itinerary</span></div>
+        <div class="card-hdr" style="background:#065F46"><span>&#10133; Add Places to Your Trip</span></div>
+        <div class="card-body">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+            <div>
+              <label class="lbl">Type</label>
+              <select class="inp" id="add-type" style="width:140px" onchange="onTypeOrCityChange()">
+                <option value="attraction">Attraction</option>
+                <option value="restaurant">Restaurant</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            <div>
+              <label class="lbl">City</label>
+              <select class="inp" id="add-city" style="width:150px" onchange="onTypeOrCityChange()">
+                <option value="">-- select city --</option>
+                {city_opts_html}
+              </select>
+            </div>
+            <div id="add-name-wrap" style="display:none">
+              <label class="lbl" id="add-name-lbl">Place</label>
+              <select class="inp" id="add-name-select" style="width:240px">
+                <option value="">-- select --</option>
+              </select>
+            </div>
+            <div id="add-custom-wrap" style="display:none">
+              <label class="lbl">Custom Activity</label>
+              <input class="inp" id="add-custom-text" placeholder="e.g. Souvenir shopping" style="width:240px"/>
+            </div>
+            <button class="btn" style="background:#065F46;color:#fff;padding:10px 22px;font-size:14px" onclick="manualAdd()">&#43; Add</button>
+          </div>
+          <div style="margin-top:12px;font-size:13px;color:#6B7280">
+            &#128161; You can also add places directly from
+            <a href="/attractions.py" style="color:#0038A8;font-weight:600">Attractions</a> or
+            <a href="/restaurants.py" style="color:#CE1126;font-weight:600">Restaurants</a> pages — they save here automatically.
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: SAVED PLACES -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-hdr" style="background:#0038A8;display:flex;justify-content:space-between;align-items:center">
+          <span>&#128205; My Saved Places</span>
+          <button id="clear-all-btn" onclick="clearAll()" style="display:none;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:5px 14px;font-size:12px;font-weight:700;cursor:pointer">&#128465; Clear All</button>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div id="saved-empty" style="padding:32px;text-align:center;color:#9CA3AF;font-size:14px">
+            <div style="font-size:36px;margin-bottom:10px">&#128197;</div>
+            Nothing added yet. Browse <a href="/attractions.py" style="color:#0038A8;font-weight:600">Attractions</a> and click <strong>"+ Add to Itinerary"</strong>, or use the form above.
+          </div>
+          <div id="saved-list" style="padding:0 16px"></div>
+        </div>
+      </div>
+
+      <!-- STEP 3: DAY PLANNER -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-hdr" style="background:#6B21A8"><span>&#128197; My Day Plan</span></div>
+        <div class="card-body">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px">
+            <div>
+              <label class="lbl">Trip Start Date</label>
+              <input class="inp" type="date" id="trip-start-date" style="width:170px"/>
+            </div>
+            <div>
+              <label class="lbl">Number of Days</label>
+              <input class="inp" type="number" id="planner-days" min="1" max="14" value="3" style="width:90px"/>
+            </div>
+            <button class="btn" style="background:#6B21A8;color:#fff;padding:10px 22px" onclick="buildPlan()">&#9998; Build Plan</button>
+            <button id="print-btn" class="btn" onclick="printPlan()" disabled style="background:#9CA3AF;color:#fff;padding:10px 22px;cursor:not-allowed" title="Build your plan first">&#128424; Print / Save PDF</button>
+          </div>
+          <div style="font-size:13px;color:#6B7280;margin-bottom:16px">Set the <strong>Day #</strong> on each saved place above, then click Build Plan.</div>
+          <div id="planner-container">
+            <div style="text-align:center;color:#9CA3AF;font-size:14px;padding:20px">Add places above and click <strong>Build Plan</strong> to see your itinerary.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUTO-GENERATE -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-hdr" style="background:#CE1126"><span>&#9889; Auto-Generate a Suggested Itinerary</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
             <div style="flex:1;min-width:160px">
               <label class="lbl">Destination</label>
               <select class="inp" name="dest">{dest_opts}</select>
             </div>
-            <div style="min-width:140px">
+            <div>
               <label class="lbl">Number of Days (1–14)</label>
-              <input class="inp" type="number" name="days" min="1" max="14" value="{num_days}" style="width:100%"/>
+              <input class="inp" type="number" name="days" min="1" max="14" value="{num_days}" style="width:110px"/>
             </div>
             <button class="btn" style="background:#CE1126;color:#fff;padding:10px 24px" type="submit">Generate</button>
           </form>
-        </div>
-      </div>
-
-      <!-- MY SAVED ITINERARY (from localStorage) -->
-      <div class="card" style="margin-bottom:24px">
-        <div class="card-hdr" style="background:#065F46"><span>&#10003; My Saved Attractions &amp; Restaurants</span></div>
-        <div class="card-body" style="padding:0">
-          <div id="saved-empty" style="padding:24px;text-align:center;color:#9CA3AF;font-size:14px;display:none">
-            &#128269; No attractions added yet. Browse <a href="/attractions.py" style="color:#0038A8">Attractions</a> or <a href="/restaurants.py" style="color:#CE1126">Restaurants</a> and click "+ Add to Itinerary".
-          </div>
-          <div id="saved-list" style="padding:12px 16px"></div>
-          <!-- Manual add row -->
-          <div style="padding:14px 16px;border-top:1px solid #F3F4F6;background:#F9FAFB">
-            <div style="font-size:12px;font-weight:700;color:#374151;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">+ Add Manually</div>
-            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-              <div>
-                <label class="lbl">Type</label>
-                <select class="inp" id="add-type" style="width:130px" onchange="toggleAddSelect()">
-                  <option value="attraction">Attraction</option>
-                  <option value="restaurant">Restaurant</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </div>
-              <div id="add-spot-wrap">
-                <label class="lbl">Attraction</label>
-                <select class="inp" id="add-spot" style="width:220px">
-                  <option value="">-- select --</option>
-                  {spots_opts}
-                </select>
-              </div>
-              <div id="add-rest-wrap" style="display:none">
-                <label class="lbl">Restaurant</label>
-                <select class="inp" id="add-rest" style="width:220px">
-                  <option value="">-- select --</option>
-                  {rests_opts}
-                </select>
-              </div>
-              <div id="add-custom-wrap" style="display:none">
-                <label class="lbl">Custom Activity</label>
-                <input class="inp" id="add-custom-text" placeholder="e.g. Souvenir shopping" style="width:220px"/>
-              </div>
-              <div>
-                <label class="lbl">City</label>
-                <select class="inp" id="add-city" style="width:140px">
-                  <option value="">-- city --</option>
-                  {dest_opts}
-                </select>
-              </div>
-              <button class="btn" style="background:#065F46;color:#fff;padding:9px 18px" onclick="manualAdd()">Add</button>
+          <div style="margin-top:20px">
+            <div style="font-weight:700;font-size:15px;margin-bottom:4px;color:#1F2937">
+              {dest} &mdash; {num_days}-Day Suggested Itinerary
+              <span style="background:#CE1126;color:#fff;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-left:8px">{num_days} Day{"s" if num_days > 1 else ""}</span>
             </div>
+            <div style="font-size:13px;color:#9CA3AF;margin-bottom:14px">Auto-generated travel plan — use as inspiration!</div>
+            {day_cards}
           </div>
         </div>
       </div>
 
-      <!-- CUSTOM PLANNER (drag & schedule) -->
-      <div class="card" style="margin-bottom:24px" id="custom-planner-card">
-        <div class="card-hdr" style="background:#6B21A8;cursor:pointer" onclick="togglePlanner()">
-          <span>&#9998; Custom Day Planner <span id="planner-toggle-icon" style="float:right;font-size:16px">&#9660;</span></span>
-        </div>
-        <div id="custom-planner-body" style="padding:16px">
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
-            <div>
-              <label class="lbl">Trip Start Date</label>
-              <input class="inp" type="date" id="trip-start-date" style="width:160px"/>
-            </div>
-            <div>
-              <label class="lbl">Days</label>
-              <input class="inp" type="number" id="planner-days" min="1" max="14" value="3" style="width:80px" onchange="renderPlannerDays()"/>
-            </div>
-            <button class="btn" style="background:#6B21A8;color:#fff;padding:9px 18px" onclick="renderPlannerDays()">Build Plan</button>
-            <button class="btn" style="background:#CE1126;color:#fff;padding:9px 18px" onclick="clearAll()">&#128465; Clear All</button>
-          </div>
-          <div id="planner-days-container"></div>
-          <div style="margin-top:16px">
-            <button class="btn" style="background:#0038A8;color:#fff;padding:10px 24px" onclick="printItinerary()">&#128424; Print / Save PDF</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- GENERATED ITINERARY -->
-      <div style="margin-bottom:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-        <div>
-          <div class="section-title" style="font-size:18px">{dest} — {num_days}-Day Suggested Itinerary</div>
-          <div class="section-sub">Auto-generated travel plan</div>
-        </div>
-        <span style="background:#0038A8;color:#fff;padding:5px 16px;border-radius:20px;font-size:13px;font-weight:700">{num_days} Day{"s" if num_days > 1 else ""}</span>
-      </div>
-      {day_cards}
     </div>
 
     <script>
-    var STORAGE_KEY = 'atlas_itinerary_items';
+    var KEY = 'atlas_itinerary_items';
+    var SPOTS = {spots_js};
+    var RESTS = {rests_js};
+    var COLORS = ["#0038A8","#CE1126","#C8930A","#065F46","#6B21A8","#0077B6","#B45309","#047857","#9D174D"];
 
-    function getItems() {{
-      try {{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }} catch(e) {{ return []; }}
+    function load() {{
+      try {{ return JSON.parse(localStorage.getItem(KEY) || '[]'); }} catch(e) {{ return []; }}
     }}
-    function saveItems(items) {{
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    }}
+    function save(items) {{ localStorage.setItem(KEY, JSON.stringify(items)); }}
 
-    function renderSaved() {{
-      var items = getItems();
-      var list = document.getElementById('saved-list');
-      var empty = document.getElementById('saved-empty');
-      if (!items.length) {{ list.innerHTML=''; empty.style.display='block'; return; }}
-      empty.style.display = 'none';
-      list.innerHTML = items.map(function(item, i) {{
-        var typeColor = item.type === 'restaurant' ? '#C8930A' : item.type === 'custom' ? '#6B21A8' : '#0038A8';
-        var typeIcon  = item.type === 'restaurant' ? '&#127869;' : item.type === 'custom' ? '&#128393;' : '&#127981;';
-        return (
-          '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F3F4F6">' +
-          '<span style="background:' + typeColor + ';color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;white-space:nowrap">' + typeIcon + ' ' + (item.type||'attraction').toUpperCase() + '</span>' +
-          '<div style="flex:1">' +
-            '<div style="font-weight:700;font-size:14px;color:#1F2937">' + item.name + '</div>' +
-            '<div style="font-size:12px;color:#6B7280">&#128205; ' + (item.city||'') + '</div>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:8px">' +
-            '<div>' +
-              '<label style="font-size:10px;color:#9CA3AF;display:block">Time</label>' +
-              '<input type="time" value="' + (item.time||'09:00') + '" style="border:1px solid #E2E8F0;border-radius:6px;padding:4px 6px;font-size:12px;width:90px" onchange="updateItem(' + i + ','time',this.value)"/>' +
-            '</div>' +
-            '<div>' +
-              '<label style="font-size:10px;color:#9CA3AF;display:block">Day #</label>' +
-              '<input type="number" value="' + (item.day||1) + '" min="1" max="14" style="border:1px solid #E2E8F0;border-radius:6px;padding:4px 6px;font-size:12px;width:60px" onchange="updateItem(' + i + ','day',parseInt(this.value))"/>' +
-            '</div>' +
-            '<div style="flex:1;min-width:120px">' +
-              '<label style="font-size:10px;color:#9CA3AF;display:block">Note</label>' +
-              '<input type="text" value="' + (item.note||'') + '" placeholder="Add a note..." style="border:1px solid #E2E8F0;border-radius:6px;padding:4px 8px;font-size:12px;width:100%;box-sizing:border-box" onchange="updateItem(' + i + ','note',this.value)"/>' +
-            '</div>' +
-            '<button onclick="removeItem(' + i + ')" style="background:#FEE2E2;color:#DC2626;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:13px;font-weight:700">&#128465;</button>' +
-          '</div></div>'
-        );
-      }}).join('');
-    }}
+    // When type or city changes → populate place dropdown
+    function onTypeOrCityChange() {{
+      var t    = document.getElementById('add-type').value;
+      var city = document.getElementById('add-city').value;
+      var nameWrap   = document.getElementById('add-name-wrap');
+      var customWrap = document.getElementById('add-custom-wrap');
 
-    function updateItem(i, field, val) {{
-      var items = getItems();
-      if (items[i]) {{ items[i][field] = val; saveItems(items); }}
-    }}
-
-    function removeItem(i) {{
-      var items = getItems();
-      items.splice(i, 1);
-      saveItems(items);
-      renderSaved();
-      renderPlannerDays();
-    }}
-
-    function clearAll() {{
-      if (confirm('Clear all saved items?')) {{
-        saveItems([]);
-        renderSaved();
-        renderPlannerDays();
+      if (t === 'custom') {{
+        nameWrap.style.display   = 'none';
+        customWrap.style.display = '';
+        return;
       }}
-    }}
+      customWrap.style.display = 'none';
 
-    function toggleAddSelect() {{
-      var t = document.getElementById('add-type').value;
-      document.getElementById('add-spot-wrap').style.display   = t==='attraction' ? '' : 'none';
-      document.getElementById('add-rest-wrap').style.display   = t==='restaurant' ? '' : 'none';
-      document.getElementById('add-custom-wrap').style.display = t==='custom'     ? '' : 'none';
+      if (!city) {{ nameWrap.style.display = 'none'; return; }}
+
+      var list = (t === 'restaurant' ? RESTS[city] : SPOTS[city]) || [];
+      document.getElementById('add-name-lbl').textContent = t === 'restaurant' ? 'Restaurant' : 'Attraction';
+
+      var sel = document.getElementById('add-name-select');
+      sel.innerHTML = '<option value="">-- select --</option>';
+      list.slice().sort().forEach(function(n) {{
+        var o = document.createElement('option');
+        o.value = n; o.textContent = n;
+        sel.appendChild(o);
+      }});
+      nameWrap.style.display = '';
     }}
 
     function manualAdd() {{
       var t    = document.getElementById('add-type').value;
-      var city = document.getElementById('add-city').value;
-      var name = '';
-      if (t === 'attraction') name = document.getElementById('add-spot').value;
-      else if (t === 'restaurant') name = document.getElementById('add-rest').value;
-      else name = document.getElementById('add-custom-text').value.trim();
-      if (!name) {{ showToast('Please select or enter an item'); return; }}
-      var items = getItems();
-      if (!items.some(function(x){{ return x.name===name; }})) {{
-        items.push({{ name:name, city:city, type:t, time:'09:00', day:1, note:'', addedAt:new Date().toISOString() }});
-        saveItems(items);
-        renderSaved();
-        renderPlannerDays();
-        showToast('Added: ' + name);
-      }} else {{ showToast('Already added: ' + name); }}
+      var city = document.getElementById('add-city').value || '';
+      var name = t === 'custom'
+        ? document.getElementById('add-custom-text').value.trim()
+        : document.getElementById('add-name-select').value;
+
+      if (!name) {{ showToast('Please select a place first'); return; }}
+
+      var items = load();
+      if (items.some(function(x) {{ return x.name === name; }})) {{
+        showToast('Already in your itinerary: ' + name); return;
+      }}
+      items.push({{ name:name, city:city, type:t, time:'09:00', day:1, note:'' }});
+      save(items);
+      renderSaved();
+      showToast('&#10003; Added: ' + name);
     }}
 
-    function renderPlannerDays() {{
-      var items = getItems();
-      var ndays = parseInt(document.getElementById('planner-days').value) || 3;
-      var startDate = document.getElementById('trip-start-date').value;
-      var container = document.getElementById('planner-days-container');
+    function renderSaved() {{
+      var items  = load();
+      var list   = document.getElementById('saved-list');
+      var empty  = document.getElementById('saved-empty');
+      var clearBtn = document.getElementById('clear-all-btn');
+
       if (!items.length) {{
-        container.innerHTML = '<div style="text-align:center;color:#9CA3AF;padding:20px">No items saved yet. Add attractions above first.</div>';
+        list.innerHTML = '';
+        empty.style.display = 'block';
+        clearBtn.style.display = 'none';
         return;
       }}
-      var colors = ["#0038A8","#CE1126","#C8930A","#065F46","#6B21A8","#0077B6","#B45309","#047857","#9D174D"];
+      empty.style.display  = 'none';
+      clearBtn.style.display = 'block';
+
+      list.innerHTML = items.map(function(item, i) {{
+        var tc = item.type==='restaurant' ? '#C8930A' : item.type==='custom' ? '#6B21A8' : '#0038A8';
+        var ti = item.type==='restaurant' ? '&#127869;' : item.type==='custom' ? '&#128393;' : '&#127981;';
+        return (
+          '<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #F3F4F6;flex-wrap:wrap">' +
+            '<span style="background:' + tc + ';color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;white-space:nowrap">' + ti + ' ' + (item.type||'attraction').toUpperCase() + '</span>' +
+            '<div style="flex:1;min-width:120px">' +
+              '<div style="font-weight:700;font-size:14px;color:#1F2937">' + item.name + '</div>' +
+              (item.city ? '<div style="font-size:12px;color:#6B7280">&#128205; ' + item.city + '</div>' : '') +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">' +
+              '<div><label style="font-size:10px;color:#9CA3AF;display:block;margin-bottom:2px">Day #</label>' +
+              '<input type="number" value="' + (item.day||1) + '" min="1" max="14" data-i="' + i + '" data-f="day" onchange="updateField(this)" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:5px 6px;font-size:14px;width:60px;text-align:center;font-weight:700"/></div>' +
+              '<div><label style="font-size:10px;color:#9CA3AF;display:block;margin-bottom:2px">Time</label>' +
+              '<input type="time" value="' + (item.time||'09:00') + '" data-i="' + i + '" data-f="time" onchange="updateField(this)" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:5px 6px;font-size:13px;width:106px"/></div>' +
+              '<div style="flex:1;min-width:130px"><label style="font-size:10px;color:#9CA3AF;display:block;margin-bottom:2px">Note (optional)</label>' +
+              '<input type="text" value="' + (item.note||'').replace(/"/g,"&quot;") + '" placeholder="Add a note..." data-i="' + i + '" data-f="note" onchange="updateField(this)" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:5px 8px;font-size:13px;width:100%;box-sizing:border-box"/></div>' +
+              '<button onclick="removeItem(' + i + ')" style="background:#FEE2E2;color:#DC2626;border:none;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:15px;font-weight:700" title="Remove">&#128465;</button>' +
+            '</div>' +
+          '</div>'
+        );
+      }}).join('');
+    }}
+
+    function updateField(el) {{
+      var i = parseInt(el.getAttribute('data-i'));
+      var f = el.getAttribute('data-f');
+      var items = load();
+      if (items[i]) {{
+        items[i][f] = f === 'day' ? parseInt(el.value)||1 : el.value;
+        save(items);
+      }}
+    }}
+
+    function removeItem(i) {{
+      var items = load();
+      items.splice(i, 1);
+      save(items);
+      renderSaved();
+    }}
+
+    function clearAll() {{
+      if (confirm('Remove all saved places from your itinerary?')) {{
+        save([]);
+        renderSaved();
+        document.getElementById('planner-container').innerHTML =
+          '<div style="text-align:center;color:#9CA3AF;font-size:14px;padding:20px">Add places above and click <strong>Build Plan</strong> to see your itinerary.</div>';
+      }}
+    }}
+
+    // Init on page load
+    renderSaved();
+
+    function buildPlan() {{
+      var items  = load();
+      var ndays  = parseInt(document.getElementById('planner-days').value) || 3;
+      var startD = document.getElementById('trip-start-date').value;
+      var container = document.getElementById('planner-container');
+      var printBtn  = document.getElementById('print-btn');
+
+      if (!items.length) {{
+        container.innerHTML = '<div style="text-align:center;color:#9CA3AF;padding:24px;font-size:14px">&#128197; No places saved yet. Add some places first!</div>';
+        printBtn.disabled = true;
+        printBtn.style.background = '#9CA3AF';
+        printBtn.style.cursor = 'not-allowed';
+        return;
+      }}
+
       var html = '';
       for (var d = 1; d <= ndays; d++) {{
-        var dayItems = items.filter(function(x){{ return (x.day||1) == d; }});
-        dayItems.sort(function(a,b){{ return (a.time||'00:00').localeCompare(b.time||'00:00'); }});
+        var dayItems = items.filter(function(x) {{ return (parseInt(x.day)||1) === d; }});
+        dayItems.sort(function(a,b) {{ return (a.time||'00:00') > (b.time||'00:00') ? 1 : -1; }});
         var dateLabel = '';
-        if (startDate) {{
-          var dt = new Date(startDate);
+        if (startD) {{
+          var dt = new Date(startD);
           dt.setDate(dt.getDate() + d - 1);
-          dateLabel = ' · ' + dt.toLocaleDateString('en-PH', {{weekday:'short',month:'short',day:'numeric'}});
+          dateLabel = ' &middot; ' + dt.toLocaleDateString('en-PH', {{weekday:'short', month:'short', day:'numeric'}});
         }}
-        html += '<div style="margin-bottom:14px;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.07)">';
-        html += '<div style="background:' + (colors[(d-1)%colors.length]) + ';padding:12px 18px;color:#fff;font-weight:700;font-size:15px">Day ' + d + dateLabel + '</div>';
-        html += '<div style="padding:8px 18px 12px;background:#fff">';
+        html += '<div style="margin-bottom:14px;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)">';
+        html += '<div style="background:' + COLORS[(d-1) % COLORS.length] + ';padding:12px 18px;color:#fff;font-weight:700;font-size:15px">Day ' + d + dateLabel + '</div>';
+        html += '<div style="padding:6px 18px 12px;background:#fff">';
         if (!dayItems.length) {{
-          html += '<div style="font-size:13px;color:#9CA3AF;padding:8px 0">No items for Day ' + d + ' yet. Set Day # on items above.</div>';
+          html += '<div style="font-size:13px;color:#9CA3AF;padding:10px 0">No places for Day ' + d + '. Set Day # to ' + d + ' on a saved place above.</div>';
         }} else {{
           dayItems.forEach(function(item) {{
             var ic = item.type==='restaurant' ? '&#127869;' : item.type==='custom' ? '&#128393;' : '&#127981;';
-            html += '<div style="display:flex;gap:12px;padding:7px 0;border-bottom:1px solid #F3F4F6;align-items:flex-start">';
-            html += '<div style="font-size:12px;color:#9CA3AF;min-width:52px;font-weight:600;padding-top:2px">' + (item.time||'') + '</div>';
-            html += '<div style="font-size:13px;color:#374151;flex:1"><span style="margin-right:4px">' + ic + '</span><strong>' + item.name + '</strong>';
-            if (item.city) html += ' <span style="font-size:11px;color:#9CA3AF">· ' + item.city + '</span>';
-            if (item.note) html += '<div style="font-size:11px;color:#6B7280;margin-top:2px">&#128221; ' + item.note + '</div>';
+            html += '<div style="display:flex;gap:14px;padding:9px 0;border-bottom:1px solid #F3F4F6;align-items:flex-start">';
+            html += '<div style="font-size:12px;color:#9CA3AF;min-width:52px;font-weight:700;padding-top:2px">' + (item.time||'') + '</div>';
+            html += '<div style="font-size:14px;color:#1F2937;flex:1">' + ic + ' <strong>' + item.name + '</strong>';
+            if (item.city) html += ' <span style="font-size:12px;color:#9CA3AF">&middot; ' + item.city + '</span>';
+            if (item.note) html += '<div style="font-size:12px;color:#6B7280;margin-top:3px">&#128221; ' + item.note + '</div>';
             html += '</div></div>';
           }});
         }}
         html += '</div></div>';
       }}
       container.innerHTML = html;
+
+      // Enable print button
+      printBtn.disabled = false;
+      printBtn.style.background = '#0038A8';
+      printBtn.style.cursor = 'pointer';
     }}
 
-    function togglePlanner() {{
-      var body = document.getElementById('custom-planner-body');
-      var icon = document.getElementById('planner-toggle-icon');
-      if (body.style.display === 'none') {{ body.style.display='block'; icon.innerHTML='&#9660;'; }}
-      else {{ body.style.display='none'; icon.innerHTML='&#9654;'; }}
-    }}
+    function printPlan() {{
+      var container = document.getElementById('planner-container');
+      var startD = document.getElementById('trip-start-date').value;
+      var ndays  = document.getElementById('planner-days').value;
+      var title  = 'My ATLAS Itinerary' + (startD ? ' — Starting ' + startD : '') + ' (' + ndays + ' days)';
 
-    function printItinerary() {{
-      window.print();
+      var win = window.open('', '_blank');
+      win.document.write(`
+        <!DOCTYPE html><html><head>
+        <meta charset="UTF-8"/>
+        <title>${{title}}</title>
+        <style>
+          body {{ font-family: 'Segoe UI', sans-serif; padding: 32px; color: #1F2937; }}
+          h1 {{ font-size: 22px; font-weight: 900; margin-bottom: 4px; color: #0038A8; }}
+          .sub {{ font-size: 13px; color: #6B7280; margin-bottom: 24px; }}
+          .day-hdr {{ padding: 10px 16px; color: #fff; font-weight: 700; font-size: 14px; border-radius: 8px 8px 0 0; }}
+          .day-body {{ border: 1px solid #E5E7EB; border-top: none; border-radius: 0 0 8px 8px; padding: 4px 16px 10px; margin-bottom: 16px; }}
+          .act-row {{ display: flex; gap: 14px; padding: 8px 0; border-bottom: 1px solid #F3F4F6; }}
+          .act-time {{ font-size: 12px; color: #9CA3AF; min-width: 52px; font-weight: 700; padding-top: 2px; }}
+          .act-name {{ font-size: 13px; color: #1F2937; }}
+          .act-city {{ font-size: 11px; color: #9CA3AF; }}
+          .act-note {{ font-size: 11px; color: #6B7280; margin-top: 2px; }}
+          .empty {{ font-size: 13px; color: #9CA3AF; padding: 8px 0; }}
+          @media print {{ body {{ padding: 16px; }} }}
+        </style>
+        </head><body>
+        <h1>&#128197; ${{title}}</h1>
+        <div class="sub">Generated from ATLAS &mdash; Luzon Travel Companion</div>
+        ${{container.innerHTML}}
+        <scr'+'ipt>window.onload=function(){{window.print();window.close();}}</scr'+'ipt>
+        </body></html>
+      `);
+      win.document.close();
     }}
-
-    // Init
-    renderSaved();
-    renderPlannerDays();
 
     // Set today as default start date
-    var today = new Date();
-    document.getElementById('trip-start-date').value = today.toISOString().split('T')[0];
+    document.getElementById('trip-start-date').value = new Date().toISOString().split('T')[0];
     </script>"""
     return build_shell("Itinerary", body, "itinerary", user=user)
