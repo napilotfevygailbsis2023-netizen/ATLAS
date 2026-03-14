@@ -180,7 +180,7 @@ def render(filter_city="All", filter_cat="All", keyword="", user=None):
         var key='atlas_itinerary_items';
         var items=JSON.parse(localStorage.getItem(key)||'[]');
         if(!items.some(function(x){{return x.name===name&&x.city===city;}})){{
-          items.push({{name:name,city:city,type:'attraction',addedAt:new Date().toISOString()}});
+          items.push({{name:name,city:city,type:'attraction',time:'09:00',day:1,note:'',addedAt:new Date().toISOString()}});
           localStorage.setItem(key,JSON.stringify(items));
           showToast('✓ Added to itinerary: '+name);
         }} else {{
