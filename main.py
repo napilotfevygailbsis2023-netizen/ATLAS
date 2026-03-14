@@ -5,7 +5,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import index, flights, weather, attractions, restaurants, guides, transport, itinerary
 import login, register, db
 import admin_login, admin_panel, admin_db
-import guide_portal, guide_db
+import guide_portal
+import profile as profile_page, guide_db
 
 PORT = int(os.environ.get("PORT", 5000))
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -17,10 +18,11 @@ ROUTES = {
     "/flights.py":     lambda p, u: flights.render(p, u),
     "/weather.py":     lambda p, u: weather.render(p.get("location","Manila"), u),
     "/attractions.py": lambda p, u: attractions.render(p.get("city","All"), p.get("cat","All"), p.get("kw",""), u),
-    "/restaurants.py": lambda p, u: restaurants.render(p.get("city","All"), p.get("kw",""), u),
-    "/guides.py":      lambda p, u: guides.render(p.get("city","All"), p.get("lang","All"), u),
-    "/transport.py":   lambda p, u: transport.render(p.get("type","All"), p.get("from","All"), u),
+    "/restaurants.py": lambda p, u: restaurants.render(p.get("city","All"), p.get("kw",""), p.get("type","All"), u),
+    "/guides.py":      lambda p, u: guides.render(p.get("city","All"), p.get("lang","All"), u, booked=bool(p.get("booked",""))),
+    "/transport.py":   lambda p, u: transport.render(p.get("type","All"), p.get("from","All"), p.get("search",""), u),
     "/itinerary.py":   lambda p, u: itinerary.render(p.get("dest","Manila"), p.get("days",None), u),
+    "/profile.py":     lambda p, u: profile_page.render(user=u),
     "/login.py":       lambda p, u: login.render(),
     "/register.py":    lambda p, u: register.render(),
 }
@@ -409,10 +411,93 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 send_html(self, guide_portal.render_availability(guide, msg, err))
             elif path == "/guide/profile":
                 send_html(self, guide_portal.render_profile(guide, msg, err))
+
+        elif path == "/profile/update":
+            import hashlib
+            p_token = get_token(cookie, "atlas_token")
+            p_user  = db.get_user_by_token(p_token) if p_token else None
+            if not p_user:
+                redirect(self, "/login.py"); return
+            action = form.get("action","")
+            if action == "update_profile":
+                conn2 = db.get_conn()
+                conn2.execute("UPDATE users SET fname=?,lname=?,email=? WHERE id=?",
+                    (form.get("fname",""), form.get("lname",""), form.get("email",""), p_user["id"]))
+                conn2.commit(); conn2.close()
+                p_user = db.get_user_by_token(p_token)
+                send_html(self, profile_page.render(user=p_user, msg="Profile updated successfully!"))
+            elif action == "change_password":
+                old_pw   = form.get("old_pw","")
+                new_pw   = form.get("new_pw","")
+                new_pw2  = form.get("new_pw2","")
+                conn2    = db.get_conn()
+                row      = conn2.execute("SELECT password FROM users WHERE id=?", (p_user["id"],)).fetchone()
+                conn2.close()
+                hashed_old = hashlib.sha256(old_pw.encode()).hexdigest()
+                if row and row["password"] == hashed_old:
+                    if new_pw and new_pw == new_pw2 and len(new_pw) >= 6:
+                        conn3 = db.get_conn()
+                        conn3.execute("UPDATE users SET password=? WHERE id=?",
+                            (hashlib.sha256(new_pw.encode()).hexdigest(), p_user["id"]))
+                        conn3.commit(); conn3.close()
+                        send_html(self, profile_page.render(user=p_user, msg="Password changed!"))
+                    else:
+                        send_html(self, profile_page.render(user=p_user, err="Passwords do not match or too short."))
+                else:
+                    send_html(self, profile_page.render(user=p_user, err="Current password is incorrect."))
             else:
-                send_html(self, guide_portal.render_dashboard(guide, msg, err))
+                send_html(self, profile_page.render(user=p_user))
+            return
 
-
+        elif path == "/book-guide":
+            guide_id_raw = form.get("guide_id","").strip()
+            gid = 0
+            # Try numeric guide ID first (registered guides)
+            try:
+                gid = int(guide_id_raw) if guide_id_raw else 0
+            except:
+                gid = 0
+            # If no valid ID, match by name among registered guides
+            if not gid:
+                gname = form.get("guide_name","").strip()
+                try:
+                    all_g = guide_db.get_public_guides()
+                    for g2 in all_g:
+                        full_name = f'{g2["fname"]} {g2["lname"]}'.strip()
+                        if full_name == gname or g2.get("fname","") == gname.split()[0]:
+                            gid = g2["id"]; break
+                except:
+                    pass
+            # If still no ID (static guide), create a placeholder entry under guide id 0
+            # but still save the booking with guide_name in notes
+            tourist_name  = form.get("tourist_name","").strip()
+            tourist_phone = form.get("tourist_phone","").strip()
+            tour_date     = form.get("tour_date","").strip()
+            if not tourist_name or not tourist_phone or not tour_date:
+                # Missing required fields — go back
+                redirect(self, "/guides.py?err=missing_fields"); return
+            guide_name = form.get("guide_name","")
+            notes_combined = form.get("notes","")
+            if not gid:
+                notes_combined = f"Guide: {guide_name} | " + notes_combined
+                gid = 0
+            booking_data = {
+                "guide_id":      gid if gid else 1,
+                "tourist_name":  tourist_name,
+                "tourist_email": form.get("tourist_email",""),
+                "tourist_phone": tourist_phone,
+                "package_title": form.get("package_title",""),
+                "tour_date":     tour_date,
+                "pax":           form.get("pax", 1),
+                "notes":         notes_combined,
+            }
+            try:
+                guide_db.add_booking(booking_data)
+            except Exception as e:
+                pass  # log silently, still redirect
+            self.send_response(302)
+            self.send_header("Location", "/guides.py?booked=1")
+            self.end_headers(); return
 
         else:
             self.send_error(404)

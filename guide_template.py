@@ -1,11 +1,11 @@
 def build_guide_shell(title, body, section="", guide=None):
     nav_items = [
-        ("dashboard",  "&#127968;", "Dashboard"),
-        ("packages",   "&#128196;", "My Packages"),
-        ("bookings",   "&#128197;", "Bookings"),
-        ("availability","&#128336;","Availability"),
-        ("ratings",    "&#11088;",  "Ratings & Feedback"),
-        ("profile",    "&#128100;", "My Profile"),
+        ("dashboard",    "/guide/dashboard",    "&#127968;", "Dashboard"),
+        ("packages",     "/guide/packages",     "&#128196;", "My Packages"),
+        ("bookings",     "/guide/bookings",     "&#128197;", "Bookings"),
+        ("availability", "/guide/availability", "&#128336;", "Availability"),
+        ("ratings",      "/guide/ratings",      "&#11088;",  "Ratings & Feedback"),
+        ("profile",      "/guide/profile",      "&#128100;", "My Profile"),
     ]
 
     if guide:
@@ -32,8 +32,8 @@ def build_guide_shell(title, body, section="", guide=None):
           </div>
           <nav style="padding:12px 10px;flex:1">
             {"".join(
-                f'<a href="/guide/dashboard?section={s}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;text-decoration:none;margin-bottom:2px;font-size:13px;font-weight:{"700" if section==s else "400"};color:{"#fff" if section==s else "#C4B5FD"};background:{"rgba(255,255,255,.15)" if section==s else "transparent"}">{ic} {lb}</a>'
-                for s,ic,lb in nav_items
+                f'<a href="{url}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;text-decoration:none;margin-bottom:2px;font-size:13px;font-weight:{"700" if section==s else "400"};color:{"#fff" if section==s else "#C4B5FD"};background:{"rgba(255,255,255,.15)" if section==s else "transparent"}">{ic} {lb}</a>'
+                for s,url,ic,lb in nav_items
             )}
           </nav>
           <div style="padding:12px 10px;border-top:1px solid rgba(255,255,255,.1)">

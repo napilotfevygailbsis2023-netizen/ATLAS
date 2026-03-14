@@ -11,12 +11,39 @@ def build_shell(page_title, body_content, active="", user=None):
         lname = user.get("lname","")
         auth_html = f"""
         <div class="nav-auth">
-          <div class="user-pill">
+          <div class="user-pill" onclick="toggleProfileDrop()" style="cursor:pointer;position:relative">
             <div class="user-avatar">{fname[0].upper()}</div>
-            <span class="user-name">{fname} {lname}</span>
+            <span class="user-name">{fname} {lname} &#9662;</span>
+            <div id="profile-drop" style="display:none;position:absolute;top:48px;right:0;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.15);min-width:200px;z-index:999;overflow:hidden">
+              <div style="padding:14px 16px;border-bottom:1px solid #F3F4F6;background:#F9FAFB">
+                <div style="font-weight:700;font-size:14px;color:#1F2937">{fname} {lname}</div>
+                <div style="font-size:12px;color:#6B7280">Tourist Account</div>
+              </div>
+              <a href="/profile.py" style="display:flex;align-items:center;gap:10px;padding:12px 16px;text-decoration:none;color:#374151;font-size:14px;border-bottom:1px solid #F3F4F6" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''">
+                &#128100; My Profile
+              </a>
+              <a href="/itinerary.py" style="display:flex;align-items:center;gap:10px;padding:12px 16px;text-decoration:none;color:#374151;font-size:14px;border-bottom:1px solid #F3F4F6" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''">
+                &#128197; My Itinerary
+              </a>
+              <a href="/logout.py" style="display:flex;align-items:center;gap:10px;padding:12px 16px;text-decoration:none;color:#CE1126;font-size:14px" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">
+                &#128682; Log Out
+              </a>
+            </div>
           </div>
-          <a href="/logout.py"><button class="btn-login">Log Out</button></a>
-        </div>"""
+        </div>
+        <script>
+        function toggleProfileDrop() {{
+          var d = document.getElementById('profile-drop');
+          d.style.display = d.style.display === 'none' ? 'block' : 'none';
+        }}
+        document.addEventListener('click', function(e) {{
+          var pill = document.querySelector('.user-pill');
+          if (pill && !pill.contains(e.target)) {{
+            var d = document.getElementById('profile-drop');
+            if (d) d.style.display = 'none';
+          }}
+        }});
+        </script>"""
     else:
         auth_html = """
         <div class="nav-auth">
