@@ -263,79 +263,63 @@ def tourists_page(admin, msg="", err="", tab="active"):
 
 # ── ATTRACTIONS ──
 def spots_page(admin, msg="", err="", page=1, tab="list"):
-    items = admin_db.get_spots()
-    PER = 8
+    from attractions import get_spots
+    CITIES = ["Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay","Albay","Pangasinan","Bataan"]
+    PER = 10
+    all_rows = []
+    seen = set()
+    for city in CITIES:
+        spots = get_spots(city)
+        for s in spots:
+            key = s["name"].strip().lower()
+            if key in seen: continue
+            seen.add(key)
+            img = _img_cell(s.get("img",""), "&#127963;")
+            cat = s.get("cat","Landmark")
+            all_rows.append(f'<tr><td>{img}</td><td style="font-weight:600;color:#1E293B">{s["name"]}</td><td>{city}</td><td><span class=bb>{cat}</span></td><td>{_stars(s["rating"])}</td><td>{s.get("entry","Check on-site")}</td></tr>')
 
-    row_list = []
-    for s in items:
-        img = _img_cell(s.get("image_url",""), "&#127963;")
-        acts = f'<a href="/admin/spots/delete/{s["id"]}" onclick="return confirm(\'Delete?\')"><button class="btn bdanger">Delete</button></a>'
-        row_list.append(f'<tr><td>{img}</td><td style="font-weight:600;color:#1E293B">{s["name"]}</td><td>{s["city"]}</td><td><span class=bb>{s["category"]}</span></td><td>{_stars(s["rating"])}</td><td>{s["entry"]}</td><td>{acts}</td></tr>')
+    rows_html, pager, total, _ = _paginate(all_rows, page, PER, "/admin/spots")
 
-    rows_html, pager, total, _ = _paginate(row_list, page, PER, "/admin/spots")
-
-    tab_btns  = f'<button class="tab-btn {"active" if tab=="add" else ""}" data-tab="add"  onclick="switchTab(\'spots\',\'add\')">&#43; Add Attraction</button><button class="tab-btn {"active" if tab=="list" else ""}" data-tab="list" onclick="switchTab(\'spots\',\'list\')">All Attractions ({total})</button>'
-
-    add_form = f'''<div id="spots-add" class="tab-pane {"active" if tab=="add" else ""}"><div style="padding:20px">
-    <form method="post" action="/admin/spots/add" enctype="multipart/form-data"><div class="fg2">
-    <div><label>Name *</label><input name="name" placeholder="Intramuros" required/></div>
-    <div><label>City / Location *</label><input name="city" placeholder="Manila, Batangas, Cavite..." required/></div>
-    <div><label>Category</label><select name="category"><option>Historical</option><option>Nature</option><option>Heritage</option><option>Landmark</option><option>Park</option><option>Museum</option><option>Beach</option><option>Adventure</option><option>Religious</option></select></div>
-    <div><label>Type</label><input name="type" placeholder="Walled City, National Park..."/></div>
-    <div><label>Rating (1-5)</label><input name="rating" type="number" min="1" max="5" step="0.1" value="4.5"/></div>
-    <div><label>Entry Fee</label><input name="entry" placeholder="Free / PHP 75"/></div>
-    <div><label>Hours</label><input name="hours" placeholder="8AM-5PM Daily"/></div>
-    <div><label>Upload Image</label><input type="file" name="image_file" accept="image/*"/></div>
-    </div><div><label>Description</label><textarea name="desc" rows="2" style="resize:none" placeholder="Short description..."></textarea></div>
-    <button class="btn bprimary" type="submit" style="padding:9px 22px;font-size:13px">&#43; Add Attraction</button>
-    </form></div></div>'''
-
-    list_pane = f'''<div id="spots-list" class="tab-pane {"active" if tab=="list" else ""}">
-    <table><thead><tr><th>Img</th><th>Name</th><th>City</th><th>Category</th><th>Rating</th><th>Entry</th><th>Action</th></tr></thead>
-    <tbody>{"" if rows_html else "<tr class=er><td colspan=7>No attractions added yet</td></tr>"}{rows_html}</tbody></table>
-    {pager}</div>'''
-
-    body = f'''<div class="ph"><h1>&#127963; Attractions</h1><p>{total} admin-added attractions</p></div>
+    body = f'''<div class="ph"><h1>&#127963; Attractions</h1><p>Live data from <strong>Foursquare Places API</strong> · {total} attractions across all cities</p></div>
     {_alert(msg,err)}
-    <div class="card"><div style="padding:0 20px" data-group="spots"><div class="tabs">{tab_btns}</div>
-    {add_form}{list_pane}</div></div>'''
+    <div style="background:#FEF9C3;border:1px solid #FDE047;border-radius:10px;padding:12px 16px;font-size:13px;color:#854D0E;margin-bottom:20px">
+      &#9432; Attraction data is pulled live from the <strong>Foursquare Places API</strong>. No manual entry needed.
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Img</th><th>Name</th><th>City</th><th>Category</th><th>Rating</th><th>Entry</th></tr></thead>
+      <tbody>{"" if rows_html else "<tr class=er><td colspan=6>No data returned from API</td></tr>"}{rows_html}</tbody></table>
+      {pager}
+    </div>'''
     return shell("Attractions", body, "spots", admin)
 
 # ── RESTAURANTS ──
 def restaurants_page(admin, msg="", err="", page=1, tab="list"):
-    items = admin_db.get_restaurants()
-    PER = 8
+    from restaurants import get_restaurants
+    CITIES = ["Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay","Albay","Pangasinan","Bataan"]
+    PER = 10
+    all_rows = []
+    seen = set()
+    for city in CITIES:
+        rests = get_restaurants(city)
+        for r in rests:
+            key = r["name"].strip().lower()
+            if key in seen: continue
+            seen.add(key)
+            img  = _img_cell(r.get("img",""), "&#127869;")
+            all_rows.append(f'<tr><td>{img}</td><td style="font-weight:600;color:#1E293B">{r["name"]}</td><td>{city}</td><td>{r.get("type","Filipino")}</td><td style="color:#16A34A;font-weight:600">{r.get("price","Check restaurant")}</td><td>{_stars(r["rating"])}</td></tr>')
 
-    row_list = []
-    for r in items:
-        img  = _img_cell(r.get("image_url",""), "&#127869;")
-        acts = f'<a href="/admin/restaurants/delete/{r["id"]}" onclick="return confirm(\'Delete?\')"><button class="btn bdanger">Delete</button></a>'
-        row_list.append(f'<tr><td>{img}</td><td style="font-weight:600;color:#1E293B">{r["name"]}</td><td>{r["city"]}</td><td>{r["cuisine"]}</td><td style="color:#16A34A;font-weight:600">{r["price"]}</td><td>{_stars(r["rating"])}</td><td>{acts}</td></tr>')
+    rows_html, pager, total, _ = _paginate(all_rows, page, PER, "/admin/restaurants")
 
-    rows_html, pager, total, _ = _paginate(row_list, page, PER, "/admin/restaurants")
-    tab_btns = f'<button class="tab-btn {"active" if tab=="add" else ""}" data-tab="add"  onclick="switchTab(\'rests\',\'add\')">&#43; Add Restaurant</button><button class="tab-btn {"active" if tab=="list" else ""}" data-tab="list" onclick="switchTab(\'rests\',\'list\')">All Restaurants ({total})</button>'
-
-    add_form = f'''<div id="rests-add" class="tab-pane {"active" if tab=="add" else ""}"><div style="padding:20px">
-    <form method="post" action="/admin/restaurants/add" enctype="multipart/form-data"><div class="fg2">
-    <div><label>Name *</label><input name="name" placeholder="Cafe Juanita" required/></div>
-    <div><label>City / Location *</label><input name="city" placeholder="Manila, Tagaytay, Vigan..." required/></div>
-    <div><label>Cuisine</label><input name="cuisine" placeholder="Filipino / Italian / Asian"/></div>
-    <div><label>Price Range</label><input name="price" placeholder="PHP 200-500"/></div>
-    <div><label>Rating (1-5)</label><input name="rating" type="number" min="1" max="5" step="0.1" value="4.0"/></div>
-    <div><label>Hours</label><input name="hours" placeholder="10AM-10PM"/></div>
-    <div><label>Upload Image</label><input type="file" name="image_file" accept="image/*"/></div>
-    </div><button class="btn bprimary" type="submit" style="padding:9px 22px;font-size:13px">&#43; Add Restaurant</button>
-    </form></div></div>'''
-
-    list_pane = f'''<div id="rests-list" class="tab-pane {"active" if tab=="list" else ""}">
-    <table><thead><tr><th>Img</th><th>Name</th><th>City</th><th>Cuisine</th><th>Price</th><th>Rating</th><th>Action</th></tr></thead>
-    <tbody>{"" if rows_html else "<tr class=er><td colspan=7>No restaurants added yet</td></tr>"}{rows_html}</tbody></table>
-    {pager}</div>'''
-
-    body = f'''<div class="ph"><h1>&#127869; Restaurants</h1><p>{total} admin-added restaurants</p></div>
+    body = f'''<div class="ph"><h1>&#127869; Restaurants</h1><p>Live data from <strong>Foursquare Places API</strong> · {total} restaurants across all cities</p></div>
     {_alert(msg,err)}
-    <div class="card"><div style="padding:0 20px" data-group="rests"><div class="tabs">{tab_btns}</div>
-    {add_form}{list_pane}</div></div>'''
+    <div style="background:#FEF9C3;border:1px solid #FDE047;border-radius:10px;padding:12px 16px;font-size:13px;color:#854D0E;margin-bottom:20px">
+      &#9432; Restaurant data is pulled live from the <strong>Foursquare Places API</strong>. No manual entry needed.
+    </div>
+    <div class="card">
+      <table><thead><tr><th>Img</th><th>Name</th><th>City</th><th>Cuisine</th><th>Price</th><th>Rating</th></tr></thead>
+      <tbody>{"" if rows_html else "<tr class=er><td colspan=6>No data returned from API</td></tr>"}{rows_html}</tbody></table>
+      {pager}
+    </div>'''
     return shell("Restaurants", body, "restaurants", admin)
 
 # ── TOUR GUIDES ──
@@ -423,49 +407,40 @@ def transport_page(admin, msg="", err="", page=1, tab="list"):
 
 # ── FLIGHTS ──
 def flights_page(admin, msg="", err=""):
-    all_flights = admin_db.get_flights()
-    today  = date.today()
-    week   = today + timedelta(days=7)
+    from flights import fetch_flights, INTERNATIONAL_FALLBACK
+    domestic  = fetch_flights("MNL")
+    intl      = INTERNATIONAL_FALLBACK[:]
 
-    available = [f for f in all_flights if f.get("status","") not in ("Cancelled","Full") and f.get("dep_time","")]
-    taken     = [f for f in all_flights if f.get("status","") in ("Full","Booked")]
+    sc_map = {"Scheduled":"#2563EB","On Time":"#16A34A","Delayed":"#D97706","Cancelled":"#DC2626","Full":"#6B7280"}
 
-    def flight_row(f, show_del=True):
-        sc_map = {"Scheduled":"#2563EB","On Time":"#16A34A","Delayed":"#D97706","Cancelled":"#DC2626","Full":"#6B7280"}
-        sc = sc_map.get(f.get("status","Scheduled"), "#2563EB")
-        badge = f'<span style="background:{sc}22;color:{sc};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">{f.get("status","Scheduled")}</span>'
-        del_btn = f'<a href="/admin/flights/delete/{f["id"]}" onclick="return confirm(\'Delete?\')"><button class="btn bdanger">Delete</button></a>' if show_del else ""
-        return f'<tr><td style="font-weight:600;color:#1E293B">{f["airline"]}</td><td>{f["origin"]} &#8594; {f["dest"]}</td><td>{f["dep_time"]}</td><td>{f["arr_time"]}</td><td style="color:#16A34A;font-weight:600">{f["price"]}</td><td>{badge}</td><td>{del_btn}</td></tr>'
+    def flight_row(f):
+        status = f.get("status","Scheduled")
+        sc = sc_map.get(status, "#2563EB")
+        badge = f'<span style="background:{sc}22;color:{sc};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">{status}</span>'
+        org = f.get("from", f.get("origin","?"))
+        dst = f.get("to",   f.get("dest","?"))
+        dep = f.get("dep","--"); arr = f.get("arr","--")
+        price = f.get("price","Check airline")
+        airline = f.get("airline","?")
+        return f'<tr><td style="font-weight:600;color:#1E293B">{airline}</td><td>{org} &#8594; {dst}</td><td>{dep}</td><td>{arr}</td><td style="color:#16A34A;font-weight:600">{price}</td><td>{badge}</td></tr>'
 
-    avail_rows = "".join(flight_row(f) for f in available) or '<tr class="er"><td colspan="7">No available flights</td></tr>'
-    taken_rows = "".join(flight_row(f) for f in taken)     or '<tr class="er"><td colspan="7">No fully booked flights</td></tr>'
+    dom_rows  = "".join(flight_row(f) for f in domestic) or '<tr class="er"><td colspan="6">No domestic flights available right now</td></tr>'
+    intl_rows = "".join(flight_row(f) for f in intl)     or '<tr class="er"><td colspan="6">No international flights</td></tr>'
 
-    body = f'''<div class="ph"><h1>&#9992; Flights</h1><p>Available flights this week · {len(available)} available · {len(taken)} fully booked</p></div>
+    body = f'''<div class="ph"><h1>&#9992; Flights</h1><p>Live data from AviationStack API · {len(domestic)} domestic · {len(intl)} international sample routes</p></div>
     {_alert(msg,err)}
-    <div class="card" style="margin-bottom:20px">
-      <div class="card-hdr"><h3>&#43; Add Flight</h3></div>
-      <div class="card-body">
-        <form method="post" action="/admin/flights/add"><div class="fg2">
-        <div><label>Airline *</label><input name="airline" placeholder="Philippine Airlines" required/></div>
-        <div><label>Status</label><select name="status"><option>Scheduled</option><option>On Time</option><option>Delayed</option><option>Cancelled</option><option>Full</option></select></div>
-        <div><label>Origin *</label><input name="origin" placeholder="Manila, Cebu..." required/></div>
-        <div><label>Destination *</label><input name="dest" placeholder="Baguio, Ilocos..." required/></div>
-        <div><label>Departure *</label><input name="dep_time" placeholder="06:00 AM" required/></div>
-        <div><label>Arrival *</label><input name="arr_time" placeholder="07:30 AM" required/></div>
-        <div><label>Price</label><input name="price" placeholder="PHP 2,500"/></div>
-        </div><button class="btn bprimary" type="submit" style="padding:9px 22px;font-size:13px">&#43; Add Flight</button>
-        </form>
-      </div>
+    <div style="background:#FEF9C3;border:1px solid #FDE047;border-radius:10px;padding:12px 16px;font-size:13px;color:#854D0E;margin-bottom:20px">
+      &#9432; Flight data is pulled live from the <strong>AviationStack API</strong>. No manual entry needed.
     </div>
     <div class="card" style="margin-bottom:20px">
-      <div class="card-hdr"><h3>&#9989; Available Flights ({len(available)})</h3></div>
-      <table><thead><tr><th>Airline</th><th>Route</th><th>Departs</th><th>Arrives</th><th>Price</th><th>Status</th><th>Action</th></tr></thead>
-      <tbody>{avail_rows}</tbody></table>
+      <div class="card-hdr"><h3>&#9992; Domestic Flights — Live ({len(domestic)})</h3></div>
+      <table><thead><tr><th>Airline</th><th>Route</th><th>Departs</th><th>Arrives</th><th>Price</th><th>Status</th></tr></thead>
+      <tbody>{dom_rows}</tbody></table>
     </div>
     <div class="card">
-      <div class="card-hdr"><h3>&#128683; Fully Booked / Cancelled ({len(taken)})</h3></div>
-      <table><thead><tr><th>Airline</th><th>Route</th><th>Departs</th><th>Arrives</th><th>Price</th><th>Status</th><th>Action</th></tr></thead>
-      <tbody>{taken_rows}</tbody></table>
+      <div class="card-hdr"><h3>&#127758; International Sample Routes ({len(intl)})</h3></div>
+      <table><thead><tr><th>Airline</th><th>Route</th><th>Departs</th><th>Arrives</th><th>Price</th><th>Status</th></tr></thead>
+      <tbody>{intl_rows}</tbody></table>
     </div>'''
     return shell("Flights", body, "flights", admin)
 
