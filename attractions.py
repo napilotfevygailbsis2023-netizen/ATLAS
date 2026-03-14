@@ -112,7 +112,7 @@ def _card(s):
     )
     card = (
         modal
-        + "<div class=\"grid-card\" style=\"cursor:pointer\" onclick=\"document.getElementById(&quot;" + mid + "&quot;).style.display='flex'\">"
+        + "<div class=\"grid-card\" style=\"cursor:pointer\" onclick=\"if(typeof ATLAS_LOGGED_IN!=='undefined'&&!ATLAS_LOGGED_IN){openSigninGate();}else{document.getElementById(&quot;" + mid + "&quot;).style.display='flex';}\">"
         + "<div class=\"grid-card-top\" style=\"background:linear-gradient(135deg," + col + "," + col + "99)\">"
         + "<div style=\"font-size:40px;margin-bottom:10px\">" + icon + "</div>"
         + "<div style=\"font-weight:800;font-size:15px;color:#fff;margin-bottom:4px\">" + H(name) + "</div>"

@@ -6,6 +6,7 @@ def build_shell(page_title, body_content, active="", user=None):
     def ta(p): return "active" if active == p else ""
 
     # Navbar auth section - changes based on login state
+    is_logged_in = 'true' if user else 'false'
     if user:
         fname = user.get("fname","User")
         lname = user.get("lname","")
@@ -117,6 +118,26 @@ def build_shell(page_title, body_content, active="", user=None):
   </div>
 </div>
 <div id="toast"></div>
+
+<!-- Sign-In Required Modal -->
+<div id="signin-gate" style="display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center">
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px)" onclick="closeSigninGate()"></div>
+  <div style="position:relative;background:#fff;border-radius:24px;padding:44px 36px;max-width:440px;width:90%;text-align:center;box-shadow:0 24px 64px rgba(0,0,0,.2);z-index:1">
+    <button onclick="closeSigninGate()" style="position:absolute;top:14px;right:16px;background:rgba(0,0,0,.07);border:none;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer;color:#6B7280">&#x2715;</button>
+    <div style="font-size:52px;margin-bottom:12px">&#128274;</div>
+    <div style="font-size:22px;font-weight:900;color:#1F2937;margin-bottom:8px">Sign In to Continue</div>
+    <div style="font-size:14px;color:#6B7280;line-height:1.7;margin-bottom:24px">Log in or create a free account to access this feature and explore everything ATLAS has to offer.</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;text-align:left">
+      <div style="display:flex;align-items:center;gap:10px;background:#F9FAFB;border-radius:10px;padding:10px 14px;font-size:13px;color:#374151"><span style="font-size:18px">&#128197;</span> Build and save your travel itinerary</div>
+      <div style="display:flex;align-items:center;gap:10px;background:#F9FAFB;border-radius:10px;padding:10px 14px;font-size:13px;color:#374151"><span style="font-size:18px">&#129517;</span> Book certified local tour guides</div>
+      <div style="display:flex;align-items:center;gap:10px;background:#F9FAFB;border-radius:10px;padding:10px 14px;font-size:13px;color:#374151"><span style="font-size:18px">&#9992;</span> Search real-time flights &amp; weather</div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <a href="/login.py" style="flex:1;padding:13px;border:2px solid #0038A8;border-radius:12px;font-size:14px;font-weight:700;color:#0038A8;text-decoration:none;display:block">Log In</a>
+      <a href="/register.py" style="flex:1;padding:13px;background:linear-gradient(135deg,#CE1126,#0038A8);border-radius:12px;font-size:14px;font-weight:700;color:#fff;text-decoration:none;display:block">Create Account</a>
+    </div>
+  </div>
+</div>
 <footer class="site-footer" id="about">
   <div class="footer-top">
     <div class="footer-brand">
@@ -151,6 +172,20 @@ def build_shell(page_title, body_content, active="", user=None):
   <div class="footer-bottom"><span>&copy; 2026 ATLAS. All Rights Reserved.</span></div>
 </footer>
 <script>
+var ATLAS_LOGGED_IN = {is_logged_in};
+var PROTECTED = ['/flights.py','/weather.py','/attractions.py','/restaurants.py','/guides.py','/transport.py','/itinerary.py','/profile.py'];
+function openSigninGate(){{document.getElementById('signin-gate').style.display='flex';document.body.style.overflow='hidden';}}
+function closeSigninGate(){{document.getElementById('signin-gate').style.display='none';document.body.style.overflow='';}}
+document.addEventListener('click',function(e){{
+  var a=e.target.closest('a');
+  if(!a) return;
+  var href=a.getAttribute('href')||'';
+  var path=href.split('?')[0];
+  if(!ATLAS_LOGGED_IN && PROTECTED.indexOf(path)!==-1){{
+    e.preventDefault();
+    openSigninGate();
+  }}
+}});
 function toggleDrop(){{document.getElementById('cat-drop').classList.toggle('open');}}
 document.addEventListener('click',function(e){{var d=document.getElementById('cat-drop');if(d&&!d.contains(e.target))d.classList.remove('open');}});
 function openBookingModal(name){{document.getElementById('modal-guide-name').textContent=name;document.getElementById('booking-modal').style.display='flex';document.body.style.overflow='hidden';}}
