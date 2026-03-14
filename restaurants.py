@@ -93,7 +93,7 @@ def _card(r, i):
     )
     card = (
         modal
-        + "<div class=\"rest-card3\" style=\"cursor:pointer\" onclick=\"document.getElementById(&quot;" + mid + "&quot;).style.display='flex'\">"
+        + "<div class=\"rest-card3\" style=\"cursor:pointer\" onclick=\"if(typeof ATLAS_LOGGED_IN!=='undefined'&&!ATLAS_LOGGED_IN){openSigninGate();}else{document.getElementById(&quot;" + mid + "&quot;).style.display='flex';}\">"
         + "<div class=\"rest-card3-top\" style=\"background:linear-gradient(135deg," + col + "," + col + "99)\">"
         + "<div style=\"font-size:36px;margin-bottom:10px\">&#127869;</div>"
         + "<div style=\"font-weight:800;font-size:15px;color:#fff;line-height:1.3;margin-bottom:4px\">" + H(name) + "</div>"

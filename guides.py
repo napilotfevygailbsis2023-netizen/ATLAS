@@ -180,6 +180,7 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
     var _bookingGuideId = "";
 
     function openBookingModal(name, city, rate, guideId) {{
+      if(typeof ATLAS_LOGGED_IN!=='undefined' && !ATLAS_LOGGED_IN){{ openSigninGate(); return; }}
       _bookingGuide = name; _bookingCity = city; _bookingRate = rate; _bookingGuideId = guideId || "";
       document.getElementById("booking-guide-info").innerHTML =
         "<strong>&#128100; " + name + "</strong> &mdash; " + city + "<br>Rate: <strong style='color:#6B21A8'>" + rate + "</strong>";
