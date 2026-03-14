@@ -53,11 +53,21 @@ def render(user=None):
       </div>
     </div>
     <div class="page-wrap">
-      <div style="margin-bottom:8px">
+      <div style="margin-bottom:16px">
         <div class="section-title">Top Luzon Destinations</div>
         <div class="section-sub">Hand-picked spots for your next adventure</div>
       </div>
-      <div class="dest-grid">{dest_cards}</div>
+      <!-- CAROUSEL -->
+      <div style="position:relative;margin-bottom:36px" id="carousel-wrap">
+        <div style="overflow:hidden" id="carousel-outer">
+          <div id="carousel-track" style="display:flex;transition:transform .4s ease;gap:20px">
+            {dest_cards}
+          </div>
+        </div>
+        <button onclick="carouselMove(-1)" style="position:absolute;top:45%;left:-18px;transform:translateY(-50%);background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer;z-index:10">&#8249;</button>
+        <button onclick="carouselMove(1)"  style="position:absolute;top:45%;right:-18px;transform:translateY(-50%);background:rgba(0,0,0,.5);color:#fff;border:none;border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer;z-index:10">&#8250;</button>
+        <div id="carousel-dots" style="text-align:center;margin-top:12px;display:flex;justify-content:center;gap:6px"></div>
+      </div>
       <div style="margin-bottom:8px">
         <div class="section-title">Plan Your Trip</div>
         <div class="section-sub">Everything you need in one place</div>
@@ -73,5 +83,52 @@ def render(user=None):
     document.getElementById('hero-search').addEventListener('keydown', function(e) {{
       if (e.key === 'Enter') doSearch();
     }});
+    // Carousel
+    var _ci = 0;
+    var _cards = document.querySelectorAll('#carousel-track .dest-card');
+    var _total = _cards.length;
+    var _dotsEl = document.getElementById('carousel-dots');
+    var _vis = 4; // always show 4
+
+    function _setCardWidths() {{
+      var outer = document.getElementById('carousel-outer');
+      var gap = 20;
+      var totalGaps = (_vis - 1) * gap;
+      var cardW = (outer.offsetWidth - totalGaps) / _vis;
+      _cards.forEach(function(c) {{
+        c.style.minWidth = cardW + 'px';
+        c.style.width = cardW + 'px';
+        c.style.flexShrink = '0';
+      }});
+      return cardW;
+    }}
+    function _buildDots() {{
+      _dotsEl.innerHTML = '';
+      var pages = Math.ceil(_total / _vis);
+      for (var i = 0; i < pages; i++) {{
+        var d = document.createElement('button');
+        d.style.cssText = 'width:10px;height:10px;border-radius:50%;border:none;cursor:pointer;background:' + (_ci === i ? '#CE1126' : '#D1D5DB');
+        (function(idx){{ d.onclick = function(){{ _ci = idx; _move(); }}; }})(i);
+        _dotsEl.appendChild(d);
+      }}
+    }}
+    function _move() {{
+      var pages = Math.ceil(_total / _vis);
+      _ci = Math.max(0, Math.min(_ci, pages - 1));
+      var cardW = _setCardWidths();
+      var step = _vis * (cardW + 20);
+      document.getElementById('carousel-track').style.transform = 'translateX(-' + (_ci * step) + 'px)';
+      _buildDots();
+    }}
+    function carouselMove(dir) {{
+      var pages = Math.ceil(_total / _vis);
+      _ci = (_ci + dir + pages) % pages;
+      _move();
+    }}
+    _setCardWidths();
+    _buildDots();
+    window.addEventListener('resize', function(){{ _move(); }});
+    // Auto-play every 4s
+    setInterval(function(){{ carouselMove(1); }}, 4000);
     </script>"""
     return build_shell("Home", body, "home", user=user)

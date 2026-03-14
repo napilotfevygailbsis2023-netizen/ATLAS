@@ -73,12 +73,12 @@ def _card(g, i):
         f'<div style="font-size:18px;font-weight:800;color:{col};margin-bottom:8px">{g["rate"]}</div>'
         f'<div style="margin-bottom:14px;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden"><div style="background:#F9FAFB;padding:6px 10px;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase">Packages</div>{pkgs}</div>'
         '<div style="margin-top:auto;display:flex;flex-direction:column;gap:7px">'
-        f'<button class="btn" style="background:{col};color:#fff;width:100%;padding:10px;font-size:14px;font-weight:700" onclick="openBookingModal(\'{name}\',\'{city}\',\'{g["rate"]}\')">&#128197; Book This Guide</button>'
-        f'<button class="btn-outline" style="width:100%;padding:8px;color:{col};border-color:{col}" onclick="openProfileModal(\'{name}\',\'{city}\',\'{g["spec"]}\',\'{g["bio"]}\',\'{g["lang"]}\',\'{g["avail"]}\',\'{g["rate"]}\',\'{g["rating"]}\',\'{g["tours"]}\')">&#128100; View Full Profile</button>'
+        '<button class="btn" style="background:'+col+';color:#fff;width:100%;padding:10px;font-size:14px;font-weight:700" onclick="openBookingModal(\'' + name + '\',\'' + city + '\',\'' + g["rate"] + '\',\'' + str(g.get("guide_id", g.get("id",""))) + '\')">&#128197; Book This Guide</button>'
+        f'<button class="btn-outline" style="width:100%;padding:8px;color:{col};border-color:{col}" onclick="openProfileModal(\'{name}\',\'{city}\',\'{g["spec"]}\',\'{g["bio"]}\',\'{g["lang"]}\',\'{g["avail"]}\',\'{g["rate"]}\',\'{g["rating"]}\',\'{g["tours"]}\',\''+str(g.get("guide_id", g.get("id","")))+'\')">&#128100; View Full Profile</button>'
         '</div></div></div>'
     )
 
-def render(filter_city="All", filter_lang="All", user=None):
+def render(filter_city="All", filter_lang="All", user=None, booked=False):
     cities   = ["All"] + sorted(set(g["city"] for g in ALL_GUIDES))
     city_opts = "".join(f'<option {"selected" if c==filter_city else ""}>{c}</option>' for c in cities)
     lang_opts = "".join(f'<option {"selected" if l==filter_lang else ""}>{l}</option>' for l in ["All","EN","FIL","ES","IL"])
@@ -91,8 +91,10 @@ def render(filter_city="All", filter_lang="All", user=None):
     )
     count = f"{len(filtered)} guide(s) available" if filtered else "0 guides found"
 
+    booked_banner = '<div style="background:#D1FAE5;color:#065F46;padding:14px 20px;border-radius:10px;margin-bottom:20px;font-weight:700;font-size:15px">&#10003; Booking submitted! Your guide will confirm your booking shortly.</div>' if booked else ""
     body = f"""
     <div class="page-wrap">
+      {booked_banner}
       <div style="margin-bottom:22px">
         <div class="section-title">Tour Guide Booking</div>
         <div class="section-sub">Book a verified local guide for your Luzon adventure</div>
@@ -172,12 +174,13 @@ def render(filter_city="All", filter_lang="All", user=None):
     </div>
 
     <script>
-    var _bookingGuide = "";
-    var _bookingCity  = "";
-    var _bookingRate  = "";
+    var _bookingGuide   = "";
+    var _bookingCity    = "";
+    var _bookingRate    = "";
+    var _bookingGuideId = "";
 
-    function openBookingModal(name, city, rate) {{
-      _bookingGuide = name; _bookingCity = city; _bookingRate = rate;
+    function openBookingModal(name, city, rate, guideId) {{
+      _bookingGuide = name; _bookingCity = city; _bookingRate = rate; _bookingGuideId = guideId || "";
       document.getElementById("booking-guide-info").innerHTML =
         "<strong>&#128100; " + name + "</strong> &mdash; " + city + "<br>Rate: <strong style='color:#6B21A8'>" + rate + "</strong>";
       document.getElementById("booking-modal").style.display = "flex";
@@ -188,12 +191,34 @@ def render(filter_city="All", filter_lang="All", user=None):
       var name  = document.getElementById("bk-name").value.trim();
       var phone = document.getElementById("bk-phone").value.trim();
       var date  = document.getElementById("bk-date").value;
+      var pkg   = document.getElementById("bk-pkg").value;
+      var notes = document.getElementById("bk-notes").value.trim();
       if (!name || !phone || !date) {{ alert("Please fill in your name, contact number, and date."); return; }}
-      closeBookingModal();
-      showToast("Booking confirmed! " + _bookingGuide + " on " + date + ". We will contact you at " + phone);
+      // POST to server so guide receives the booking
+      var form = document.createElement("form");
+      form.method = "post";
+      form.action = "/book-guide";
+      var fields = {{
+        guide_name: _bookingGuide,
+        guide_city: _bookingCity,
+        guide_rate: _bookingRate,
+        guide_id:   _bookingGuideId,
+        tourist_name: name,
+        tourist_phone: phone,
+        tour_date: date,
+        package_title: pkg,
+        notes: notes
+      }};
+      Object.keys(fields).forEach(function(k) {{
+        var inp = document.createElement("input");
+        inp.type = "hidden"; inp.name = k; inp.value = fields[k];
+        form.appendChild(inp);
+      }});
+      document.body.appendChild(form);
+      form.submit();
     }}
 
-    function openProfileModal(name, city, spec, bio, lang, avail, rate, rating, tours) {{
+    function openProfileModal(name, city, spec, bio, lang, avail, rate, rating, tours, guideId) {{
       document.getElementById("profile-content").innerHTML =
         '<div style="text-align:center;margin-bottom:16px">' +
         '<div style="width:72px;height:72px;border-radius:50%;background:#6B21A8;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#fff;margin:0 auto 10px">' + name[0] + '</div>' +
@@ -209,7 +234,7 @@ def render(filter_city="All", filter_lang="All", user=None):
         '<div style="font-size:13px;color:#6B7280">&#128205; City: <strong>' + city + '</strong></div>' +
         '<div style="font-size:20px;font-weight:800;color:#6B21A8;margin-top:10px">' + rate + '</div>';
       document.getElementById("profile-book-btn").onclick = function() {{
-        closeProfileModal(); openBookingModal(name, city, rate);
+        closeProfileModal(); openBookingModal(name, city, rate, guideId);
       }};
       document.getElementById("profile-modal").style.display = "flex";
     }}

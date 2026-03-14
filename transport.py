@@ -31,12 +31,13 @@ def _card(t):
         '</div></div>'
     )
 
-def render(filter_type="All", filter_from="All", user=None):
+def render(filter_type="All", filter_from="All", search="", user=None):
     filtered = [t for t in TRANSPORT
         if (filter_type=="All" or t["type"]==filter_type)
-        and (filter_from=="All" or filter_from.lower() in t["route"].lower())]
-    all_from = ["All","Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay","Tuguegarao","Legazpi"]
-    type_opts = "".join(f'<option {"selected" if x==filter_type else ""}>{x}</option>' for x in ["All","Bus","Van","Ferry","Train"])
+        and (filter_from=="All" or filter_from.lower() in t["route"].lower())
+        and (not search or search.lower() in t["name"].lower() or search.lower() in t["route"].lower())]
+    all_from = ["All","Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay","Albay","Pangasinan","Bataan","La Union"]
+    type_opts = "".join(f'<option {"selected" if x==filter_type else ""}>{x}</option>' for x in ["All","Bus","Van","Ferry","Train","Jeepney"])
     from_opts = "".join(f'<option {"selected" if x==filter_from else ""}>{x}</option>' for x in all_from)
     cards = "".join(_card(t) for t in filtered)
     empty = '<div class="guide-empty"><div style="font-size:40px;margin-bottom:10px">&#128652;</div><div style="font-weight:700;font-size:16px">No routes found</div></div>' if not filtered else ""
@@ -48,12 +49,14 @@ def render(filter_type="All", filter_from="All", user=None):
         <div class="section-sub">Ground, sea and rail transport routes across Luzon</div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#065F46"><span>Filter Routes</span></div>
+        <div class="card-hdr" style="background:#065F46"><span>Search & Filter Routes</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
-            <div><label class="lbl">Transport Type</label><select class="inp" name="type" style="width:160px">{type_opts}</select></div>
-            <div><label class="lbl">Departure Point</label><select class="inp" name="from" style="width:180px">{from_opts}</select></div>
-            <button class="btn" style="background:#065F46;color:#fff" type="submit">Search Routes</button>
+            <div style="flex:1;min-width:200px"><label class="lbl">Search Routes</label>
+              <input class="inp" name="search" placeholder="e.g. Manila to Baguio, Victory Liner..." value="{search}"/></div>
+            <div><label class="lbl">Transport Type</label><select class="inp" name="type" style="width:150px">{type_opts}</select></div>
+            <div><label class="lbl">Departure From</label><select class="inp" name="from" style="width:160px">{from_opts}</select></div>
+            <button class="btn" style="background:#065F46;color:#fff" type="submit">Search</button>
           </form>
         </div>
       </div>

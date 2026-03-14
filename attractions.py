@@ -13,6 +13,7 @@ CITY_COORDS = {
     "Bataan":       ("14.6417","120.4818"),
     "Batangas":     ("13.7565","121.0583"),
     "Ilocos Norte": ("18.1977","120.5778"),
+    "La Union":     ("16.6159","120.3209"),
     "Manila":       ("14.5995","120.9842"),
     "Pangasinan":   ("15.8949","120.2863"),
     "Tagaytay":     ("14.1153","120.9621"),
@@ -69,37 +70,65 @@ def get_spots(city="All", keyword=""):
     return [s for s in STATIC_SPOTS if s.get("city") == city]
 
 def _card(s):
-    col  = CAT_COLORS.get(s["cat"],"#0038A8")
-    icon = CAT_ICONS.get(s["cat"],"&#127963;")
-    name = s["name"].replace("'","")
-    js_name = s["name"].replace("\\","\\\\").replace("'","\\'")
-    js_city = s["city"].replace("\\","\\\\").replace("'","\\'")
-    city = s["city"]
-    img  = s.get("img","") or f"https://source.unsplash.com/800x500/?{urllib.parse.quote(name+' Philippines')}"
-    maps = f"https://www.google.com/maps/search/{urllib.parse.quote(name)}+{urllib.parse.quote(city)}+Philippines"
-    full = int(round(s["rating"]))
-    stars = "&#9733;"*full + "&#9734;"*(5-full)
-    return (
-        '<div class="grid-card">'
-        f'<div class="grid-card-top" style="background:linear-gradient(135deg,{col},{col}99)">'
-        f'<div style="font-size:40px;margin-bottom:10px">{icon}</div>'
-        f'<div style="font-weight:800;font-size:15px;color:#fff;margin-bottom:4px">{s["name"]}</div>'
-        f'<span class="badge" style="background:rgba(255,255,255,.2);color:#fff">{s["cat"]}</span>'
-        '</div>'
-        '<div class="grid-card-body">'
-        f'<img src="{img}" alt="{s["name"]}" style="width:100%;height:130px;object-fit:cover;border-radius:10px;margin-bottom:10px" onerror="this.style.display=\'none\'"/>'
-        f'<div style="color:#F59E0B;font-size:13px;margin-bottom:6px">{stars} <span style="color:#9CA3AF">{s["rating"]}</span></div>'
-        f'<div style="font-size:12px;color:#6B7280;margin-bottom:2px">&#128205; {city}</div>'
-        f'<div style="font-size:12px;color:#6B7280;margin-bottom:2px">&#128336; {s.get("hours","Check on-site")}</div>'
-        f'<div style="font-size:14px;font-weight:800;color:#CE1126;margin:8px 0 6px">Entry: {s.get("entry","Check on-site")}</div>'
-        f'<div style="font-size:12px;color:#6B7280;line-height:1.5;margin-bottom:14px">{s.get("desc","")[:120]}...</div>'
-        '<div style="display:flex;flex-direction:column;gap:7px">'
-        f'<button class="btn" style="background:{col};color:#fff;width:100%;padding:8px" onclick="addToItinerary(\'{js_name}\',\'{js_city}\')">+ Add to Itinerary</button>'
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">'
-        f'<a href="/restaurants.py?city={city}" style="display:block"><button class="btn" style="background:#CE1126;color:#fff;width:100%;padding:7px;font-size:12px">Nearby Restaurants</button></a>'
-        f'<a href="{maps}" target="_blank" style="display:block"><button class="btn" style="background:#C8930A;color:#fff;width:100%;padding:7px;font-size:12px">Directions</button></a>'
-        '</div></div></div></div>'
+    col   = CAT_COLORS.get(s["cat"],"#0038A8")
+    icon  = CAT_ICONS.get(s["cat"],"&#127963;")
+    city  = s["city"]
+    name  = s["name"]
+    img   = s.get("img","") or ("https://source.unsplash.com/800x500/?" + urllib.parse.quote(name+" Philippines"))
+    maps  = "https://www.google.com/maps/search/" + urllib.parse.quote(name) + "+" + urllib.parse.quote(city) + "+Philippines"
+    desc  = s.get("desc","")
+    entry = s.get("entry","Check on-site")
+    hours = s.get("hours","Check on-site")
+    full  = int(round(s["rating"]))
+    stars = "&#9733;" * full + "&#9734;" * (5 - full)
+    mid   = "m" + str(abs(hash(name + city)) % 999999)
+    ns    = name.replace("'","\\'")
+    cs    = city.replace("'","\\'")
+
+    def H(x): return x.replace('"','&quot;')
+
+    modal = (
+        "<div id=\"" + mid + "\" style=\"display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center\">"
+        + "<div style=\"background:#fff;border-radius:16px;max-width:520px;width:90%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)\">"
+        + "<div style=\"background:linear-gradient(135deg," + col + "," + col + "99);padding:24px 24px 16px;border-radius:16px 16px 0 0;position:relative\">"
+        + "<div style=\"font-size:36px;margin-bottom:8px\">" + icon + "</div>"
+        + "<div style=\"font-weight:800;font-size:18px;color:#fff\">" + H(name) + "</div>"
+        + "<div style=\"font-size:13px;color:rgba(255,255,255,.8);margin-top:4px\">&#128205; " + H(city) + "</div>"
+        + "<button onclick=\"closeModal(&quot;" + mid + "&quot;)\" style=\"position:absolute;top:14px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:30px;height:30px;font-size:18px;cursor:pointer\">&#x2715;</button>"
+        + "</div><div style=\"padding:20px 24px\">"
+        + "<img src=\"" + H(img) + "\" style=\"width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:16px\" onerror=\"this.style.display='none'\"/>"
+        + "<div style=\"color:#F59E0B;font-size:14px;margin-bottom:10px\">" + stars + " <span style=\"color:#9CA3AF\">" + str(s["rating"]) + "</span></div>"
+        + "<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px\">"
+        + "<div style=\"background:#F9FAFB;border-radius:8px;padding:10px\"><div style=\"font-size:10px;color:#9CA3AF;text-transform:uppercase;font-weight:600\">Entry Fee</div><div style=\"font-weight:700;color:#CE1126;font-size:14px\">" + entry + "</div></div>"
+        + "<div style=\"background:#F9FAFB;border-radius:8px;padding:10px\"><div style=\"font-size:10px;color:#9CA3AF;text-transform:uppercase;font-weight:600\">Hours</div><div style=\"font-weight:700;font-size:13px\">" + hours + "</div></div>"
+        + "</div>"
+        + "<p style=\"font-size:13px;color:#4B5563;line-height:1.7;margin-bottom:18px\">" + desc + "</p>"
+        + "<div style=\"display:flex;flex-direction:column;gap:8px\">"
+        + "<button class=\"btn\" style=\"background:" + col + ";color:#fff;width:100%;padding:10px;font-size:14px\" onclick=\"addToItinerary('" + ns + "','" + cs + "');closeModal(&quot;" + mid + "&quot;)\">+ Add to Itinerary</button>"
+        + "<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px\">"
+        + "<a href=\"/restaurants.py?city=" + city + "\" style=\"display:block\"><button class=\"btn\" style=\"background:#CE1126;color:#fff;width:100%;padding:9px;font-size:13px\">Nearby Restaurants</button></a>"
+        + "<a href=\"" + maps + "\" target=\"_blank\" style=\"display:block\"><button class=\"btn\" style=\"background:#C8930A;color:#fff;width:100%;padding:9px;font-size:13px\">Get Directions</button></a>"
+        + "</div></div></div></div></div>"
     )
+    card = (
+        modal
+        + "<div class=\"grid-card\" style=\"cursor:pointer\" onclick=\"document.getElementById(&quot;" + mid + "&quot;).style.display='flex'\">"
+        + "<div class=\"grid-card-top\" style=\"background:linear-gradient(135deg," + col + "," + col + "99)\">"
+        + "<div style=\"font-size:40px;margin-bottom:10px\">" + icon + "</div>"
+        + "<div style=\"font-weight:800;font-size:15px;color:#fff;margin-bottom:4px\">" + H(name) + "</div>"
+        + "<span class=\"badge\" style=\"background:rgba(255,255,255,.2);color:#fff\">" + s["cat"] + "</span>"
+        + "</div><div class=\"grid-card-body\">"
+        + "<img src=\"" + H(img) + "\" alt=\"" + H(name) + "\" style=\"width:100%;height:130px;object-fit:cover;border-radius:10px;margin-bottom:10px\" onerror=\"this.style.display='none'\"/>"
+        + "<div style=\"color:#F59E0B;font-size:13px;margin-bottom:6px\">" + stars + " <span style=\"color:#9CA3AF\">" + str(s["rating"]) + "</span></div>"
+        + "<div style=\"font-size:12px;color:#6B7280;margin-bottom:2px\">&#128205; " + H(city) + "</div>"
+        + "<div style=\"font-size:12px;color:#6B7280;margin-bottom:2px\">&#128336; " + hours + "</div>"
+        + "<div style=\"font-size:14px;font-weight:800;color:#CE1126;margin:8px 0 6px\">Entry: " + entry + "</div>"
+        + "<div style=\"font-size:12px;color:#6B7280;line-height:1.5;margin-bottom:14px\">" + desc[:100] + "...</div>"
+        + "<div style=\"font-size:12px;color:#0038A8;font-weight:600;text-align:center;padding:6px 0\">&#128065; Click for details</div>"
+        + "</div></div>"
+    )
+    return card
+
 
 def render(filter_city="All", filter_cat="All", keyword="", user=None):
     results = get_spots(filter_city, keyword)
@@ -143,14 +172,26 @@ def render(filter_city="All", filter_cat="All", keyword="", user=None):
       <div class="page-grid3">{cards}</div>{empty}
     </div>
     <script>
+      function closeModal(id) {{
+        var el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      }}
       function addToItinerary(name, city) {{
         var key='atlas_itinerary_items';
         var items=JSON.parse(localStorage.getItem(key)||'[]');
-        if(!items.some(x=>x.name===name&&x.city===city)){{
-          items.push({{name,city,addedAt:new Date().toISOString()}});
+        if(!items.some(function(x){{return x.name===name&&x.city===city;}})){{
+          items.push({{name:name,city:city,type:'attraction',addedAt:new Date().toISOString()}});
           localStorage.setItem(key,JSON.stringify(items));
+          showToast('✓ Added to itinerary: '+name);
+        }} else {{
+          showToast('Already in itinerary: '+name);
         }}
-        showToast('Added to itinerary: '+name);
       }}
+      // Close modals on backdrop click
+      document.addEventListener('click', function(e) {{
+        if(e.target.style && e.target.style.position === 'fixed' && e.target.style.inset === '0px') {{
+          e.target.style.display = 'none';
+        }}
+      }});
     </script>"""
     return build_shell("Attractions", body, "attractions", user=user)
