@@ -43,7 +43,7 @@ def get_all_guides_combined(city="All"):
     except:
         return [g for g in ALL_GUIDES if city == "All" or g["city"] == city]
 
-COLORS = ["#0038A8","#CE1126","#C8930A","#6B21A8","#0077B6","#065F46","#B45309","#047857","#9D174D","#0369A1","#7C3AED","#DC2626"]
+COLORS = ["#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8"]
 
 def _card(g, i):
     col   = COLORS[i % len(COLORS)]
@@ -100,33 +100,15 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
         <div class="section-sub">Book a verified local guide for your Luzon adventure</div>
       </div>
 
-      <!-- Stats bar -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px">
-        <div style="background:#0038A8;color:#fff;border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:24px;font-weight:900">{len(ALL_GUIDES)}</div>
-          <div style="font-size:12px;opacity:.85">Verified Guides</div>
-        </div>
-        <div style="background:#CE1126;color:#fff;border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:24px;font-weight:900">9</div>
-          <div style="font-size:12px;opacity:.85">Cities Covered</div>
-        </div>
-        <div style="background:#C8930A;color:#fff;border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:24px;font-weight:900">4.7&#9733;</div>
-          <div style="font-size:12px;opacity:.85">Avg. Rating</div>
-        </div>
-        <div style="background:#065F46;color:#fff;border-radius:12px;padding:14px;text-align:center">
-          <div style="font-size:24px;font-weight:900">900+</div>
-          <div style="font-size:12px;opacity:.85">Tours Completed</div>
-        </div>
-      </div>
+
 
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#6B21A8"><span>Find Your Guide</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span>Find Your Guide</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
             <div><label class="lbl">City</label><select class="inp" name="city" style="width:180px">{city_opts}</select></div>
             <div><label class="lbl">Language</label><select class="inp" name="lang" style="width:140px">{lang_opts}</select></div>
-            <button class="btn" style="background:#6B21A8;color:#fff" type="submit">Find Guides</button>
+            <button class="btn" style="background:#0038A8;color:#fff" type="submit">Find Guides</button>
           </form>
         </div>
       </div>
@@ -155,7 +137,7 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
           <div><label class="lbl">Special Requests</label><textarea class="inp" id="bk-notes" rows="2" placeholder="Any special requests..." style="width:100%;resize:none"></textarea></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:18px">
-          <button class="btn" style="flex:1;background:#6B21A8;color:#fff;padding:11px;font-weight:700" onclick="confirmBooking()">&#10003; Confirm Booking</button>
+          <button class="btn" style="flex:1;background:#0038A8;color:#fff;padding:11px;font-weight:700" onclick="confirmBooking()">&#10003; Confirm Booking</button>
           <button class="btn-outline" style="flex:1;padding:11px" onclick="closeBookingModal()">Cancel</button>
         </div>
       </div>
@@ -169,7 +151,7 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
           <button onclick="closeProfileModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#6B7280">&times;</button>
         </div>
         <div id="profile-content"></div>
-        <button class="btn" id="profile-book-btn" style="width:100%;background:#6B21A8;color:#fff;padding:11px;margin-top:16px;font-weight:700">&#128197; Book This Guide</button>
+        <button class="btn" id="profile-book-btn" style="width:100%;background:#0038A8;color:#fff;padding:11px;margin-top:16px;font-weight:700">&#128197; Book This Guide</button>
       </div>
     </div>
 
@@ -183,7 +165,7 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
       if(typeof ATLAS_LOGGED_IN!=='undefined' && !ATLAS_LOGGED_IN){{ openSigninGate(); return; }}
       _bookingGuide = name; _bookingCity = city; _bookingRate = rate; _bookingGuideId = guideId || "";
       document.getElementById("booking-guide-info").innerHTML =
-        "<strong>&#128100; " + name + "</strong> &mdash; " + city + "<br>Rate: <strong style='color:#6B21A8'>" + rate + "</strong>";
+        "<strong>&#128100; " + name + "</strong> &mdash; " + city + "<br>Rate: <strong style='color:#0038A8'>" + rate + "</strong>";
       document.getElementById("booking-modal").style.display = "flex";
     }}
     function closeBookingModal() {{ document.getElementById("booking-modal").style.display = "none"; }}
@@ -222,7 +204,7 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
     function openProfileModal(name, city, spec, bio, lang, avail, rate, rating, tours, guideId) {{
       document.getElementById("profile-content").innerHTML =
         '<div style="text-align:center;margin-bottom:16px">' +
-        '<div style="width:72px;height:72px;border-radius:50%;background:#6B21A8;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#fff;margin:0 auto 10px">' + name[0] + '</div>' +
+        '<div style="width:72px;height:72px;border-radius:50%;background:#0038A8;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#fff;margin:0 auto 10px">' + name[0] + '</div>' +
         '<div style="font-size:20px;font-weight:800">' + name + '</div>' +
         '<div style="color:#6B7280;font-size:13px">' + spec + '</div></div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
@@ -233,7 +215,7 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
         '<div style="font-size:13px;color:#6B7280;margin-bottom:4px">&#127760; Languages: <strong>' + lang + '</strong></div>' +
         '<div style="font-size:13px;color:#6B7280;margin-bottom:4px">&#128197; Available: <strong>' + avail + '</strong></div>' +
         '<div style="font-size:13px;color:#6B7280">&#128205; City: <strong>' + city + '</strong></div>' +
-        '<div style="font-size:20px;font-weight:800;color:#6B21A8;margin-top:10px">' + rate + '</div>';
+        '<div style="font-size:20px;font-weight:800;color:#0038A8;margin-top:10px">' + rate + '</div>';
       document.getElementById("profile-book-btn").onclick = function() {{
         closeProfileModal(); openBookingModal(name, city, rate, guideId);
       }};

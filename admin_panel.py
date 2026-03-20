@@ -141,7 +141,7 @@ a.snv:hover{{background:rgba(255,255,255,.08)}}
 <div class="sidebar">
   <div class="s-brand">
     <div class="s-logo-row">
-      <div class="s-logo">A</div>
+      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
       <div><div class="s-title">ATLAS</div><div class="s-badge">ADMIN PANEL</div></div>
     </div>
   </div>

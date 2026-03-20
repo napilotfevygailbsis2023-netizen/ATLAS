@@ -19,7 +19,7 @@ CITY_COORDS = {
     "Vigan":        ("17.5747","120.3873"),
 }
 
-TYPE_COLORS = ["#0038A8","#CE1126","#C8930A","#065F46","#6B21A8","#0077B6"]
+TYPE_COLORS = ["#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8"]
 
 def fetch_from_foursquare(city, keyword):
     """Only called when user types a keyword."""
@@ -134,16 +134,16 @@ def render(filter_city="All", keyword="", filter_type="All", user=None):
         <div class="section-sub">{src_note} · Search by keyword to discover more via Foursquare API</div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#C8930A"><span>Search Restaurants</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span>Search Restaurants</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
             <div><label class="lbl">City</label>
-              <select class="inp" name="city" style="width:160px">{{city_opts}}</select></div>
+              <select class="inp" name="city" style="width:160px">{city_opts}</select></div>
             <div><label class="lbl">Cuisine Type</label>
-              <select class="inp" name="type" style="width:160px">{{type_opts}}</select></div>
+              <select class="inp" name="type" style="width:160px">{type_opts}</select></div>
             <div style="flex:1;min-width:180px"><label class="lbl">Search via Foursquare API</label>
-              <input class="inp" name="kw" placeholder="e.g. bulalo, cafe, seafood..." value="{{keyword}}"/></div>
-            <button class="btn" style="background:#C8930A;color:#fff" type="submit">Search</button>
+              <input class="inp" name="kw" placeholder="e.g. bulalo, cafe, seafood..." value="{keyword}"/></div>
+            <button class="btn" style="background:#0038A8;color:#fff" type="submit">Search</button>
           </form>
         </div>
       </div>

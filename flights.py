@@ -56,7 +56,7 @@ def _card(f):
     return (
         '<div class="grid-card">'
         f'<div class="grid-card-top" style="background:linear-gradient(135deg,{col},{col}99)">'
-        f'<div style="font-size:36px;margin-bottom:8px">&#9992;</div>'
+        f'<div style="font-size:36px;margin-bottom:8px"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg></div>'
         f'<div style="font-weight:800;font-size:13px;color:#fff;margin-bottom:8px">{airline}</div>'
         f'<div style="display:flex;align-items:center;justify-content:center;gap:10px;color:#fff">'
         f'<span style="font-weight:700;font-size:14px">{origin}</span>'

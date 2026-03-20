@@ -2,6 +2,7 @@ import sys, os, urllib.request, urllib.parse, json, datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
 from data import WEATHER as FALLBACK
+SUN_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
 
 API_KEY = "64a99b2ac477b0d12944d61cd3514ebd"
 CITIES  = ["Albay","Baguio","Bataan","Batangas","Ilocos Norte","La Union","Manila","Pangasinan","Tagaytay","Vigan"]
@@ -74,8 +75,8 @@ def render(location="Manila", user=None):
       <div style="font-size:10px;color:#6B7280">{fc[1]}</div>
     </div>""" for i,fc in enumerate(forecast))
 
-    metrics = [("Humidity",wd["hum"],"#0038A8"),("Wind",wd["wind"],"#CE1126"),
-               ("UV Index",wd["uv"],"#C8930A"),("Pressure",wd["press"],"#0077B6"),("Visibility",wd["vis"],"#6B21A8")]
+    metrics = [("Humidity",wd["hum"],"#0038A8"),("Wind",wd["wind"],"#0038A8"),
+               ("UV Index",wd["uv"],"#0038A8"),("Pressure",wd["press"],"#0038A8"),("Visibility",wd["vis"],"#0038A8")]
     metric_cells = "".join(f"""
     <div class="metric-cell">
       <div style="font-size:13px;color:#6B7280;margin-bottom:4px">{lbl}</div>
@@ -89,12 +90,12 @@ def render(location="Manila", user=None):
         <div class="section-sub">Live weather conditions across Luzon - {today_str}</div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#0077B6"><span>Select Destination</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span>Select Destination</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;align-items:flex-end">
             <div style="flex:1"><label class="lbl">City / Province</label>
               <select class="inp" name="location">{loc_opts}</select></div>
-            <button class="btn" style="background:#0077B6;color:#fff" type="submit">Get Forecast</button>
+            <button class="btn" style="background:#0038A8;color:#fff;display:inline-flex;align-items:center;gap:6px" type="submit">{SUN_ICON} Get Forecast</button>
           </form>
         </div>
       </div>

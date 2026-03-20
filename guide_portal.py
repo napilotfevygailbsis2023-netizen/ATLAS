@@ -55,7 +55,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 <div class="split-right">
   <div style="margin-bottom:28px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <div style="width:32px;height:32px;background:linear-gradient(135deg,#6B21A8,#4C1D95);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px">G</div>
+      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
       <span style="font-weight:900;font-size:18px;color:#1F2937">Guide Portal</span>
     </div>
     <div style="font-size:13px;color:#6B7280">ATLAS Tour Guide Management</div>
@@ -124,7 +124,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 <div class="split-right">
   <div style="margin-bottom:24px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <div style="width:32px;height:32px;background:linear-gradient(135deg,#6B21A8,#4C1D95);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px">G</div>
+      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
       <span style="font-weight:900;font-size:18px;color:#1F2937">Guide Portal</span>
     </div>
     <div style="font-size:13px;color:#6B7280">ATLAS Tour Guide Management</div>

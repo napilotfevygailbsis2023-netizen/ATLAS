@@ -14,7 +14,7 @@ def build_guide_shell(title, body, section="", guide=None):
         <aside style="width:230px;min-height:100vh;background:linear-gradient(180deg,#3B0764,#4C1D95,#1e1b4b);display:flex;flex-direction:column;padding:0;position:fixed;top:0;left:0;z-index:100">
           <div style="padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.1)">
             <a href="/guide" style="display:flex;align-items:center;gap:10px;text-decoration:none">
-              <div style="width:34px;height:34px;background:#CE1126;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">G</div>
+              <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
               <div>
                 <div style="font-weight:900;color:#fff;font-size:15px">ATLAS</div>
                 <div style="font-size:10px;color:#A78BFA">Guide Portal</div>
