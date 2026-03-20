@@ -4,14 +4,14 @@ from template import build_shell
 
 HIGHLIGHTS = [
     {"name":"Intramuros",      "city":"Manila",       "color":"#0038A8","cat":"Historical","icon":"&#127963;"},
-    {"name":"Paoay Church",    "city":"Ilocos Norte", "color":"#C8930A","cat":"Heritage",  "icon":"&#9962;"},
-    {"name":"Taal Volcano",    "city":"Batangas",     "color":"#065F46","cat":"Nature",    "icon":"&#127755;"},
-    {"name":"Calle Crisologo", "city":"Vigan",        "color":"#CE1126","cat":"Heritage",  "icon":"&#127968;"},
+    {"name":"Paoay Church",    "city":"Ilocos Norte", "color":"#0038A8","cat":"Heritage",  "icon":"&#9962;"},
+    {"name":"Taal Volcano",    "city":"Batangas",     "color":"#0038A8","cat":"Nature",    "icon":"&#127755;"},
+    {"name":"Calle Crisologo", "city":"Vigan",        "color":"#0038A8","cat":"Heritage",  "icon":"&#127968;"},
 ]
 OFFERS = [
     {"title":"Book a Tour Guide",  "desc":"Get a certified local guide for your Luzon trip",     "color":"#0038A8","href":"/guides.py",  "icon":"&#129517;"},
-    {"title":"Check Live Weather", "desc":"Plan safely with real-time forecasts for each city",  "color":"#CE1126","href":"/weather.py", "icon":"&#127748;"},
-    {"title":"Search Flights",     "desc":"Find the best domestic fares to Luzon destinations",  "color":"#C8930A","href":"/flights.py", "icon":"&#9992;"},
+    {"title":"Check Live Weather", "desc":"Plan safely with real-time forecasts for each city",  "color":"#0038A8","href":"/weather.py", "icon":"&#127748;"},
+    {"title":"Search Flights",     "desc":"Find the best domestic fares to Luzon destinations",  "color":"#0038A8","href":"/flights.py", "icon":"&#9992;"},
 ]
 
 def render(user=None):

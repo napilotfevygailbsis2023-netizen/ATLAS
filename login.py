@@ -15,7 +15,7 @@ def _shell(right_content, error="", success=""):
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;background:#F8F4EF}}
-.split-left{{width:55%;background:linear-gradient(160deg,#CE1126 0%,#0038A8 60%,#1a1a2e 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
+.split-left{{width:55%;background:linear-gradient(160deg,#003087 0%,#0038A8 60%,#001a5e 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
 .blob1{{position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.07);top:-80px;left:-80px}}
 .blob2{{position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.05);bottom:-60px;right:-60px}}
 .split-left-content{{position:relative;z-index:2;text-align:center;color:#fff}}
@@ -27,7 +27,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 .field label{{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}}
 .field input{{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;transition:.2s;background:#F9FAFB}}
 .field input:focus{{border-color:#0038A8;background:#fff;box-shadow:0 0 0 3px rgba(0,56,168,.08)}}
-.submit-btn{{width:100%;padding:14px;background:linear-gradient(135deg,#CE1126,#0038A8);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;margin-top:4px}}
+.submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;margin-top:4px}}
 .submit-btn:hover{{opacity:.92}}
 .divider{{display:flex;align-items:center;gap:12px;margin:20px 0;color:#9CA3AF;font-size:13px}}
 .divider::before,.divider::after{{content:'';flex:1;height:1px;background:#E5E7EB}}
@@ -45,17 +45,17 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
     <div style="font-size:36px;font-weight:900;line-height:1.2;margin-bottom:14px">Explore.<br/>Discover.<br/>Adventure.</div>
     <div style="font-size:15px;opacity:.8;line-height:1.8;margin-bottom:32px;max-width:300px">Your Luzon travel companion for flights, attractions, restaurants and guided tours.</div>
     <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;opacity:.9">
-      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">&#9992;</span> Real-time flight search</div>
-      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">&#127963;</span> Tourist attraction guides</div>
-      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">&#129517;</span> Verified local tour guides</div>
-      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:20px">&#127748;</span> Live weather forecasts</div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="display:inline-flex;align-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg></span> Real-time flight search</div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="display:inline-flex;align-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></span> Tourist attraction guides</div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="display:inline-flex;align-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Verified local tour guides</div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="display:inline-flex;align-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></span> Live weather forecasts</div>
     </div>
   </div>
 </div>
 <div class="split-right">
   <div style="margin-bottom:28px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <div style="width:32px;height:32px;background:linear-gradient(135deg,#CE1126,#0038A8);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px">A</div>
+      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
       <span style="font-weight:900;font-size:18px;color:#1F2937">ATLAS</span>
     </div>
     <div style="font-size:13px;color:#6B7280">Luzon Travel Companion</div>

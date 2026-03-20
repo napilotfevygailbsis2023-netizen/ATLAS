@@ -4,8 +4,15 @@ from template import build_shell
 from data import SPOTS as STATIC_SPOTS
 
 FSQ_KEY = "JHNF2RTKPV0ISAD1DSYUZLMJRH3AC1EJ43B3LBDK0WLNBEMN"
-CAT_COLORS = {"Nature":"#065F46","Historical":"#0038A8","Heritage":"#C8930A","Landmark":"#CE1126","Park":"#065F46","Museum":"#0038A8"}
-CAT_ICONS  = {"Nature":"&#127807;","Historical":"&#127963;","Heritage":"&#9962;","Landmark":"&#127981;","Park":"&#127795;","Museum":"&#127963;"}
+CAT_COLORS = {"Nature":"#0038A8","Historical":"#0038A8","Heritage":"#0038A8","Landmark":"#0038A8","Park":"#0038A8","Museum":"#0038A8"}
+CAT_ICONS = {
+  "Nature":     '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><path d="M12 2C6.5 2 2 6.5 2 12"/><path d="M12 2c5.5 0 10 4.5 10 10"/><path d="M7 9l5-7 5 7"/></svg>',
+  "Historical": '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg>',
+  "Heritage":   '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 22V10l-6-8-6 8v12"/><path d="M12 2v4"/><path d="M10 4h4"/><path d="M9 22v-6h6v6"/></svg>',
+  "Landmark":   '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 6.9 8 11.7z"/></svg>',
+  "Park":       '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V12"/><path d="M5 12H2a10 10 0 0 0 20 0h-3"/><path d="M12 2C6.5 2 2 6.5 2 12"/><path d="M12 2c5.5 0 10 4.5 10 10"/><path d="M7 9l5-7 5 7"/></svg>',
+  "Museum":     '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><line x1="2" y1="7" x2="22" y2="7"/><path d="M12 2v5"/></svg>',
+}
 
 CITY_COORDS = {
     "Albay":        ("13.1391","123.7438"),
@@ -91,7 +98,7 @@ def _card(s):
         "<div id=\"" + mid + "\" style=\"display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center\">"
         + "<div style=\"background:#fff;border-radius:16px;max-width:520px;width:90%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)\">"
         + "<div style=\"background:linear-gradient(135deg," + col + "," + col + "99);padding:24px 24px 16px;border-radius:16px 16px 0 0;position:relative\">"
-        + "<div style=\"font-size:36px;margin-bottom:8px\">" + icon + "</div>"
+        + "<div style=\"margin-bottom:8px\">" + icon + "</div>"
         + "<div style=\"font-weight:800;font-size:18px;color:#fff\">" + H(name) + "</div>"
         + "<div style=\"font-size:13px;color:rgba(255,255,255,.8);margin-top:4px\">&#128205; " + H(city) + "</div>"
         + "<button onclick=\"closeModal(&quot;" + mid + "&quot;)\" style=\"position:absolute;top:14px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:30px;height:30px;font-size:18px;cursor:pointer\">&#x2715;</button>"
@@ -99,22 +106,22 @@ def _card(s):
         + "<img src=\"" + H(img) + "\" style=\"width:100%;height:180px;object-fit:cover;border-radius:10px;margin-bottom:16px\" onerror=\"this.style.display='none'\"/>"
         + "<div style=\"color:#F59E0B;font-size:14px;margin-bottom:10px\">" + stars + " <span style=\"color:#9CA3AF\">" + str(s["rating"]) + "</span></div>"
         + "<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px\">"
-        + "<div style=\"background:#F9FAFB;border-radius:8px;padding:10px\"><div style=\"font-size:10px;color:#9CA3AF;text-transform:uppercase;font-weight:600\">Entry Fee</div><div style=\"font-weight:700;color:#CE1126;font-size:14px\">" + entry + "</div></div>"
+        + "<div style=\"background:#F9FAFB;border-radius:8px;padding:10px\"><div style=\"font-size:10px;color:#9CA3AF;text-transform:uppercase;font-weight:600\">Entry Fee</div><div style=\"font-weight:700;color:#0038A8;font-size:14px\">" + entry + "</div></div>"
         + "<div style=\"background:#F9FAFB;border-radius:8px;padding:10px\"><div style=\"font-size:10px;color:#9CA3AF;text-transform:uppercase;font-weight:600\">Hours</div><div style=\"font-weight:700;font-size:13px\">" + hours + "</div></div>"
         + "</div>"
         + "<p style=\"font-size:13px;color:#4B5563;line-height:1.7;margin-bottom:18px\">" + desc + "</p>"
         + "<div style=\"display:flex;flex-direction:column;gap:8px\">"
         + "<button class=\"btn\" style=\"background:" + col + ";color:#fff;width:100%;padding:10px;font-size:14px\" onclick=\"addToItinerary('" + ns + "','" + cs + "');closeModal(&quot;" + mid + "&quot;)\">+ Add to Itinerary</button>"
         + "<div style=\"display:grid;grid-template-columns:1fr 1fr;gap:8px\">"
-        + "<a href=\"/restaurants.py?city=" + city + "\" style=\"display:block\"><button class=\"btn\" style=\"background:#CE1126;color:#fff;width:100%;padding:9px;font-size:13px\">Nearby Restaurants</button></a>"
-        + "<a href=\"" + maps + "\" target=\"_blank\" style=\"display:block\"><button class=\"btn\" style=\"background:#C8930A;color:#fff;width:100%;padding:9px;font-size:13px\">Get Directions</button></a>"
+        + "<a href=\"/restaurants.py?city=" + city + "\" style=\"display:block\"><button class=\"btn\" style=\"background:#0038A8;color:#fff;width:100%;padding:9px;font-size:13px\">Nearby Restaurants</button></a>"
+        + "<a href=\"" + maps + "\" target=\"_blank\" style=\"display:block\"><button class=\"btn\" style=\"background:#0038A8;color:#fff;width:100%;padding:9px;font-size:13px\">Get Directions</button></a>"
         + "</div></div></div></div></div>"
     )
     card = (
         modal
         + "<div class=\"grid-card\" style=\"cursor:pointer\" onclick=\"if(typeof ATLAS_LOGGED_IN!=='undefined'&&!ATLAS_LOGGED_IN){openSigninGate();}else{document.getElementById(&quot;" + mid + "&quot;).style.display='flex';}\">"
         + "<div class=\"grid-card-top\" style=\"background:linear-gradient(135deg," + col + "," + col + "99)\">"
-        + "<div style=\"font-size:40px;margin-bottom:10px\">" + icon + "</div>"
+        + "<div style=\"margin-bottom:10px;display:flex;justify-content:center\">" + icon + "</div>"
         + "<div style=\"font-weight:800;font-size:15px;color:#fff;margin-bottom:4px\">" + H(name) + "</div>"
         + "<span class=\"badge\" style=\"background:rgba(255,255,255,.2);color:#fff\">" + s["cat"] + "</span>"
         + "</div><div class=\"grid-card-body\">"
@@ -122,7 +129,7 @@ def _card(s):
         + "<div style=\"color:#F59E0B;font-size:13px;margin-bottom:6px\">" + stars + " <span style=\"color:#9CA3AF\">" + str(s["rating"]) + "</span></div>"
         + "<div style=\"font-size:12px;color:#6B7280;margin-bottom:2px\">&#128205; " + H(city) + "</div>"
         + "<div style=\"font-size:12px;color:#6B7280;margin-bottom:2px\">&#128336; " + hours + "</div>"
-        + "<div style=\"font-size:14px;font-weight:800;color:#CE1126;margin:8px 0 6px\">Entry: " + entry + "</div>"
+        + "<div style=\"font-size:14px;font-weight:800;color:#0038A8;margin:8px 0 6px\">Entry: " + entry + "</div>"
         + "<div style=\"font-size:12px;color:#6B7280;line-height:1.5;margin-bottom:14px\">" + desc[:100] + "...</div>"
         + "<div style=\"font-size:12px;color:#0038A8;font-weight:600;text-align:center;padding:6px 0\">&#128065; Click for details</div>"
         + "</div></div>"
@@ -139,7 +146,7 @@ def render(filter_city="All", filter_cat="All", keyword="", user=None):
     city_opts = "".join(f'<option {"selected" if c==filter_city else ""}>{c}</option>' for c in cities)
     cat_opts  = "".join(
         f'<option {"selected" if c==filter_cat else ""}>{c}</option>'
-        for c in ["All","Nature","Historical","Heritage","Landmark","Museum","Park"]
+        for c in ["All","Nature","Historical","Heritage","Landmark","Museum"]
     )
     cards = "".join(_card(s) for s in results)
     empty = (
@@ -157,14 +164,14 @@ def render(filter_city="All", filter_cat="All", keyword="", user=None):
         <div class="section-sub">{src_note} · Search by keyword to discover more via Foursquare API</div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#CE1126"><span>Filter and Search</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span>Filter and Search</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
             <div><label class="lbl">City</label><select class="inp" name="city" style="width:170px">{city_opts}</select></div>
             <div><label class="lbl">Category</label><select class="inp" name="cat" style="width:170px">{cat_opts}</select></div>
             <div style="flex:1;min-width:160px"><label class="lbl">Search via Foursquare API</label>
               <input class="inp" name="kw" placeholder="e.g. volcano, heritage, waterfall..." value="{keyword}"/></div>
-            <button class="btn" style="background:#CE1126;color:#fff" type="submit">Search</button>
+            <button class="btn" style="background:#0038A8;color:#fff" type="submit">Search</button>
           </form>
         </div>
       </div>

@@ -81,6 +81,37 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(css)
             return
 
+        # Serve logo
+        if path == "/ATLAS_LOGO.jpg":
+            logo_path = os.path.join(BASE, "ATLAS_LOGO.jpg")
+            if os.path.isfile(logo_path):
+                with open(logo_path,"rb") as f: img = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type","image/jpeg")
+                self.send_header("Content-Length", str(len(img)))
+                self.end_headers()
+                self.wfile.write(img)
+            else:
+                self.send_error(404)
+            return
+
+        # Serve uploaded images
+        if path.startswith("/uploads/"):
+            fname = path[len("/uploads/"):]
+            fpath = os.path.join(BASE, "uploads", fname)
+            if os.path.isfile(fpath):
+                ext = os.path.splitext(fname)[-1].lower().lstrip(".")
+                mime = {"jpg":"image/jpeg","jpeg":"image/jpeg","png":"image/png","gif":"image/gif","webp":"image/webp"}.get(ext,"application/octet-stream")
+                with open(fpath,"rb") as f: data = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", mime)
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+            else:
+                self.send_error(404)
+            return
+
 
         # ── GUIDE PORTAL GET ──
         if path in ("/guide", "/guide/"):
