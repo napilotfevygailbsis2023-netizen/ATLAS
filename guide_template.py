@@ -11,10 +11,10 @@ def build_guide_shell(title, body, section="", guide=None):
     if guide:
         initials = guide["fname"][0].upper() + guide["lname"][0].upper()
         sidebar = f"""
-        <aside style="width:230px;min-height:100vh;background:linear-gradient(180deg,#3B0764,#4C1D95,#1e1b4b);display:flex;flex-direction:column;padding:0;position:fixed;top:0;left:0;z-index:100">
+        <aside style="width:230px;min-height:100vh;background:linear-gradient(180deg,#003087,#0038A8,#001a5e);display:flex;flex-direction:column;padding:0;position:fixed;top:0;left:0;z-index:100">
           <div style="padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.1)">
             <a href="/guide" style="display:flex;align-items:center;gap:10px;text-decoration:none">
-              <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
+              <div style="width:34px;height:34px;background:#CE1126;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:16px">G</div>
               <div>
                 <div style="font-weight:900;color:#fff;font-size:15px">ATLAS</div>
                 <div style="font-size:10px;color:#A78BFA">Guide Portal</div>
@@ -59,7 +59,7 @@ def build_guide_shell(title, body, section="", guide=None):
   .g-card-hdr {{ padding:14px 20px; color:#fff; font-weight:800; font-size:15px; }}
   .g-card-body {{ padding:20px; }}
   .g-inp {{ width:100%; padding:9px 12px; border:1px solid #E2E8F0; border-radius:8px; font-size:14px; box-sizing:border-box; }}
-  .g-inp:focus {{ outline:none; border-color:#7C3AED; box-shadow:0 0 0 3px rgba(124,58,237,.1); }}
+  .g-inp:focus {{ outline:none; border-color:#0038A8; box-shadow:0 0 0 3px rgba(0,56,168,.1); }}
   .g-btn {{ padding:10px 20px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }}
   .g-lbl {{ font-size:12px; font-weight:600; color:#4B5563; margin-bottom:4px; display:block; text-transform:uppercase; letter-spacing:.5px; }}
   .g-stat {{ border-radius:12px; padding:18px 20px; color:#fff; text-align:center; }}
