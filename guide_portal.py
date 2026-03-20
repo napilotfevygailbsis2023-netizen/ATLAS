@@ -20,7 +20,7 @@ def render_login(error="", success=""):
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;}}
-.split-left{{width:55%;background:linear-gradient(160deg,#3B0764 0%,#4C1D95 50%,#1e1b4b 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
+.split-left{{width:55%;background:linear-gradient(160deg,#003087 0%,#0038A8 50%,#001a5e 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
 .blob1{{position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(255,255,255,.06);top:-100px;left:-80px}}
 .blob2{{position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.04);bottom:-60px;right:-40px}}
 .split-right{{width:45%;flex-shrink:0;background:linear-gradient(180deg,#F8F4FF 0%,#fff 40%);display:flex;flex-direction:column;justify-content:center;padding:52px 48px;min-height:100vh;overflow-y:auto}}
@@ -30,8 +30,8 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 .field{{margin-bottom:18px}}
 .field label{{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}}
 .field input{{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB}}
-.field input:focus{{border-color:#6B21A8;background:#fff;box-shadow:0 0 0 3px rgba(107,33,168,.08)}}
-.submit-btn{{width:100%;padding:14px;background:linear-gradient(135deg,#6B21A8,#4C1D95);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}}
+.field input:focus{{border-color:#0038A8;background:#fff;box-shadow:0 0 0 3px rgba(0,56,168,.08)}}
+.submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}}
 .back-link{{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);color:#fff;text-decoration:none;padding:8px 16px;border-radius:30px;font-size:13px;font-weight:600;z-index:999}}
 @media(max-width:700px){{.split-left{{display:none}}.split-right{{width:100%}}}}
 </style>
@@ -55,7 +55,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 <div class="split-right">
   <div style="margin-bottom:28px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
+      <div style="width:32px;height:32px;background:#0038A8;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px">G</div>
       <span style="font-weight:900;font-size:18px;color:#1F2937">Guide Portal</span>
     </div>
     <div style="font-size:13px;color:#6B7280">ATLAS Tour Guide Management</div>
@@ -73,7 +73,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
     <button class="submit-btn" type="submit">Log In &#8594;</button>
   </form>
   <div style="text-align:center;margin-top:24px;font-size:13px;color:#6B7280">
-    Don't have an account? <a href="/guide/register" style="color:#6B21A8;font-weight:700">Register as Guide</a>
+    Don't have an account? <a href="/guide/register" style="color:#0038A8;font-weight:700">Register as Guide</a>
   </div>
 </div>
 </body></html>"""
@@ -90,7 +90,7 @@ def render_register(error=""):
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;}}
-.split-left{{width:55%;background:linear-gradient(160deg,#4C1D95 0%,#6B21A8 50%,#3B0764 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
+.split-left{{width:55%;background:linear-gradient(160deg,#003087 0%,#0038A8 50%,#001a5e 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
 .blob1{{position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.06);top:-80px;right:-80px}}
 .blob2{{position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.04);bottom:-60px;left:-40px}}
 .split-right{{width:45%;flex-shrink:0;background:linear-gradient(180deg,#F8F4FF 0%,#fff 40%);display:flex;flex-direction:column;justify-content:center;padding:48px;min-height:100vh;overflow-y:auto}}
@@ -100,8 +100,8 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 .field{{margin-bottom:16px}}
 .field label{{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}}
 .field input,.field select{{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB}}
-.field input:focus,.field select:focus{{border-color:#6B21A8;background:#fff;box-shadow:0 0 0 3px rgba(107,33,168,.08)}}
-.submit-btn{{width:100%;padding:14px;background:linear-gradient(135deg,#6B21A8,#4C1D95);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}}
+.field input:focus,.field select:focus{{border-color:#0038A8;background:#fff;box-shadow:0 0 0 3px rgba(0,56,168,.08)}}
+.submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}}
 .back-link{{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);color:#fff;text-decoration:none;padding:8px 16px;border-radius:30px;font-size:13px;font-weight:600;z-index:999}}
 @media(max-width:700px){{.split-left{{display:none}}.split-right{{width:100%}}}}
 </style>
@@ -124,7 +124,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 <div class="split-right">
   <div style="margin-bottom:24px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
+      <div style="width:32px;height:32px;background:#0038A8;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px">G</div>
       <span style="font-weight:900;font-size:18px;color:#1F2937">Guide Portal</span>
     </div>
     <div style="font-size:13px;color:#6B7280">ATLAS Tour Guide Management</div>
@@ -149,7 +149,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
     <button class="submit-btn" type="submit">Create Account &#8594;</button>
   </form>
   <div style="text-align:center;margin-top:20px;font-size:13px;color:#6B7280">
-    Already have an account? <a href="/guide" style="color:#6B21A8;font-weight:700">Log In</a>
+    Already have an account? <a href="/guide" style="color:#0038A8;font-weight:700">Log In</a>
   </div>
 </div>
 </body></html>"""
@@ -172,7 +172,7 @@ def render_dashboard(guide, msg="", err=""):
     # Stat cards
     stats = f"""
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
-      <div class="g-stat" style="background:linear-gradient(135deg,#6B21A8,#7C3AED)"><div style="font-size:32px;font-weight:900">{len(packages)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Packages</div></div>
+      <div class="g-stat" style="background:linear-gradient(135deg,#0038A8,#0050d0)"><div style="font-size:32px;font-weight:900">{len(packages)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Packages</div></div>
       <div class="g-stat" style="background:linear-gradient(135deg,#D97706,#F59E0B)"><div style="font-size:32px;font-weight:900">{len(pending)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Pending</div></div>
       <div class="g-stat" style="background:linear-gradient(135deg,#059669,#10B981)"><div style="font-size:32px;font-weight:900">{len(upcoming)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Upcoming</div></div>
       <div class="g-stat" style="background:linear-gradient(135deg,#DC2626,#EF4444)"><div style="font-size:32px;font-weight:900">{avg_rating}&#9733;</div><div style="font-size:12px;opacity:.85;margin-top:4px">Avg Rating</div></div>
@@ -193,7 +193,7 @@ def render_dashboard(guide, msg="", err=""):
             <form method="post" action="/guide/dashboard?section=dashboard"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{b["id"]}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
           </div>
         </div>""" for b in pending)
-        pending_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#D97706">&#9888; Pending Booking Requests ({len(pending)})</div><div class="g-card-body">{rows}</div></div>'
+        pending_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#0038A8">&#9888; Pending Booking Requests ({len(pending)})</div><div class="g-card-body">{rows}</div></div>'
 
     # Upcoming bookings table
     upcoming_html = ""
@@ -233,7 +233,7 @@ def render_packages(guide, msg="", err=""):
               {"" if not incl else f'<div style="margin-top:10px">{incl}</div>'}
             </div>
             <div style="text-align:right">
-              <div style="font-size:22px;font-weight:900;color:#6B21A8;white-space:nowrap">{p["price"]}</div>
+              <div style="font-size:22px;font-weight:900;color:#0038A8;white-space:nowrap">{p["price"]}</div>
               <form method="post" action="/guide/packages" style="margin-top:8px">
                 <input type="hidden" name="action" value="delete_package"/>
                 <input type="hidden" name="pkg_id" value="{p["id"]}"/>
@@ -250,7 +250,7 @@ def render_packages(guide, msg="", err=""):
     </div>
     {alert}
     <div class="g-card">
-      <div class="g-card-hdr" style="background:#6B21A8">&#43; Add New Package</div>
+      <div class="g-card-hdr" style="background:#0038A8">&#43; Add New Package</div>
       <div class="g-card-body">
         <form method="post" action="/guide/packages" style="display:flex;flex-direction:column;gap:14px">
           <input type="hidden" name="action" value="add_package"/>
@@ -266,7 +266,7 @@ def render_packages(guide, msg="", err=""):
           </div>
           <div><label class="g-lbl">Description</label><textarea class="g-inp" name="description" rows="2" placeholder="What's included in this tour package?" style="resize:none"></textarea></div>
           <div><label class="g-lbl">Inclusions (comma separated)</label><input class="g-inp" name="inclusions" placeholder="e.g. Transportation, Lunch, Guide fee, Entrance fees"/></div>
-          <div><button class="g-btn" type="submit" style="background:#6B21A8;color:#fff;padding:11px 24px">Add Package</button></div>
+          <div><button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:11px 24px">Add Package</button></div>
         </form>
       </div>
     </div>
@@ -285,7 +285,7 @@ def render_bookings(guide, filter_status="all", msg="", err=""):
     if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px">&#9888; {err}</div>'
 
     tabs = "".join(
-        f'<a href="/guide/bookings?filter={s}" style="padding:8px 18px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:600;background:{"#6B21A8" if filter_status==s else "#fff"};color:{"#fff" if filter_status==s else "#374151"};border:1px solid {"#6B21A8" if filter_status==s else "#E2E8F0"}">{s.title()} {"("+str(len([b for b in all_bookings if b["status"]==s]))+")" if s!="all" else "("+str(len(all_bookings))+")"}</a>'
+        f'<a href="/guide/bookings?filter={s}" style="padding:8px 18px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:600;background:{"#0038A8" if filter_status==s else "#fff"};color:{"#fff" if filter_status==s else "#374151"};border:1px solid {"#0038A8" if filter_status==s else "#E2E8F0"}">{s.title()} {"("+str(len([b for b in all_bookings if b["status"]==s]))+")" if s!="all" else "("+str(len(all_bookings))+")"}</a>'
         for s in ["all","pending","accepted","rejected","cancelled","rescheduled"]
     )
 
@@ -342,8 +342,8 @@ def render_availability(guide, msg="", err=""):
     if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px">&#10003; {msg}</div>'
 
     checkboxes = "".join(
-        f'<label style="display:flex;align-items:center;gap:10px;padding:14px 18px;border:2px solid {"#6B21A8" if d in checked else "#E2E8F0"};border-radius:10px;cursor:pointer;background:{"#F3E8FF" if d in checked else "#fff"};font-weight:{"700" if d in checked else "400"};color:{"#6B21A8" if d in checked else "#4B5563"}">'
-        f'<input type="checkbox" name="days" value="{d}" {"checked" if d in checked else ""} style="width:18px;height:18px;accent-color:#6B21A8"/> {d}</label>'
+        f'<label style="display:flex;align-items:center;gap:10px;padding:14px 18px;border:2px solid {"#0038A8" if d in checked else "#E2E8F0"};border-radius:10px;cursor:pointer;background:{"#F3E8FF" if d in checked else "#fff"};font-weight:{"700" if d in checked else "400"};color:{"#0038A8" if d in checked else "#4B5563"}">'
+        f'<input type="checkbox" name="days" value="{d}" {"checked" if d in checked else ""} style="width:18px;height:18px;accent-color:#0038A8"/> {d}</label>'
         for d in DAYS
     )
 
@@ -354,7 +354,7 @@ def render_availability(guide, msg="", err=""):
     </div>
     {alert}
     <div class="g-card" style="max-width:600px">
-      <div class="g-card-hdr" style="background:#6B21A8">&#128336; Weekly Schedule</div>
+      <div class="g-card-hdr" style="background:#0038A8">&#128336; Weekly Schedule</div>
       <div class="g-card-body">
         <form method="post" action="/guide/availability" style="display:flex;flex-direction:column;gap:16px">
           <input type="hidden" name="action" value="update_availability"/>
@@ -364,7 +364,7 @@ def render_availability(guide, msg="", err=""):
             <label class="g-lbl">Additional Notes (optional)</label>
             <input class="g-inp" name="avail_note" placeholder="e.g. Available on holidays, Off on rainy season..."/>
           </div>
-          <div><button class="g-btn" type="submit" style="background:#6B21A8;color:#fff;padding:12px 28px">Save Availability</button></div>
+          <div><button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:12px 28px">Save Availability</button></div>
         </form>
       </div>
     </div>"""
@@ -399,7 +399,7 @@ def render_ratings(guide):
     </div>
     <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;margin-bottom:24px">
       <div class="g-card">
-        <div class="g-card-hdr" style="background:#D97706">&#11088; Overall Rating</div>
+        <div class="g-card-hdr" style="background:#0038A8">&#11088; Overall Rating</div>
         <div class="g-card-body" style="text-align:center">
           <div style="font-size:64px;font-weight:900;color:#D97706;line-height:1">{avg_rating}</div>
           <div style="color:#F59E0B;font-size:24px;margin:8px 0">{"&#9733;"*int(avg_rating)}{"&#9734;"*(5-int(avg_rating))}</div>
@@ -407,7 +407,7 @@ def render_ratings(guide):
         </div>
       </div>
       <div class="g-card">
-        <div class="g-card-hdr" style="background:#6B21A8">Rating Breakdown</div>
+        <div class="g-card-hdr" style="background:#0038A8">Rating Breakdown</div>
         <div class="g-card-body">{stars_bar}</div>
       </div>
     </div>
@@ -431,7 +431,7 @@ def render_profile(guide, msg="", err=""):
     {alert}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div class="g-card">
-        <div class="g-card-hdr" style="background:#6B21A8">&#128100; Profile Information</div>
+        <div class="g-card-hdr" style="background:#0038A8">&#128100; Profile Information</div>
         <div class="g-card-body">
           <form method="post" action="/guide/profile" style="display:flex;flex-direction:column;gap:14px">
             <input type="hidden" name="action" value="update_profile"/>
@@ -445,7 +445,7 @@ def render_profile(guide, msg="", err=""):
             <div><label class="g-lbl">Speciality</label><input class="g-inp" name="speciality" value="{guide.get("speciality","")}" placeholder="e.g. Nature Tours, Historical"/></div>
             <div><label class="g-lbl">Daily Rate</label><input class="g-inp" name="rate" value="{guide.get("rate","P1,500/day")}" placeholder="e.g. P1,500/day"/></div>
             <div><label class="g-lbl">Bio / About You</label><textarea class="g-inp" name="bio" rows="4" placeholder="Tell tourists about yourself..." style="resize:none">{guide.get("bio","")}</textarea></div>
-            <button class="g-btn" type="submit" style="background:#6B21A8;color:#fff;padding:12px">Save Profile</button>
+            <button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:12px">Save Profile</button>
           </form>
         </div>
       </div>
