@@ -81,7 +81,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(css)
             return
 
-        # Serve logo
+        # Serve ATLAS logo
         if path == "/ATLAS_LOGO.jpg":
             logo_path = os.path.join(BASE, "ATLAS_LOGO.jpg")
             if os.path.isfile(logo_path):
