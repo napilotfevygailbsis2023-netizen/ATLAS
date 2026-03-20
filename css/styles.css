@@ -375,3 +375,248 @@ tr:nth-child(even) td{background:#fff}
   align-items: center;
   gap: 10px;
 }
+
+/* login */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#F5F7FA;color:#1A1A2E;display:flex;flex-direction:column;min-height:100vh}
+a{text-decoration:none;color:inherit}
+
+
+.auth-page-body {
+    display:flex; align-items:center; justify-content:center;
+    background:#F5F7FA; min-height:100vh;
+}
+
+.auth-modal {
+    width:100%; max-width:850px; border-radius:14px; overflow:hidden;
+    display:flex; box-shadow:0 24px 70px rgba(0,0,0,0.2); background:#fff;
+}
+
+.auth-photo {
+    flex:1; min-height:500px; background-size:cover; background-position:center;
+    position:relative; display:flex; flex-direction:column; justify-content:flex-end; padding:40px;
+}
+
+.auth-photo-overlay {
+    position:absolute; inset:0;
+    background:linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.2) 100%);
+}
+
+.auth-photo-text { position:relative; z-index:1; color:#fff; }
+.auth-photo-text h2 { font-size:32px; font-weight:900; margin-bottom:10px; line-height:1.1; }
+.auth-photo-text p { opacity:0.8; font-size:14px; max-width:280px; margin-bottom:20px; }
+
+.auth-form-panel {
+    width:380px; flex-shrink:0; background:#0038A8;
+    display:flex; flex-direction:column; justify-content:center; padding:48px 40px;
+}
+
+.auth-lbl { display:block; font-size:11px; font-weight:700; color:rgba(255,255,255,0.6); margin-bottom:6px; letter-spacing:0.5px; }
+.auth-inp {
+    width:100%; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2);
+    border-radius:8px; padding:12px 14px; color:#fff; font-size:14px; outline:none; margin-bottom:16px;
+}
+.auth-inp:focus { border-color:#FCD116; background:rgba(255,255,255,0.15); }
+
+.auth-submit {
+    width:100%; background:#CE1126; color:#fff; border:none; border-radius:8px;
+    padding:14px; font-weight:700; font-size:15px; cursor:pointer; transition:0.2s;
+}
+.auth-submit:hover { background:#b00e20; transform:translateY(-1px); }
+
+.auth-foot { text-align:center; margin-top:24px; font-size:13px; color:rgba(255,255,255,0.5); }
+.auth-foot a { color:#fff; font-weight:700; text-decoration:underline; }
+
+
+/* ── AUTH SPLIT LAYOUT (REGISTER & LOGIN) ────────────────── */
+.auth-split-body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: row;
+    font-family: 'Segoe UI', sans-serif;
+    background: #F8F4EF;
+    margin: 0;
+}
+
+.split-left {
+    width: 55%;
+    background: linear-gradient(160deg, #003087 0%, #0038A8 60%, #001a5e 100%);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 48px;
+    overflow: hidden;
+    min-height: 100vh;
+}
+
+.blob1 {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .07);
+    top: -80px;
+    right: -80px;
+}
+
+.blob2 {
+    position: absolute;
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .05);
+    bottom: -60px;
+    left: -60px;
+}
+
+.split-right {
+    width: 45%;
+    flex-shrink: 0;
+    background: linear-gradient(160deg, #FFF0F0 0%, #fff 35%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 48px;
+    min-height: 100vh;
+    overflow-y: auto;
+}
+
+/* Tabs & Fields */
+.tab-row {
+    display: flex;
+    background: #F3F4F6;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 28px;
+}
+
+.tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    color: #6B7280;
+    transition: 0.2s;
+}
+
+.tab.active {
+    background: #fff;
+    color: #1F2937;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .1);
+}
+
+.field { margin-bottom: 16px; }
+.field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+
+.field input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #1F2937;
+    outline: none;
+    background: #F9FAFB;
+    transition: 0.2s;
+}
+
+.field input:focus {
+    border-color: #0038A8;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 56, 168, .08);
+}
+
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: #0038A8;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: 0.2s;
+}
+
+.submit-btn:hover { background: #002a7f; transform: translateY(-1px); }
+
+.back-link {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, .15);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, .3);
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 999;
+}
+
+/* Feature Cards on Left */
+.feature-pill {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, .1);
+    padding: 12px 16px;
+    border-radius: 12px;
+}
+
+@media(max-width:900px) {
+    .split-left { display: none; }
+    .split-right { width: 100%; }
+}
+
+/* Ensure these are at the bottom of style.css */
+.auth-body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: row;
+    background: #F8F4EF;
+}
+
+.split-left {
+    width: 55%;
+    background: linear-gradient(160deg, #003087 0%, #0038A8 60%, #001a5e 100%);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 48px;
+    overflow: hidden;
+}
+
+.split-right {
+    width: 45%;
+    background: linear-gradient(160deg, #F0F4FF 0%, #fff 35%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 52px 48px;
+}
+/* ... plus the rest of the .tab, .field, and .submit-btn classes ... */
+
