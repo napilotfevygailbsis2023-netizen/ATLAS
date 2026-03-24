@@ -225,3 +225,4 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
     </script>
     """
     return build_shell("Tour Guides", body, "guides", user=user)
+
