@@ -100,4 +100,4 @@ def handle_post(form_data):
         return token, None
     if ok == "suspended":
         return None, render("Your account has been suspended. Please contact support.")
-    return None, render("Invalid email or password.")
+    return None, render("Invalid email or password.")#DC2626

@@ -17,7 +17,7 @@ def save_image(file_data, filename_hint="img"):
     return f"/uploads/{fname}"
 
 # ── SIDEBAR COLORS (matches guide portal style) ──
-SIDEBAR_BG    = "#1E1B4B"   # deep indigo
+SIDEBAR_BG    = "#0038A8"
 SIDEBAR_HOVER = "#312E81"
 SIDEBAR_ACTIVE= "#4338CA"
 SIDEBAR_TEXT  = "#C7D2FE"

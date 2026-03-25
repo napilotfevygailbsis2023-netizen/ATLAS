@@ -53,7 +53,7 @@ a{text-decoration:none;color:inherit}
 .hero-sub{font-size:16px;color:#6B7280;margin-bottom:32px;max-width:500px;line-height:1.7}
 .search-box{display:flex;background:#fff;border-radius:50px;box-shadow:0 4px 20px rgba(0,0,0,.1);overflow:hidden;max-width:560px;border:1.5px solid #E5E7EB}
 .search-box input{flex:1;border:none;outline:none;padding:14px 18px;font-size:14px;color:#374151}
-.search-box button{background:#CE1126;color:#fff;border:none;padding:0 28px;font-weight:700;font-size:14px;cursor:pointer}
+.search-box button{background:#0038A8;color:#fff;border:none;padding:0 28px;font-weight:700;font-size:14px;cursor:pointer}
 
 /* ── SHARED PAGE ─────────────────────────────────────────── */
 .page-wrap{width:100%;box-sizing:border-box;padding:32px 40px;flex:1}
