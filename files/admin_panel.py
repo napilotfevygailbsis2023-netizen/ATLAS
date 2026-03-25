@@ -74,9 +74,9 @@ body{{font-family:'Segoe UI',sans-serif;background:#F1F5F9;color:#1E293B;min-hei
 .sidebar{{width:240px;flex-shrink:0;background:{SIDEBAR_BG};display:flex;flex-direction:column;height:100vh;position:sticky;top:0;overflow-y:auto}}
 .s-brand{{padding:20px;border-bottom:1px solid rgba(255,255,255,.1)}}
 .s-logo-row{{display:flex;align-items:center;gap:10px}}
-.s-logo{{width:38px;height:38px;background:linear-gradient(135deg,#CE1126,#0038A8);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}}
-.s-title{{color:#fff;font-weight:800;font-size:16px}}
-.s-badge{{font-size:11px;color:{SIDEBAR_MUTED};font-weight:700;margin-top:2px}}
+.s-logo{{width:38px;height:38px;background:linear-gradient(135deg,#CE1126,#0038A8);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:16px}}
+.s-title{{color:#fff;font-weight:900;font-size:17px}}
+.s-badge{{font-size:9px;color:{SIDEBAR_MUTED};font-weight:700;margin-top:2px}}
 .s-admin-card{{margin:12px 8px;background:rgba(255,255,255,.08);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px}}
 .s-av{{width:36px;height:36px;background:linear-gradient(135deg,#CE1126,#0038A8);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0}}
 .s-aname{{color:#fff;font-weight:700;font-size:13px;line-height:1.2}}
@@ -101,7 +101,7 @@ tr:last-child td{{border-bottom:none}}
 tr:hover td{{background:#FAFAFA}}
 .ba{{background:#DCFCE7;color:#16A34A;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}}
 .bs{{background:#FEE2E2;color:#DC2626;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}}
-.bar{{background:#F3F4F6;color:#475569;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}}
+.bar{{background:#F3F4F6;color:#6B7280;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}}
 .bb{{background:#DBEAFE;color:#1D4ED8;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}}
 .bg{{background:#DCFCE7;color:#16A34A;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}}
 .btn{{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px}}
@@ -109,7 +109,7 @@ tr:hover td{{background:#FAFAFA}}
 .bwarn{{background:#FEF3C7;color:#D97706}}
 .bsuccess{{background:#DCFCE7;color:#16A34A}}
 .bprimary{{background:#4338CA;color:#fff}}
-.bgray{{background:#F3F4F6;color:#475569}}
+.bgray{{background:#F3F4F6;color:#6B7280}}
 .bblue{{background:#DBEAFE;color:#1D4ED8}}
 .bexport{{background:#0038A8;color:#fff;padding:6px 14px;font-size:12px;border-radius:8px;border:none;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;font-weight:700;text-decoration:none}}
 label{{display:block;font-size:11px;font-weight:700;color:#64748B;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}}
@@ -119,7 +119,7 @@ input[type=file]{{width:100%;padding:8px;border:1.5px dashed #CBD5E1;border-radi
 .fg2{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
 .fg3{{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}}
 .tabs{{display:flex;gap:0;border-bottom:2px solid #E2E8F0}}
-.tab-btn{{padding:10px 22px;border:none;background:none;font-size:13px;font-weight:600;color:#475569;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit}}
+.tab-btn{{padding:10px 22px;border:none;background:none;font-size:13px;font-weight:600;color:#6B7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit}}
 .tab-btn.active{{color:#4338CA;border-bottom-color:#4338CA;background:#F8FAFC}}
 .tab-pane{{display:none}}
 .tab-pane.active{{display:block}}
@@ -141,7 +141,7 @@ a.snv:hover{{background:rgba(255,255,255,.08)}}
 <div class="sidebar">
   <div class="s-brand">
     <div class="s-logo-row">
-      <div class="s-logo">A</div>
+      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
       <div><div class="s-title">ATLAS</div><div class="s-badge">ADMIN PANEL</div></div>
     </div>
   </div>
@@ -222,14 +222,14 @@ function exportTablePDF(tableId, title) {{
 
 def _alert(msg="", err=""):
     out=""
-    if msg: out+=f'<div style="background:#DCFCE7;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;color:#15803D;font-size:13px;margin-bottom:16px"><i class=&#34;fa-solid fa-check&#34;></i> {msg}</div>'
-    if err: out+=f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:12px 16px;color:#991B1B;font-size:13px;margin-bottom:16px"><i class=&#34;fa-solid fa-triangle-exclamation&#34;></i> {err}</div>'
+    if msg: out+=f'<div style="background:#DCFCE7;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;color:#15803D;font-size:13px;margin-bottom:16px">&#10003; {msg}</div>'
+    if err: out+=f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:16px">&#9888; {err}</div>'
     return out
 
 def _stars(n):
     try: n=int(float(n))
     except: n=0
-    return "<i class=&#34;fa-solid fa-star&#34;></i>"*min(n,5)+"<i class=&#34;fa-regular fa-star&#34;></i>"*(5-min(n,5))
+    return "&#9733;"*min(n,5)+"&#9734;"*(5-min(n,5))
 
 def _img_cell(url, ico):
     if url: return f'<img src="{url}" class="img-thumb" onerror="this.style.display=\'none\'"/>'
@@ -245,19 +245,19 @@ def _paginate(rows_html_list, page, per_page, base_url, extra_params=""):
     pager = ""
     if pages > 1:
         pager = '<div class="pager">'
-        if page > 1: pager += f'<a href="{base_url}{sep}page={page-1}{extra_params}"><i class=&#34;fa-solid fa-arrow-left&#34;></i> Prev</a>'
+        if page > 1: pager += f'<a href="{base_url}{sep}page={page-1}{extra_params}">&#8592; Prev</a>'
         for p in range(1, pages+1):
             if p == page: pager += f'<span class="cur">{p}</span>'
             elif abs(p-page) <= 2 or p == 1 or p == pages: pager += f'<a href="{base_url}{sep}page={p}{extra_params}">{p}</a>'
             elif abs(p-page) == 3: pager += '<span class="dots">…</span>'
-        if page < pages: pager += f'<a href="{base_url}{sep}page={page+1}{extra_params}">Next <i class=&#34;fa-solid fa-arrow-right&#34;></i></a>'
+        if page < pages: pager += f'<a href="{base_url}{sep}page={page+1}{extra_params}">Next &#8594;</a>'
         pager += "</div>"
     return "".join(shown), pager, total, pages
 
 def _export_btns(table_id, title):
     return f'''<div style="display:flex;gap:8px">
       <button class="bexport" onclick="exportTableCSV('{table_id}','{title}')">{icon("download")} CSV</button>
-      <button class="bexport" style="background:#1E3A5F" onclick="exportTablePDF('{table_id}','{title}')">{icon("download")} PDF</button>
+      <button class="bexport" style="background:#CE1126" onclick="exportTablePDF('{table_id}','{title}')">{icon("download")} PDF</button>
     </div>'''
 
 def _search_bar(input_id, table_id, placeholder="Search..."):
@@ -288,7 +288,7 @@ def dashboard(admin):
     for color, bg, ico, lbl, val, sub in cards:
         sc += f'''<div class="stat-card" style="background:{bg};border:1px solid {color}22">
           <div style="font-size:12px;font-weight:700;color:{color};margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">{lbl}</div>
-          <div style="font-size:32px;font-weight:800;color:{color};margin-bottom:4px">{val}</div>
+          <div style="font-size:32px;font-weight:900;color:{color};margin-bottom:4px">{val}</div>
           <div style="font-size:11px;color:{color}99">{sub}</div>
           <div style="position:absolute;bottom:8px;right:12px;opacity:.15">{icon(ico)}</div>
         </div>'''
@@ -301,7 +301,7 @@ def dashboard(admin):
     rows = "".join(f'<tr><td style="font-weight:600;color:#1E293B">{u["fname"]} {u["lname"]}</td><td>{u["email"]}</td><td>{(u.get("created") or "")[:10]}</td><td>{_badge(u.get("status") or "active")}</td></tr>' for u in recent) or '<tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:20px">No tourists yet</td></tr>'
 
     body = f'''
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Dashboard</div>
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">Dashboard</div>
     <div style="font-size:13px;color:#94A3B8;margin-bottom:24px">Welcome back, {admin.get("fullname","Admin")}!</div>
     <div class="stat-grid">{sc}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
@@ -383,7 +383,7 @@ def tourists_page(admin, msg="", err="", tab="active"):
         </div>'''
 
     body = f'''
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Tourists</div>
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">Tourists</div>
     <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">Manage tourist accounts · {counts["all"]} total</div>
     {_alert(msg,err)}
     <div class="card">
@@ -412,7 +412,7 @@ def spots_page(admin, msg="", err="", page=1, tab="list"):
             key = s["name"].strip().lower()
             if key in seen: continue
             seen.add(key)
-            img   = _img_cell(s.get("img",""), "<i class=&#34;fa-solid fa-landmark&#34;></i>")
+            img   = _img_cell(s.get("img",""), "&#127963;")
             cat   = s.get("cat","Landmark")
             entry = s.get("entry","Check on-site")
             rat   = str(s["rating"])
@@ -421,10 +421,10 @@ def spots_page(admin, msg="", err="", page=1, tab="list"):
     rows_html, pager, total, _ = _paginate(all_rows, page, PER, "/admin/spots")
     city_opts = '<option value="">All Cities</option>' + "".join(f'<option value="{c}">{c}</option>' for c in ALL_CITIES)
     cat_opts  = "".join(f'<option value="{c if c!="All" else ""}">{c}</option>' for c in CATS)
-    rat_opts  = "".join(f'<option value="{r if r!="All" else ""}">{r} <i class=&#34;fa-solid fa-star&#34;></i></option>' for r in RATINGS)
+    rat_opts  = "".join(f'<option value="{r if r!="All" else ""}">{r} &#9733;</option>' for r in RATINGS)
 
     body = f'''
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Attractions</div>
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">Attractions</div>
     <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{total} attractions across all cities</div>
     {_alert(msg,err)}
     <div class="card">
@@ -458,16 +458,16 @@ def restaurants_page(admin, msg="", err="", page=1, tab="list"):
             key = r["name"].strip().lower()
             if key in seen: continue
             seen.add(key)
-            img = _img_cell(r.get("img",""), "<i class=&#34;fa-solid fa-utensils&#34;></i>")
+            img = _img_cell(r.get("img",""), "&#127869;")
             all_rows.append(f'<tr><td>{img}</td><td style="font-weight:600;color:#1E293B">{r["name"]}</td><td>{city}</td><td>{r.get("type","Filipino")}</td><td style="color:#16A34A;font-weight:600">{r.get("price","Check restaurant")}</td><td>{str(r["rating"])}</td></tr>')
 
     rows_html, pager, total, _ = _paginate(all_rows, page, PER, "/admin/restaurants")
     city_opts    = '<option value="">All Cities</option>' + "".join(f'<option value="{c}">{c}</option>' for c in ALL_CITIES)
     cuisine_opts = "".join(f'<option value="{c if c!="All" else ""}">{c}</option>' for c in CUISINES)
-    rat_opts     = "".join(f'<option value="{r if r!="All" else ""}">{r} <i class=&#34;fa-solid fa-star&#34;></i></option>' for r in RATINGS)
+    rat_opts     = "".join(f'<option value="{r if r!="All" else ""}">{r} &#9733;</option>' for r in RATINGS)
 
     body = f'''
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Restaurants</div>
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">Restaurants</div>
     <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{total} restaurants across all cities</div>
     {_alert(msg,err)}
     <div class="card">
@@ -497,19 +497,19 @@ def guides_page(admin, msg="", err="", page=1, tab="registered"):
     reg_list = []
     for g in reg_guides:
         avg, cnt = guide_db.get_avg_rating(g["id"])
-        img = _img_cell(g.get("photo",""), "<i class=&#34;fa-solid fa-user-tie&#34;></i>")
+        img = _img_cell(g.get("photo",""), "&#129517;")
         city = g["city"]
         lang = g.get("languages","EN, FIL")
         rate = g.get("rate","N/A")
-        reg_list.append(f'<tr><td>{img}</td><td style="font-weight:600;color:#1E293B">{g["fname"]} {g["lname"]}</td><td>{city}</td><td>{lang}</td><td style="color:#7C3AED;font-weight:600">{rate}</td><td>{avg}<i class=&#34;fa-solid fa-star&#34;></i> ({cnt})</td><td><span class=ba>Registered</span></td></tr>')
+        reg_list.append(f'<tr><td>{img}</td><td style="font-weight:600;color:#1E293B">{g["fname"]} {g["lname"]}</td><td>{city}</td><td>{lang}</td><td style="color:#7C3AED;font-weight:600">{rate}</td><td>{avg}&#9733; ({cnt})</td><td><span class=ba>Registered</span></td></tr>')
 
     reg_rows, reg_pager, reg_total, _ = _paginate(reg_list, page, PER, "/admin/guides")
     city_opts = '<option value="">All Cities</option>' + "".join(f'<option value="{c}">{c}</option>' for c in sorted(set(ALL_CITIES)))
     lang_opts = "".join(f'<option value="{l if l!="All" else ""}">{l}</option>' for l in LANGS)
-    rat_opts  = "".join(f'<option value="{r if r!="All" else ""}">{r} <i class=&#34;fa-solid fa-star&#34;></i></option>' for r in ["All","5","4","3","2","1"])
+    rat_opts  = "".join(f'<option value="{r if r!="All" else ""}">{r} &#9733;</option>' for r in ["All","5","4","3","2","1"])
 
     body = f'''
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Tour Guides</div>
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">Tour Guides</div>
     <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{reg_total} registered guides</div>
     {_alert(msg,err)}
     <div class="card">
@@ -570,7 +570,7 @@ def transport_page(admin, msg="", err="", page=1, tab="list"):
       {pager}</div>'''
 
     body = f'''
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Transportation</div>
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">Transportation</div>
     <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{total} routes</div>
     {_alert(msg,err)}
     <div class="card"><div style="padding:0 20px" data-group="transport">
@@ -636,11 +636,11 @@ def flights_page(admin, msg="", err=""):
     )
 
     body = f'''
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Flights</div>
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">Flights</div>
     <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{len(DOMESTIC_ROUTES)} domestic · {len(INTL_ROUTES)} international Luzon routes</div>
     {_alert(msg,err)}
     <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 16px;font-size:13px;color:#1D4ED8;margin-bottom:16px">
-      <i class=&#34;fa-regular fa-clipboard&#34;></i> Domestic: Luzon airports (MNL, CRK) to/from Luzon destinations. International: MNL/CRK to/from major international airports.
+      &#128203; Domestic: Luzon airports (MNL, CRK) to/from Luzon destinations. International: MNL/CRK to/from major international airports.
     </div>
     <div class="card"><div style="padding:0 20px" data-group="flights">
       <div class="tabs">{tab_btns}</div>
@@ -666,12 +666,12 @@ def profile_page(admin, msg="", err=""):
     created = (admin.get("created","") or "")[:10]
 
     body = f'''
-    <div style="font-size:22px;font-weight:800;margin-bottom:4px">Admin Profile</div>
+    <div style="font-size:22px;font-weight:900;margin-bottom:4px">Admin Profile</div>
     <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">Your account information</div>
     {_alert(msg,err)}
     <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start">
       <div class="card"><div class="card-body" style="text-align:center;padding:32px 20px">
-        <div style="width:80px;height:80px;background:linear-gradient(135deg,#0038A8,#CE1126);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:32px;margin:0 auto 16px">{ainit}</div>
+        <div style="width:80px;height:80px;background:linear-gradient(135deg,#0038A8,#CE1126);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:32px;margin:0 auto 16px">{ainit}</div>
         <div style="font-size:18px;font-weight:800;margin-bottom:4px">{aname}</div>
         <div style="font-size:13px;color:#94A3B8;margin-bottom:10px">{aemail}</div>
         <span class=bb>Admin</span>

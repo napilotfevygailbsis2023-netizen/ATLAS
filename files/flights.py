@@ -46,37 +46,43 @@ def fetch_flights(dep_iata="MNL"):
         return FALLBACK
 
 def _card(f):
-    col = AIRLINE_COLORS.get(f["airline"], "#374151")
+    col = AIRLINE_COLORS.get(f["airline"], "#1E3A5F")
     origin = f["from"].split("(")[0].strip()
-    dest   = f["to"].split("(")[0].strip()
+    dest = f["to"].split("(")[0].strip()
     airline = f["airline"]
-    status = f.get("status","Scheduled")
+    status = f.get("status", "Scheduled")
     gf_q = urllib.parse.quote(f"{origin} to {dest}")
     booking_link = f"https://www.google.com/travel/flights?q={gf_q}"
-    return (
-        '<div class="grid-card">'
-        f'<div class="grid-card-top" style="background:linear-gradient(135deg,{col},{col}99)">'
-        f'<div style="font-size:28px;margin-bottom:8px"><i class="fa-solid fa-plane"></i></div>'
-        f'<div style="font-weight:800;font-size:13px;color:#fff;margin-bottom:8px">{airline}</div>'
-        f'<div style="display:flex;align-items:center;justify-content:center;gap:10px;color:#fff">'
-        f'<span style="font-weight:700;font-size:14px">{origin}</span>'
-        f'<span style="font-size:18px"><i class="fa-solid fa-arrow-right"></i></span>'
-        f'<span style="font-weight:700;font-size:14px">{dest}</span>'
-        '</div>'
-        f'<div style="margin-top:8px;font-size:11px;background:rgba(255,255,255,.2);border-radius:20px;padding:2px 10px;color:#fff">{status}</div>'
-        '</div>'
-        '<div class="grid-card-body">'
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">'
-        f'<div class="info-stat"><div style="font-size:10px;color:#94A3B8">Departs</div><div style="font-weight:700;font-size:14px">{f["dep"]}</div></div>'
-        f'<div class="info-stat"><div style="font-size:10px;color:#94A3B8">Arrives</div><div style="font-weight:700;font-size:14px">{f["arr"]}</div></div>'
-        f'<div class="info-stat"><div style="font-size:10px;color:#94A3B8">Duration</div><div style="font-weight:700;font-size:13px">{f["dur"]}</div></div>'
-        f'<div class="info-stat"><div style="font-size:10px;color:#94A3B8">Price</div><div style="font-weight:700;font-size:12px;color:#DC2626">{f["price"]}</div></div>'
-        '</div>'
-        f'<a href="{booking_link}" target="_blank" style="display:block">'
-        f'<button class="btn" style="background:{col};color:#fff;width:100%;padding:9px">Book Now</button>'
-        '</a>'
-        '</div></div>'
-    )
+    status_color = {"Scheduled":"#1E40AF","Active":"#065F46","Landed":"#475569","Cancelled":"#991B1B"}.get(status,"#475569")
+    status_bg = {"Scheduled":"#DBEAFE","Active":"#D1FAE5","Landed":"#F1F5F9","Cancelled":"#FEE2E2"}.get(status,"#F1F5F9")
+
+    return f"""
+    <div class="grid-card">
+        <div class="grid-card-top" style="background:#1E3A5F">
+            <div style="margin-bottom:12px"><i class="fa-solid fa-plane" style="font-size:28px;color:#fff"></i></div>
+            <div style="font-weight:700;font-size:13px;color:rgba(255,255,255,.85);margin-bottom:10px">{airline}</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:10px;color:#fff">
+                <span style="font-weight:800;font-size:15px">{origin}</span>
+                <i class="fa-solid fa-arrow-right" style="opacity:.7"></i>
+                <span style="font-weight:800;font-size:15px">{dest}</span>
+            </div>
+            <div style="margin-top:10px;display:inline-block;background:{status_bg};color:{status_color};padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700">{status}</div>
+        </div>
+        <div class="grid-card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+                <div class="info-stat"><div style="font-size:11px;color:#94A3B8;margin-bottom:2px">Departs</div><div style="font-weight:700;font-size:14px">{f["dep"]}</div></div>
+                <div class="info-stat"><div style="font-size:11px;color:#94A3B8;margin-bottom:2px">Arrives</div><div style="font-weight:700;font-size:14px">{f["arr"]}</div></div>
+                <div class="info-stat"><div style="font-size:11px;color:#94A3B8;margin-bottom:2px">Duration</div><div style="font-weight:700;font-size:13px">{f["dur"]}</div></div>
+                <div class="info-stat"><div style="font-size:11px;color:#94A3B8;margin-bottom:2px">Price</div><div style="font-weight:700;font-size:13px;color:#0038A8">{f["price"]}</div></div>
+            </div>
+            <a href="{booking_link}" target="_blank" style="text-decoration:none">
+                <button class="btn" style="background:#1E3A5F;color:#fff;width:100%;padding:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> View Details
+                </button>
+            </a>
+        </div>
+    </div>"""
+
 
 def render(filters=None, user=None):
     filters = filters or {}

@@ -4,8 +4,15 @@ from template import build_shell
 from data import SPOTS as STATIC_SPOTS
 
 FSQ_KEY = "JHNF2RTKPV0ISAD1DSYUZLMJRH3AC1EJ43B3LBDK0WLNBEMN"
-CAT_COLORS = {"Nature":"#065F46","Historical":"#0038A8","Heritage":"#C8930A","Landmark":"#CE1126","Park":"#065F46","Museum":"#0038A8"}
-CAT_ICONS  = {"Nature":"<i class='fa-solid fa-leaf'></i>","Historical":"<i class='fa-solid fa-landmark'></i>","Heritage":"<i class='fa-solid fa-place-of-worship'></i>","Landmark":"<i class='fa-solid fa-building'></i>","Park":"<i class='fa-solid fa-tree'></i>","Museum":"<i class='fa-solid fa-landmark'></i>"}
+CAT_COLORS = {"Nature":"#1E3A5F","Historical":"#1E3A5F","Heritage":"#1E3A5F","Landmark":"#1E3A5F","Park":"#1E3A5F","Museum":"#1E3A5F"}
+CAT_FA = {
+  "Nature":     "fa-solid fa-leaf",
+  "Historical": "fa-solid fa-landmark",
+  "Heritage":   "fa-solid fa-place-of-worship",
+  "Landmark":   "fa-solid fa-location-dot",
+  "Park":       "fa-solid fa-tree",
+  "Museum":     "fa-solid fa-building",
+}
 
 CITY_COORDS = {
     "Albay":        ("13.1391","123.7438"),

@@ -3,8 +3,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import db
 
 def _shell(right_content, error="", success=""):
-    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:12px 16px;color:#991B1B;font-size:13px;margin-bottom:16px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-triangle-exclamation"></i> {error}</div>' if error else ""
-    suc = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:8px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:16px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-check"></i> {success}</div>' if success else ""
+    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px;display:flex;align-items:center;gap:8px">&#9888; {error}</div>' if error else ""
+    suc = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:10px 14px;color:#065F46;font-size:13px;margin-bottom:18px;display:flex;align-items:center;gap:8px">&#10003; {success}</div>' if success else ""
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,8 +12,6 @@ def _shell(right_content, error="", success=""):
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Log In - ATLAS</title>
 <link rel="stylesheet" href="/css/styles.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;background:#F8F4EF}}
@@ -23,7 +21,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 .split-left-content{{position:relative;z-index:2;text-align:center;color:#fff}}
 .split-right{{width:45%;flex-shrink:0;background:linear-gradient(160deg,#F0F4FF 0%,#fff 35%);display:flex;flex-direction:column;justify-content:center;padding:52px 48px;min-height:100vh;overflow-y:auto}}
 .tab-row{{display:flex;background:#F3F4F6;border-radius:12px;padding:4px;margin-bottom:32px}}
-.tab{{flex:1;padding:10px;text-align:center;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;color:#475569;transition:.2s}}
+.tab{{flex:1;padding:10px;text-align:center;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;text-decoration:none;color:#6B7280;transition:.2s}}
 .tab.active{{background:#fff;color:#1F2937;box-shadow:0 1px 4px rgba(0,0,0,.1)}}
 .field{{margin-bottom:18px}}
 .field label{{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}}
@@ -31,20 +29,20 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 .field input:focus{{border-color:#0038A8;background:#fff;box-shadow:0 0 0 3px rgba(0,56,168,.08)}}
 .submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:.3px;margin-top:4px}}
 .submit-btn:hover{{opacity:.92}}
-.divider{{display:flex;align-items:center;gap:12px;margin:20px 0;color:#94A3B8;font-size:13px}}
+.divider{{display:flex;align-items:center;gap:12px;margin:20px 0;color:#9CA3AF;font-size:13px}}
 .divider::before,.divider::after{{content:'';flex:1;height:1px;background:#E5E7EB}}
-.back-link{{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);color:#fff;text-decoration:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;z-index:999}}
+.back-link{{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);color:#fff;text-decoration:none;padding:8px 16px;border-radius:30px;font-size:13px;font-weight:600;z-index:999}}
 @media(max-width:700px){{.split-left{{display:none}}.split-right{{width:100%}}}}
 </style>
 </head>
 <body>
-<a href="/" class="back-link"><i class="fa-solid fa-arrow-left"></i> Tourist Site</a>
+<a href="/" class="back-link">&#8592; Tourist Site</a>
 <div class="split-left">
   <div class="blob1"></div>
   <div class="blob2"></div>
   <div class="split-left-content">
-    <div style="font-size:72px;margin-bottom:20px"><i class="fa-solid fa-landmark"></i></div>
-    <div style="font-size:28px;font-weight:800;line-height:1.2;margin-bottom:14px">Explore.<br/>Discover.<br/>Adventure.</div>
+    <div style="font-size:72px;margin-bottom:20px">&#127963;</div>
+    <div style="font-size:36px;font-weight:900;line-height:1.2;margin-bottom:14px">Explore.<br/>Discover.<br/>Adventure.</div>
     <div style="font-size:15px;opacity:.8;line-height:1.8;margin-bottom:32px;max-width:300px">Your Luzon travel companion for flights, attractions, restaurants and guided tours.</div>
     <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;opacity:.9">
       <div style="display:flex;align-items:center;gap:10px"><span style="display:inline-flex;align-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/></svg></span> Real-time flight search</div>
@@ -58,19 +56,19 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
   <div style="margin-bottom:28px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
       <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
-      <span style="font-weight:800;font-size:18px;color:#1F2937">ATLAS</span>
+      <span style="font-weight:900;font-size:18px;color:#1F2937">ATLAS</span>
     </div>
-    <div style="font-size:13px;color:#475569">Luzon Travel Companion</div>
+    <div style="font-size:13px;color:#6B7280">Luzon Travel Companion</div>
   </div>
   <div class="tab-row">
     <a href="/login.py" class="tab active">Log In</a>
     <a href="/register.py" class="tab">Create Account</a>
   </div>
   <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:6px">Welcome back!</div>
-  <div style="font-size:14px;color:#475569;margin-bottom:24px">Sign in to your ATLAS account</div>
+  <div style="font-size:14px;color:#6B7280;margin-bottom:24px">Sign in to your ATLAS account</div>
   {err}{suc}
   {right_content}
-  <div style="text-align:center;margin-top:24px;font-size:13px;color:#475569">
+  <div style="text-align:center;margin-top:24px;font-size:13px;color:#6B7280">
     Don't have an account? <a href="/register.py" style="color:#0038A8;font-weight:700">Sign Up</a>
   </div>
 </div>
@@ -88,7 +86,7 @@ def render(error="", success=""):
         <label>Password</label>
         <input type="password" name="password" placeholder="Enter your password" required/>
       </div>
-      <button class="submit-btn" type="submit">Log In <i class="fa-solid fa-arrow-right"></i></button>
+      <button class="submit-btn" type="submit">Log In &#8594;</button>
     </form>"""
     return _shell(form, error, success)
 
