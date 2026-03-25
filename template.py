@@ -152,7 +152,8 @@ def build_shell(page_title, body_content, active="", user=None):
         <div class="footer-col-hdr">Contact</div>
         <div class="footer-contact"><strong>Office Hours:</strong><br>9:00 am - 6:00 pm</div>
         <div class="footer-contact"><strong>Location:</strong><br>Luzon, Philippines</div>
-        <div class="footer-contact"><strong>Email:</strong><br>atlas@travel.ph</div>
+        <div class="footer-contact"><strong>Email:</strong><br>travelatatlas2026@gmail.com
+</div>
       </div>
     </div>
   </div>

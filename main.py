@@ -241,7 +241,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, "Page not found"); return
         send_html(self, handler(params, user))
 
-    def do_POST(self):
+    def do_POST(self, cgi=None):
         path   = urllib.parse.urlparse(self.path).path
         cookie = self.headers.get("Cookie","")
         content_type = self.headers.get("Content-Type","")

@@ -46,7 +46,7 @@ def fetch_flights(dep_iata="MNL"):
         return FALLBACK
 
 def _card(f):
-    col = AIRLINE_COLORS.get(f["airline"], "#1E3A5F")
+    col = AIRLINE_COLORS.get(f["airline"], "#0038A8")
     origin = f["from"].split("(")[0].strip()
     dest = f["to"].split("(")[0].strip()
     airline = f["airline"]
@@ -58,7 +58,7 @@ def _card(f):
 
     return f"""
     <div class="grid-card">
-        <div class="grid-card-top" style="background:#1E3A5F">
+        <div class="grid-card-top" style="background:#0038A8">
             <div style="margin-bottom:12px"><i class="fa-solid fa-plane" style="font-size:28px;color:#fff"></i></div>
             <div style="font-weight:700;font-size:13px;color:rgba(255,255,255,.85);margin-bottom:10px">{airline}</div>
             <div style="display:flex;align-items:center;justify-content:center;gap:10px;color:#fff">
@@ -76,7 +76,7 @@ def _card(f):
                 <div class="info-stat"><div style="font-size:11px;color:#94A3B8;margin-bottom:2px">Price</div><div style="font-weight:700;font-size:13px;color:#0038A8">{f["price"]}</div></div>
             </div>
             <a href="{booking_link}" target="_blank" style="text-decoration:none">
-                <button class="btn" style="background:#1E3A5F;color:#fff;width:100%;padding:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">
+                <button class="btn" style="background:#0038A8;color:#fff;width:100%;padding:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">
                     <i class="fa-solid fa-arrow-up-right-from-square"></i> View Details
                 </button>
             </a>

@@ -14,15 +14,15 @@ def render(error="", success=""):
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;}}
-.split-left{{width:55%;background:linear-gradient(160deg,#0f2a4a 0%,#1E3A5F 60%,#0a1c30 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
+.split-left{{width:55%;background:linear-gradient(160deg,#0f2a4a 0%,#0038A8 60%,#0a1c30 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
 .blob1{{position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(255,255,255,.05);top:-100px;left:-80px}}
 .blob2{{position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.04);bottom:-60px;right:-40px}}
 .split-right{{width:45%;flex-shrink:0;background:linear-gradient(180deg,#F0F4FF 0%,#fff 40%);display:flex;flex-direction:column;justify-content:center;padding:52px 48px;min-height:100vh;overflow-y:auto}}
 .field{{margin-bottom:18px}}
 .field label{{display:block;font-size:11.5px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}}
 .field input{{width:100%;padding:13px 16px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:14px;color:#0F172A;outline:none;background:#F9FAFB;transition:.15s;font-family:inherit}}
-.field input:focus{{border-color:#1E3A5F;background:#fff;box-shadow:0 0 0 3px rgba(30,58,95,.1)}}
-.submit-btn{{width:100%;padding:14px;background:#1E3A5F;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}}
+.field input:focus{{border-color:#0038A8;background:#fff;box-shadow:0 0 0 3px rgba(30,58,95,.1)}}
+.submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s}}
 .submit-btn:hover{{background:#274d7a}}
 .back-link{{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;text-decoration:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;z-index:999}}
 .feature-pill{{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.09);padding:12px 16px;border-radius:12px;font-size:13px}}
