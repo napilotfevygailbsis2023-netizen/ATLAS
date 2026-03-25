@@ -5,11 +5,34 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e85fe3d4-4214-4234-876f-2a74b8689c42" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/ATLAS.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ATLAS_LOGO.jpg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Procfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin_db.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin_login.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin_panel.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/atlas.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/attractions.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/css/styles.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/data.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/flights.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/guide_db.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/guide_portal.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/guide_template.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/guides.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/itinerary.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/login.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/logout.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/profile.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/register.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/restaurants.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/template.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/transport.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/weather.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,18 +61,22 @@
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.Index.executor": "Run",
+    "Python.admin_login.executor": "Run",
     "Python.apis.executor": "Run",
     "Python.app.executor": "Run",
     "Python.attractions.executor": "Run",
     "Python.flights.executor": "Run",
+    "Python.guide_dashboard.executor": "Run",
+    "Python.guide_portal.executor": "Run",
     "Python.index.executor": "Run",
     "Python.login.executor": "Run",
     "Python.main.executor": "Run",
     "Python.register.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
-    "settings.editor.selected.configurable": "configurable.group.language"
+    "git-widget-placeholder": "main",
+    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -73,5 +100,21 @@
       <updated>1772636607352</updated>
     </task>
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$/files" />
+    </ignored-roots>
   </component>
 </project>
