@@ -2,6 +2,7 @@ import sys, os, urllib.request, urllib.parse, json, datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
 from data import WEATHER as FALLBACK
+SUN_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>'
 
 API_KEY = "64a99b2ac477b0d12944d61cd3514ebd"
 CITIES  = ["Albay","Baguio","Bataan","Batangas","Ilocos Norte","La Union","Manila","Pangasinan","Tagaytay","Vigan"]
@@ -17,8 +18,8 @@ CITY_QUERY = {
     "Batangas":     "Batangas,PH",
     "Tagaytay":     "Tagaytay,PH",
 }
-ICONS = {"Clear":"<i class='fa-solid fa-sun'></i>","Clouds":"<i class='fa-solid fa-cloud-sun'></i>","Rain":"<i class='fa-solid fa-wind'></i>","Drizzle":"<i class='fa-solid fa-wind'></i>",
-         "Thunderstorm":"<i class='fa-solid fa-cloud-bolt'></i>","Snow":"<i class='fa-solid fa-snowflake'></i>","Mist":"<i class='fa-solid fa-cloud'></i>","Fog":"<i class='fa-solid fa-cloud'></i>","Haze":"<i class='fa-solid fa-cloud'></i>"}
+ICONS = {"Clear":"&#9728;","Clouds":"&#9925;","Rain":"&#127783;","Drizzle":"&#127783;",
+         "Thunderstorm":"&#9928;","Snow":"&#10052;","Mist":"&#127787;","Fog":"&#127787;","Haze":"&#127787;"}
 
 def fetch_weather(city):
     try:
@@ -36,10 +37,10 @@ def fetch_weather(city):
         vis  = f"{d.get('visibility',10000)//1000} km"
         uv   = "Check app"
         tip  = f"Current conditions: {desc}. Stay prepared!"
-        return {"temp":temp,"feel":feel,"cond":desc,"hum":hum,"wind":wind,"uv":uv,"press":press,"vis":vis,"tip":tip,"icon":ICONS.get(cond,"<i class='fa-solid fa-sun'></i>")}
+        return {"temp":temp,"feel":feel,"cond":desc,"hum":hum,"wind":wind,"uv":uv,"press":press,"vis":vis,"tip":tip,"icon":ICONS.get(cond,"&#9728;")}
     except:
         fb = FALLBACK.get(city, list(FALLBACK.values())[0])
-        fb["icon"] = "<i class='fa-solid fa-sun'></i>"
+        fb["icon"] = "&#9728;"
         return fb
 
 def fetch_forecast(city):
@@ -51,10 +52,10 @@ def fetch_forecast(city):
         result = []
         for item in d["list"][:7]:
             cond = item["weather"][0]["main"]
-            result.append((f"{item['main']['temp']:.0f}C", item["weather"][0]["description"].title(), ICONS.get(cond,"<i class='fa-solid fa-sun'></i>")))
+            result.append((f"{item['main']['temp']:.0f}C", item["weather"][0]["description"].title(), ICONS.get(cond,"&#9728;")))
         return result
     except:
-        return [("--","N/A","<i class='fa-solid fa-sun'></i>")] * 7
+        return [("--","N/A","&#9728;")] * 7
 
 def render(location="Manila", user=None):
     if location not in CITIES:
@@ -68,17 +69,17 @@ def render(location="Manila", user=None):
 
     fc_cells = "".join(f"""
     <div class="fc-day">
-      <div style="font-size:11px;color:#475569;margin-bottom:4px">{day_labels[i]}</div>
+      <div style="font-size:11px;color:#6B7280;margin-bottom:4px">{day_labels[i]}</div>
       <div style="font-size:22px;margin-bottom:4px">{fc[2]}</div>
       <div style="font-weight:800;color:#0038A8;font-size:15px;margin-bottom:2px">{fc[0]}</div>
-      <div style="font-size:10px;color:#475569">{fc[1]}</div>
+      <div style="font-size:10px;color:#6B7280">{fc[1]}</div>
     </div>""" for i,fc in enumerate(forecast))
 
-    metrics = [("Humidity",wd["hum"],"#0038A8"),("Wind",wd["wind"],"#CE1126"),
-               ("UV Index",wd["uv"],"#C8930A"),("Pressure",wd["press"],"#0077B6"),("Visibility",wd["vis"],"#6B21A8")]
+    metrics = [("Humidity",wd["hum"],"#0038A8"),("Wind",wd["wind"],"#0038A8"),
+               ("UV Index",wd["uv"],"#0038A8"),("Pressure",wd["press"],"#0038A8"),("Visibility",wd["vis"],"#0038A8")]
     metric_cells = "".join(f"""
     <div class="metric-cell">
-      <div style="font-size:13px;color:#475569;margin-bottom:4px">{lbl}</div>
+      <div style="font-size:13px;color:#6B7280;margin-bottom:4px">{lbl}</div>
       <div style="font-weight:800;color:{col};font-size:15px">{val}</div>
     </div>""" for lbl,val,col in metrics)
 
@@ -89,20 +90,20 @@ def render(location="Manila", user=None):
         <div class="section-sub">Live weather conditions across Luzon - {today_str}</div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#1E3A5F"><span>Select Destination</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span>Select Destination</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;align-items:flex-end">
             <div style="flex:1"><label class="lbl">City / Province</label>
               <select class="inp" name="location">{loc_opts}</select></div>
-            <button class="btn" style="background:#1E3A5F;color:#fff" type="submit">Get Forecast</button>
+            <button class="btn" style="background:#0038A8;color:#fff;display:inline-flex;align-items:center;gap:6px" type="submit">{SUN_ICON} Get Forecast</button>
           </form>
         </div>
       </div>
       <div class="weather-main">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:20px">
           <div>
-            <div style="font-size:22px;font-weight:800;margin-bottom:2px">{location}</div>
-            <div style="font-size:14px;opacity:.8;margin-bottom:8px">{wd['cond']} - {today_str}</div>
+            <div style="font-size:26px;font-weight:800;margin-bottom:2px">{location}</div>
+            <div style="font-size:14px;opacity:.75;margin-bottom:8px">{wd['cond']} - {today_str}</div>
             <div class="weather-temp">{wd['icon']} {wd['temp']}</div>
             <div style="opacity:.65;font-size:13px;margin-top:4px">Feels like {wd['feel']}</div>
           </div>
@@ -114,7 +115,7 @@ def render(location="Manila", user=None):
           </div>
         </div>
         <div style="margin-top:14px;background:rgba(252,209,22,.15);border-radius:8px;padding:10px 14px;font-size:13px;color:#FCD116;border-left:3px solid #FCD116">
-          <i class='fa-solid fa-triangle-exclamation'></i> Travel Advisory: {wd['tip']}
+          &#9888; Travel Advisory: {wd['tip']}
         </div>
       </div>
       <div class="metric-row">{metric_cells}</div>

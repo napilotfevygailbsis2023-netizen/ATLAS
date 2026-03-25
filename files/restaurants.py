@@ -19,7 +19,7 @@ CITY_COORDS = {
     "Vigan":        ("17.5747","120.3873"),
 }
 
-TYPE_COLORS = ["#0038A8","#CE1126","#C8930A","#065F46","#6B21A8","#0077B6"]
+TYPE_COLORS = ["#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8"]
 
 def fetch_from_foursquare(city, keyword):
     """Only called when user types a keyword."""
@@ -65,7 +65,7 @@ def _card(r, i):
     img   = r.get("img","") or ("https://source.unsplash.com/900x600/?" + urllib.parse.quote(name+" food"))
     desc  = r.get("desc","") or ("Popular " + r.get("type","Filipino") + " dining in " + city + ".")
     full  = int(round(r["rating"]))
-    stars = "<i class='fa-solid fa-star'></i>" * full + "<i class='fa-regular fa-star'></i>" * (5 - full)
+    stars = "&#9733;" * full + "&#9734;" * (5 - full)
     price = r.get("price","Check restaurant")
     rtype = r.get("type","Filipino")
     mid   = "rm" + str(abs(hash(name + city)) % 999999)
@@ -76,35 +76,35 @@ def _card(r, i):
         "<div id=\"" + mid + "\" style=\"display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center\">"
         + "<div style=\"background:#fff;border-radius:16px;max-width:500px;width:90%;max-height:88vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,.25)\">"
         + "<div style=\"background:linear-gradient(135deg," + col + "," + col + "99);padding:24px 24px 16px;border-radius:16px 16px 0 0;position:relative\">"
-        + "<div style=\"font-size:28px;margin-bottom:8px\"><i class='fa-solid fa-utensils'></i></div>"
+        + "<div style=\"font-size:36px;margin-bottom:8px\">&#127869;</div>"
         + "<div style=\"font-weight:800;font-size:18px;color:#fff\">" + H(name) + "</div>"
-        + "<div style=\"font-size:13px;color:rgba(255,255,255,.8);margin-top:4px\"><i class='fa-solid fa-location-dot'></i> " + H(city) + " &middot; " + H(rtype) + "</div>"
-        + "<button onclick=\"closeModal(&quot;" + mid + "&quot;)\" style=\"position:absolute;top:14px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:30px;height:30px;font-size:18px;cursor:pointer\"><i class='fa-solid fa-xmark'></i></button>"
-        + "</div><div style=\"padding:20px\">"
+        + "<div style=\"font-size:13px;color:rgba(255,255,255,.8);margin-top:4px\">&#128205; " + H(city) + " &middot; " + H(rtype) + "</div>"
+        + "<button onclick=\"closeModal(&quot;" + mid + "&quot;)\" style=\"position:absolute;top:14px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:30px;height:30px;font-size:18px;cursor:pointer\">&#x2715;</button>"
+        + "</div><div style=\"padding:20px 24px\">"
         + "<img src=\"" + H(img) + "\" alt=\"" + H(name) + "\" style=\"width:100%;height:170px;object-fit:cover;border-radius:10px;margin-bottom:16px\" onerror=\"this.style.display='none'\"/>"
-        + "<div style=\"color:#D97706;font-size:14px;margin-bottom:10px\">" + stars + " <span style=\"color:#94A3B8\">" + str(r["rating"]) + "</span></div>"
+        + "<div style=\"color:#F59E0B;font-size:14px;margin-bottom:10px\">" + stars + " <span style=\"color:#9CA3AF\">" + str(r["rating"]) + "</span></div>"
         + "<div style=\"background:#FEF3C7;border-radius:8px;padding:12px;margin-bottom:14px;text-align:center\">"
-        + "<div style=\"font-size:11px;color:#94A3B8;text-transform:uppercase;font-weight:600;letter-spacing:.3px\">Price Range</div>"
-        + "<div style=\"font-weight:800;color:#DC2626;font-size:18px\">" + price + "</div></div>"
+        + "<div style=\"font-size:10px;color:#9CA3AF;text-transform:uppercase;font-weight:600\">Price Range</div>"
+        + "<div style=\"font-weight:800;color:#CE1126;font-size:18px\">" + price + "</div></div>"
         + "<p style=\"font-size:13px;color:#4B5563;line-height:1.7;margin-bottom:18px\">" + desc + "</p>"
         + "<a href=\"" + maps + "\" target=\"_blank\" style=\"display:block\">"
-        + "<button class=\"btn\" style=\"background:" + col + ";color:#fff;width:100%;padding:11px;font-size:14px\"><i class='fa-solid fa-location-dot'></i> View on Google Maps</button>"
+        + "<button class=\"btn\" style=\"background:" + col + ";color:#fff;width:100%;padding:11px;font-size:14px\">&#128205; View on Google Maps</button>"
         + "</a></div></div></div>"
     )
     card = (
         modal
         + "<div class=\"rest-card3\" style=\"cursor:pointer\" onclick=\"if(typeof ATLAS_LOGGED_IN!=='undefined'&&!ATLAS_LOGGED_IN){openSigninGate();}else{document.getElementById(&quot;" + mid + "&quot;).style.display='flex';}\">"
         + "<div class=\"rest-card3-top\" style=\"background:linear-gradient(135deg," + col + "," + col + "99)\">"
-        + "<div style=\"font-size:28px;margin-bottom:10px\"><i class='fa-solid fa-utensils'></i></div>"
+        + "<div style=\"font-size:36px;margin-bottom:10px\">&#127869;</div>"
         + "<div style=\"font-weight:800;font-size:15px;color:#fff;line-height:1.3;margin-bottom:4px\">" + H(name) + "</div>"
         + "<div style=\"font-size:12px;color:rgba(255,255,255,.75)\">" + H(rtype) + "</div>"
         + "</div><div class=\"rest-card3-body\">"
         + "<img src=\"" + H(img) + "\" alt=\"" + H(name) + "\" style=\"width:100%;height:135px;object-fit:cover;border-radius:10px;margin-bottom:10px\" onerror=\"this.style.display='none'\"/>"
-        + "<div style=\"color:#D97706;font-size:13px;margin-bottom:6px\">" + stars + " <span style=\"color:#94A3B8;font-size:12px\">" + str(r["rating"]) + "</span></div>"
-        + "<div style=\"font-size:12px;color:#475569;margin-bottom:3px\"><i class='fa-solid fa-location-dot'></i> " + H(city) + "</div>"
-        + "<div style=\"font-size:12px;color:#475569;line-height:1.55;margin:8px 0 10px\">" + desc[:120] + "</div>"
-        + "<div style=\"font-size:18px;font-weight:800;color:#DC2626;margin:10px 0 8px\">" + price + "</div>"
-        + "<div style=\"font-size:12px;color:#0038A8;font-weight:600;text-align:center;padding:4px 0\"><i class='fa-regular fa-eye'></i> Click for details &amp; map</div>"
+        + "<div style=\"color:#F59E0B;font-size:13px;margin-bottom:6px\">" + stars + " <span style=\"color:#9CA3AF;font-size:12px\">" + str(r["rating"]) + "</span></div>"
+        + "<div style=\"font-size:12px;color:#6B7280;margin-bottom:3px\">&#128205; " + H(city) + "</div>"
+        + "<div style=\"font-size:12px;color:#6B7280;line-height:1.55;margin:8px 0 10px\">" + desc[:120] + "</div>"
+        + "<div style=\"font-size:18px;font-weight:800;color:#CE1126;margin:10px 0 8px\">" + price + "</div>"
+        + "<div style=\"font-size:12px;color:#0038A8;font-weight:600;text-align:center;padding:4px 0\">&#128065; Click for details &amp; map</div>"
         + "</div></div>"
     )
     return card
@@ -120,7 +120,7 @@ def render(filter_city="All", keyword="", filter_type="All", user=None):
     type_opts = "".join(f'<option {"selected" if t==filter_type else ""}>{t}</option>' for t in all_types)
     cards = "".join(_card(r,i) for i,r in enumerate(filtered))
     empty = (
-        '<div class="guide-empty"><div style="font-size:32px;margin-bottom:10px"><i class=\'fa-solid fa-utensils\'></i></div>'
+        '<div class="guide-empty"><div style="font-size:40px;margin-bottom:10px">&#127869;</div>'
         '<div style="font-weight:700;font-size:16px">No restaurants found</div></div>'
         if not filtered else ""
     )
@@ -134,20 +134,20 @@ def render(filter_city="All", keyword="", filter_type="All", user=None):
         <div class="section-sub">{src_note} · Search by keyword to discover more via Foursquare API</div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#1E3A5F"><span>Search Restaurants</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span>Search Restaurants</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
             <div><label class="lbl">City</label>
-              <select class="inp" name="city" style="width:160px">{{city_opts}}</select></div>
+              <select class="inp" name="city" style="width:160px">{city_opts}</select></div>
             <div><label class="lbl">Cuisine Type</label>
-              <select class="inp" name="type" style="width:160px">{{type_opts}}</select></div>
+              <select class="inp" name="type" style="width:160px">{type_opts}</select></div>
             <div style="flex:1;min-width:180px"><label class="lbl">Search via Foursquare API</label>
-              <input class="inp" name="kw" placeholder="e.g. bulalo, cafe, seafood..." value="{{keyword}}"/></div>
-            <button class="btn" style="background:#1E3A5F;color:#fff" type="submit">Search</button>
+              <input class="inp" name="kw" placeholder="e.g. bulalo, cafe, seafood..." value="{keyword}"/></div>
+            <button class="btn" style="background:#0038A8;color:#fff" type="submit">Search</button>
           </form>
         </div>
       </div>
-      <div style="margin-bottom:16px;font-size:13px;color:#475569">{len(filtered)} restaurant(s) found {loc_note}</div>
+      <div style="margin-bottom:16px;font-size:13px;color:#6B7280">{len(filtered)} restaurant(s) found {loc_note}</div>
       <div class="rest-grid3">{cards}</div>{empty}
     </div>
     <script>
