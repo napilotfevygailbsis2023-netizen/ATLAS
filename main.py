@@ -27,6 +27,7 @@ ROUTES = {
     "/register.py":    lambda p, u: register.render(),
 }
 
+
 def get_token(cookie_header, name="atlas_token"):
     if not cookie_header: return None
     for part in cookie_header.split(";"):
@@ -49,8 +50,18 @@ def send_html(handler, html, cookie=None):
     if cookie: handler.send_header("Set-Cookie", cookie)
     handler.end_headers()
     handler.wfile.write(b)
+    try:
+        handler.wfile.write(b)
+    except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+        pass
 
 class ATLASHandler(http.server.SimpleHTTPRequestHandler):
+    def handle_error(self, request, client_address):
+        import sys
+        exc = sys.exc_info()[1]
+        if isinstance(exc, (ConnectionAbortedError, ConnectionResetError, BrokenPipeError)):
+            return  # browser disconnected, safe to ignore
+        super().handle_error(request, client_address)
 
     def get_admin(self):
         a_tok = get_token(self.headers.get("Cookie",""), "atlas_admin")
@@ -234,6 +245,15 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             if path == "/admin/profile":
                 send_html(self, admin_panel.profile_page(admin)); return
             redirect(self, "/admin/dashboard"); return
+
+        # Email verification route
+        if path == "/verify":
+            token = params.get("token","")
+            ok, msg = db.activate_user(token)
+            if ok:
+                send_html(self, login.render(success=msg)); return
+            else:
+                send_html(self, login.render(msg, "")); return
 
         # Public routes
         handler = ROUTES.get(path)
