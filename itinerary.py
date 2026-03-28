@@ -118,7 +118,7 @@ def render(dest="Manila", days=None, user=None):
 
       <!-- STEP 1: ADD PLACES -->
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#065F46"><span>&#10133; Add Places to Your Trip</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span>&#10133; Add Places to Your Trip</span></div>
         <div class="card-body">
           <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
             <div>
@@ -173,7 +173,7 @@ def render(dest="Manila", days=None, user=None):
 
       <!-- STEP 3: DAY PLANNER -->
       <div class="card" style="margin-bottom:24px">
-        <div class="card-hdr" style="background:#6B21A8"><span>&#128197; My Day Plan</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span>&#128197; My Day Plan</span></div>
         <div class="card-body">
           <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:8px">
             <div>
@@ -196,7 +196,7 @@ def render(dest="Manila", days=None, user=None):
 
       <!-- AUTO-GENERATE -->
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#CE1126"><span>&#9889; Auto-Generate a Suggested Itinerary</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span>&#9889; Auto-Generate a Suggested Itinerary</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
             <div style="flex:1;min-width:160px">

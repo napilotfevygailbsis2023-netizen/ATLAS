@@ -464,13 +464,13 @@ def render_profile(guide, msg="", err=""):
         </div>
       </div>
       <div class="g-card">
-        <div class="g-card-hdr" style="background:#DC2626">&#128274; Change Password</div>
+        <div class="g-card-hdr" style="background:#0038A8">&#128274; Change Password</div>
         <div class="g-card-body">
           <form method="post" action="/guide/profile" style="display:flex;flex-direction:column;gap:14px">
             <input type="hidden" name="action" value="change_password"/>
             <div><label class="g-lbl">New Password</label><input class="g-inp" type="password" name="new_pw" placeholder="Min. 6 characters"/></div>
             <div><label class="g-lbl">Confirm New Password</label><input class="g-inp" type="password" name="new_pw2" placeholder="Repeat new password"/></div>
-            <button class="g-btn" type="submit" style="background:#DC2626;color:#fff;padding:12px">Change Password</button>
+            <button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:12px">Change Password</button>
           </form>
         </div>
       </div>

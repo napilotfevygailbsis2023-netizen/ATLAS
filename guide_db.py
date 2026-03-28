@@ -4,8 +4,11 @@ sys_path = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(sys_path, "atlas.db")
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH, timeout=10)
+    conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=15000")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
 
 def hash_pw(p):
@@ -87,15 +90,16 @@ def register_guide(fname, lname, email, password, phone, city):
 
 def login_guide(email, password):
     conn = get_conn()
-    guide = conn.execute("SELECT * FROM tour_guides WHERE email=? AND password=?",
-                         (email.strip().lower(), hash_pw(password))).fetchone()
-    conn.close()
-    if not guide: return False, None, None
-    token = secrets.token_hex(32)
-    conn = get_conn()
-    conn.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (?,?)", (token, guide["id"]))
-    conn.commit(); conn.close()
-    return True, token, dict(guide)
+    try:
+        guide = conn.execute("SELECT * FROM tour_guides WHERE email=? AND password=?",
+                             (email.strip().lower(), hash_pw(password))).fetchone()
+        if not guide: return False, None, None
+        token = secrets.token_hex(32)
+        conn.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (?,?)", (token, guide["id"]))
+        conn.commit()
+        return True, token, dict(guide)
+    finally:
+        conn.close()
 
 def get_guide_by_token(token):
     if not token: return None

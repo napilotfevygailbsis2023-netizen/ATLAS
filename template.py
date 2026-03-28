@@ -79,13 +79,13 @@ def build_shell(page_title, body_content, active="", user=None):
       <div class="dropdown" id="cat-drop">
         <button class="nav-link drop-btn" onclick="toggleDrop()">Categories &#9662;</button>
         <div class="drop-menu" id="drop-menu">
-          <a href="/flights.py"     class="drop-item" style="display:flex;align-items:center;gap:8px">{_PLANE} Flights</a>
-          <a href="/weather.py"     class="drop-item" style="display:flex;align-items:center;gap:8px">{_SUN} Weather</a>
-          <a href="/attractions.py" class="drop-item" style="display:flex;align-items:center;gap:8px">{_PIN} Tourist Attractions</a>
-          <a href="/restaurants.py" class="drop-item" style="display:flex;align-items:center;gap:8px">{_FORK} Restaurants</a>
-          <a href="/guides.py"      class="drop-item" style="display:flex;align-items:center;gap:8px">{_USERS} Tour Guides</a>
-          <a href="/transport.py"   class="drop-item" style="display:flex;align-items:center;gap:8px">{_TRUCK} Transportation</a>
-          <a href="/itinerary.py"   class="drop-item" style="display:flex;align-items:center;gap:8px">{_CAL} Itinerary</a>
+          <a href="/flights.py"     class="drop-item" style="display:flex;align-items:center;gap:8px" onclick="{'return true' if user else 'openSigninGate();return false'};">{_PLANE} Flights</a>
+          <a href="/weather.py"     class="drop-item" style="display:flex;align-items:center;gap:8px" onclick="{'return true' if user else 'openSigninGate();return false'};">{_SUN} Weather</a>
+          <a href="/attractions.py" class="drop-item" style="display:flex;align-items:center;gap:8px" onclick="{'return true' if user else 'openSigninGate();return false'};">{_PIN} Tourist Attractions</a>
+          <a href="/restaurants.py" class="drop-item" style="display:flex;align-items:center;gap:8px" onclick="{'return true' if user else 'openSigninGate();return false'};">{_FORK} Restaurants</a>
+          <a href="/guides.py"      class="drop-item" style="display:flex;align-items:center;gap:8px" onclick="{'return true' if user else 'openSigninGate();return false'};">{_USERS} Tour Guides</a>
+          <a href="/transport.py"   class="drop-item" style="display:flex;align-items:center;gap:8px" onclick="{'return true' if user else 'openSigninGate();return false'};">{_TRUCK} Transportation</a>
+          <a href="/itinerary.py"   class="drop-item" style="display:flex;align-items:center;gap:8px" onclick="{'return true' if user else 'openSigninGate();return false'};">{_CAL} Itinerary</a>
         </div>
       </div>
       <a href="#about" class="nav-link">About Us</a>
@@ -95,12 +95,32 @@ def build_shell(page_title, body_content, active="", user=None):
 </nav>
 <div class="tiles-bar">
   <div class="tiles-inner">
-    <a href="/flights.py"     class="tile {ta('flights')}"><span class="tile-icon">{_PLANE}</span><span class="tile-lbl">Flight Search</span></a>
-    <a href="/attractions.py" class="tile {ta('attractions')}"><span class="tile-icon">{_PIN}</span><span class="tile-lbl">Tourist Attractions</span></a>
-    <a href="/restaurants.py" class="tile {ta('restaurants')}"><span class="tile-icon">{_FORK}</span><span class="tile-lbl">Restaurants</span></a>
-    <a href="/guides.py"      class="tile {ta('guides')}"><span class="tile-icon">{_USERS}</span><span class="tile-lbl">Tour Guide Booking</span></a>
-    <a href="/weather.py"     class="tile {ta('weather')}"><span class="tile-icon">{_SUN}</span><span class="tile-lbl">Weather Forecast</span></a>
-    <a href="/transport.py"   class="tile {ta('transport')}"><span class="tile-icon">{_TRUCK}</span><span class="tile-lbl">Transportation</span></a>
+    <a href="/flights.py"     class="tile {ta('flights')}"     onclick="{'return true' if user else 'openSigninGate();return false'};"><span class="tile-icon">{_PLANE}</span><span class="tile-lbl">Flight Search</span></a>
+    <a href="/attractions.py" class="tile {ta('attractions')}" onclick="{'return true' if user else 'openSigninGate();return false'};"><span class="tile-icon">{_PIN}</span><span class="tile-lbl">Tourist Attractions</span></a>
+    <a href="/restaurants.py" class="tile {ta('restaurants')}" onclick="{'return true' if user else 'openSigninGate();return false'};"><span class="tile-icon">{_FORK}</span><span class="tile-lbl">Restaurants</span></a>
+    <a href="/guides.py"      class="tile {ta('guides')}"      onclick="{'return true' if user else 'openSigninGate();return false'};"><span class="tile-icon">{_USERS}</span><span class="tile-lbl">Tour Guide Booking</span></a>
+    <a href="/weather.py"     class="tile {ta('weather')}"     onclick="{'return true' if user else 'openSigninGate();return false'};"><span class="tile-icon">{_SUN}</span><span class="tile-lbl">Weather Forecast</span></a>
+    <a href="/transport.py"   class="tile {ta('transport')}"   onclick="{'return true' if user else 'openSigninGate();return false'};"><span class="tile-icon">{_TRUCK}</span><span class="tile-lbl">Transportation</span></a>
+  </div>
+</div>
+
+<!-- Sign-in Gate Modal -->
+<div id="signin-gate" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(4px)">
+  <div style="background:#fff;border-radius:20px;padding:44px 40px;max-width:420px;width:92%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.18);position:relative">
+    <button onclick="closeSigninGate()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;color:#9CA3AF;cursor:pointer;line-height:1">&times;</button>
+    <div style="width:64px;height:64px;background:#EFF6FF;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0038A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div style="font-size:22px;font-weight:900;color:#0F172A;margin-bottom:10px">Sign In to Continue</div>
+    <div style="font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:28px">Log in or create a free account to explore flights, attractions, restaurants, tour guides and more.</div>
+    <div style="display:flex;gap:12px">
+      <a href="/login.py" style="flex:1;text-decoration:none">
+        <button style="width:100%;padding:12px;border:2px solid #0038A8;background:#fff;color:#0038A8;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Log In</button>
+      </a>
+      <a href="/register.py" style="flex:1;text-decoration:none">
+        <button style="width:100%;padding:12px;border:none;background:#0038A8;color:#fff;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Create Account</button>
+      </a>
+    </div>
   </div>
 </div>
 {body_content}
@@ -160,8 +180,12 @@ def build_shell(page_title, body_content, active="", user=None):
   <div class="footer-bottom"><span>&copy; 2026 ATLAS. All Rights Reserved.</span></div>
 </footer>
 <script>
+var ATLAS_LOGGED_IN = {'true' if user else 'false'};
+function openSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='flex';document.body.style.overflow='hidden';}}}}
+function closeSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='none';document.body.style.overflow='';}}}}
+document.addEventListener('keydown',function(e){{if(e.key==='Escape')closeSigninGate();}});
 function toggleDrop(){{document.getElementById('cat-drop').classList.toggle('open');}}
-document.addEventListener('click',function(e){{var d=document.getElementById('cat-drop');if(d&&!d.contains(e.target))d.classList.remove('open');}});
+document.addEventListener('click',function(e){{var d=document.getElementById('cat-drop');if(d&&!d.contains(e.target))d.classList.remove('open');var g=document.getElementById('signin-gate');if(g&&e.target===g)closeSigninGate();}});
 function openBookingModal(name){{document.getElementById('modal-guide-name').textContent=name;document.getElementById('booking-modal').style.display='flex';document.body.style.overflow='hidden';}}
 function closeBooking(){{document.getElementById('booking-modal').style.display='none';document.body.style.overflow='';}}
 function confirmBooking(){{var name=document.getElementById('modal-guide-name').textContent;closeBooking();showToast('Booking sent to '+name+'!');}}

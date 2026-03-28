@@ -78,5 +78,32 @@ def render(error="", success=""):
 
 
 def handle_post(form_data):
-    # (Registration logic stays the same)
-    pass
+    fname     = form_data.get("fname", "").strip()
+    lname     = form_data.get("lname", "").strip()
+    email     = form_data.get("email", "").strip()
+    password  = form_data.get("password", "").strip()
+    password2 = form_data.get("password2", "").strip()
+
+    if not all([fname, lname, email, password, password2]):
+        return None, render(error="Please fill in all fields.")
+    if len(password) < 6:
+        return None, render(error="Password must be at least 6 characters.")
+    if password != password2:
+        return None, render(error="Passwords do not match.")
+    if db.email_already_registered(email):
+        return None, render(error="This email is already registered. Please log in.")
+
+    token = db.store_pending_user(fname, lname, email, password)
+    if not token:
+        return None, render(error="Something went wrong. Please try again.")
+
+    try:
+        import email_sender
+        sent = email_sender.send_verification_email(email, fname, token)
+    except Exception:
+        sent = False
+
+    if sent:
+        return None, render(success=f"A verification email has been sent to {email}. Please check your inbox and click the link to activate your account.")
+    else:
+        return None, render(error="Could not send verification email. Please check your Gmail App Password in email_sender.py.")

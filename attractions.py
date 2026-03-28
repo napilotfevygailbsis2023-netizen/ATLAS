@@ -173,19 +173,19 @@ def render(filter_city="All", filter_cat="All", keyword="", user=None):
 
     body = f"""
     <div class="page-wrap">
-      <div class="page-header">
-        <div class="page-header-title">Tourist Attractions</div>
-        <div class="page-header-sub">{src_note} &middot; Search by keyword to discover more</div>
+      <div style="margin-bottom:22px">
+        <div style="font-size:28px;font-weight:900;color:#1F2937">Tourist Attractions</div>
+        <div style="font-size:14px;color:#6B7280;margin-top:4px">Discover the best tourist spots across Luzon</div>
       </div>
       <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr"><span><i class="fa-solid fa-filter"></i> Filter and Search</span></div>
+        <div class="card-hdr" style="background:#0038A8"><span style="font-weight:700;font-size:14px">Filter and Search</span></div>
         <div class="card-body">
           <form method="get" style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
             <div><label class="lbl">City</label><select class="inp" name="city" style="width:160px">{city_opts}</select></div>
             <div><label class="lbl">Category</label><select class="inp" name="cat" style="width:160px">{cat_opts}</select></div>
-            <div style="flex:1;min-width:160px"><label class="lbl">Search via Foursquare</label>
-              <input class="inp" name="kw" placeholder="e.g. volcano, heritage, waterfall..." value="{keyword}"/></div>
-            <button class="btn" style="background:#0038A8;color:#fff" type="submit"><i class="fa-solid fa-magnifying-glass"></i> Search</button>
+            <div style="flex:1;min-width:160px"><label class="lbl">Keyword</label>
+              <input class="inp" name="kw" placeholder="e.g. volcano, heritage..." value="{keyword}"/></div>
+            <button class="btn" style="background:#0038A8;color:#fff;padding:10px 24px;font-weight:700" type="submit">Search</button>
           </form>
         </div>
       </div>

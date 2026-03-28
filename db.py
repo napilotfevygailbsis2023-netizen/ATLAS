@@ -64,6 +64,17 @@ def init_db():
             rating  REAL DEFAULT 4.0
         )
     """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS pending_users (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            fname    TEXT NOT NULL,
+            lname    TEXT NOT NULL,
+            email    TEXT NOT NULL,
+            password TEXT NOT NULL,
+            token    TEXT UNIQUE NOT NULL,
+            created  DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     # Seed default admin if none exists
     existing = conn.execute("SELECT COUNT(*) FROM admins").fetchone()[0]
     if existing == 0:
@@ -74,6 +85,58 @@ def init_db():
 
 def hash_pw(p):
     return hashlib.sha256(p.encode()).hexdigest()
+
+def store_pending_user(fname, lname, email, password):
+    """Store unverified user and return verification token."""
+    import secrets as _sec
+    token = _sec.token_urlsafe(32)
+    conn = get_conn()
+    try:
+        # Remove any old pending entry for this email
+        conn.execute("DELETE FROM pending_users WHERE email=?", (email.strip().lower(),))
+        conn.execute(
+            "INSERT INTO pending_users (fname,lname,email,password,token) VALUES (?,?,?,?,?)",
+            (fname.strip(), lname.strip(), email.strip().lower(), hash_pw(password), token)
+        )
+        conn.commit()
+        return token
+    except Exception as e:
+        return None
+    finally:
+        conn.close()
+
+def activate_user(token):
+    """Move pending user to users table on email click."""
+    conn = get_conn()
+    try:
+        row = conn.execute("SELECT * FROM pending_users WHERE token=?", (token,)).fetchone()
+        if not row:
+            return False, "Invalid or expired verification link."
+        # Check email not already registered
+        existing = conn.execute("SELECT id FROM users WHERE email=?", (row["email"],)).fetchone()
+        if existing:
+            conn.execute("DELETE FROM pending_users WHERE token=?", (token,))
+            conn.commit()
+            return False, "Email already registered. Please log in."
+        conn.execute(
+            "INSERT INTO users (fname,lname,email,password) VALUES (?,?,?,?)",
+            (row["fname"], row["lname"], row["email"], row["password"])
+        )
+        conn.execute("DELETE FROM pending_users WHERE token=?", (token,))
+        conn.commit()
+        return True, "Account verified! You can now log in."
+    except Exception as e:
+        return False, str(e)
+    finally:
+        conn.close()
+
+def email_already_registered(email):
+    conn = get_conn()
+    try:
+        row = conn.execute("SELECT id FROM users WHERE email=?", (email.strip().lower(),)).fetchone()
+        return row is not None
+    finally:
+        conn.close()
 
 def register_user(fname, lname, email, password):
     try:

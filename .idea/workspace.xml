@@ -6,23 +6,18 @@
   <component name="ChangeListManager">
     <list default="true" id="e85fe3d4-4214-4234-876f-2a74b8689c42" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/admin_login.py" beforeDir="false" afterPath="$PROJECT_DIR$/admin_login.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/admin_panel.py" beforeDir="false" afterPath="$PROJECT_DIR$/admin_panel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/admin_db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/atlas.db" beforeDir="false" afterPath="$PROJECT_DIR$/atlas.db" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/attractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/attractions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/css/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/css/styles.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/flights.py" beforeDir="false" afterPath="$PROJECT_DIR$/flights.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/guide_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/guide_db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/guide_portal.py" beforeDir="false" afterPath="$PROJECT_DIR$/guide_portal.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/guide_template.py" beforeDir="false" afterPath="$PROJECT_DIR$/guide_template.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/guides.py" beforeDir="false" afterPath="$PROJECT_DIR$/guides.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.py" beforeDir="false" afterPath="$PROJECT_DIR$/index.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/itinerary.py" beforeDir="false" afterPath="$PROJECT_DIR$/itinerary.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/login.py" beforeDir="false" afterPath="$PROJECT_DIR$/login.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/profile.py" beforeDir="false" afterPath="$PROJECT_DIR$/profile.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/register.py" beforeDir="false" afterPath="$PROJECT_DIR$/register.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/restaurants.py" beforeDir="false" afterPath="$PROJECT_DIR$/restaurants.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/template.py" beforeDir="false" afterPath="$PROJECT_DIR$/template.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/transport.py" beforeDir="false" afterPath="$PROJECT_DIR$/transport.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/weather.py" beforeDir="false" afterPath="$PROJECT_DIR$/weather.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,31 +42,32 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.Index.executor": "Run",
-    "Python.admin_login.executor": "Run",
-    "Python.admin_panel.executor": "Run",
-    "Python.apis.executor": "Run",
-    "Python.app.executor": "Run",
-    "Python.attractions.executor": "Run",
-    "Python.flights.executor": "Run",
-    "Python.guide_dashboard.executor": "Run",
-    "Python.guide_portal.executor": "Run",
-    "Python.index.executor": "Run",
-    "Python.login.executor": "Run",
-    "Python.main.executor": "Run",
-    "Python.register.executor": "Run",
-    "Python.restaurants.executor": "Run",
-    "Python.weather.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "settings.editor.selected.configurable": "project.propVCSSupport.DirectoryMappings"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.Index.executor&quot;: &quot;Run&quot;,
+    &quot;Python.admin_login.executor&quot;: &quot;Run&quot;,
+    &quot;Python.admin_panel.executor&quot;: &quot;Run&quot;,
+    &quot;Python.apis.executor&quot;: &quot;Run&quot;,
+    &quot;Python.app.executor&quot;: &quot;Run&quot;,
+    &quot;Python.attractions.executor&quot;: &quot;Run&quot;,
+    &quot;Python.flights.executor&quot;: &quot;Run&quot;,
+    &quot;Python.guide_dashboard.executor&quot;: &quot;Run&quot;,
+    &quot;Python.guide_portal.executor&quot;: &quot;Run&quot;,
+    &quot;Python.index.executor&quot;: &quot;Run&quot;,
+    &quot;Python.itinerary.executor&quot;: &quot;Run&quot;,
+    &quot;Python.login.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.register.executor&quot;: &quot;Run&quot;,
+    &quot;Python.restaurants.executor&quot;: &quot;Run&quot;,
+    &quot;Python.weather.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;project.propVCSSupport.DirectoryMappings&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\DEBRALYN\PycharmProjects\ATLAS\files" />
