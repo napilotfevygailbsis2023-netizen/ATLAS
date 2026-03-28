@@ -41,7 +41,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 <div class="split-left">
   <div class="blob1"></div><div class="blob2"></div>
   <div style="position:relative;z-index:2;text-align:center;color:#fff">
-    <div style="font-size:72px;margin-bottom:20px">
+    <div style="margin-bottom:20px">
       <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.9"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
     </div>
     <div style="font-size:34px;font-weight:900;line-height:1.2;margin-bottom:14px">ATLAS<br/>Guide Portal</div>
@@ -125,20 +125,35 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
 <div class="split-left">
   <div class="blob1"></div><div class="blob2"></div>
   <div style="position:relative;z-index:2;text-align:center;color:#fff">
-    <div style="font-size:72px;margin-bottom:20px">&#127758;</div>
+    <div style="margin-bottom:20px">
+      <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.9"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+    </div>
     <div style="font-size:34px;font-weight:900;line-height:1.2;margin-bottom:14px">Join ATLAS<br/>as a Guide!</div>
     <div style="font-size:15px;opacity:.8;line-height:1.8;margin-bottom:32px;max-width:300px">Share your knowledge of Luzon and earn income helping tourists discover the Philippines.</div>
-    <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;opacity:.9;text-align:left">
-      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px"><span style="font-size:22px">&#128184;</span><div><div style="font-weight:700">Earn Income</div><div style="font-size:12px;opacity:.8">Set your own rates and packages</div></div></div>
-      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px"><span style="font-size:22px">&#128101;</span><div><div style="font-weight:700">Meet Tourists</div><div style="font-size:12px;opacity:.8">Connect with travelers from everywhere</div></div></div>
-      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px"><span style="font-size:22px">&#11088;</span><div><div style="font-weight:700">Build Your Reputation</div><div style="font-size:12px;opacity:.8">Collect ratings and grow your business</div></div></div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;opacity:.9;text-align:left">
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <div><div style="font-weight:700">Earn Income</div><div style="font-size:12px;opacity:.8">Set your own rates and packages</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div><div style="font-weight:700">Meet Tourists</div><div style="font-size:12px;opacity:.8">Connect with travelers from everywhere</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <div><div style="font-weight:700">Build Your Reputation</div><div style="font-size:12px;opacity:.8">Collect ratings and grow your business</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <div><div style="font-weight:700">Email Verification</div><div style="font-size:12px;opacity:.8">Verified guides get more bookings</div></div>
+      </div>
     </div>
   </div>
 </div>
 <div class="split-right">
   <div style="margin-bottom:24px">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <div style="width:32px;height:32px;background:#0038A8;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px">G</div>
+      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
       <span style="font-weight:900;font-size:18px;color:#1F2937">Guide Portal</span>
     </div>
     <div style="font-size:13px;color:#6B7280">ATLAS Tour Guide Management</div>
@@ -147,8 +162,12 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
     <a href="/guide" class="tab">Log In</a>
     <a href="/guide/register" class="tab active">Register</a>
   </div>
-  <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:6px">Create Guide Account</div>
-  <div style="font-size:14px;color:#6B7280;margin-bottom:22px">Join our network of verified local guides</div>
+  <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:4px">Create Guide Account</div>
+  <div style="font-size:14px;color:#6B7280;margin-bottom:6px">Join our network of verified local guides</div>
+  <div style="display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:20px">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    A verification code will be sent to your email
+  </div>
   {err}
   <form method="post" action="/guide/register">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
@@ -160,12 +179,92 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
     <div class="field"><label>Your City / Area *</label><select name="city">{city_opts}</select></div>
     <div class="field"><label>Password * (min 6 characters)</label><input type="password" name="password" required/></div>
     <div class="field"><label>Confirm Password *</label><input type="password" name="password2" required/></div>
-    <button class="submit-btn" type="submit">Create Account &#8594;</button>
+    <button class="submit-btn" type="submit">
+      Create Account &amp; Verify Email &#8594;
+    </button>
   </form>
   <div style="text-align:center;margin-top:20px;font-size:13px;color:#6B7280">
     Already have an account? <a href="/guide" style="color:#0038A8;font-weight:700">Log In</a>
   </div>
 </div>
+</body></html>"""
+
+def render_verify_guide(email, error=""):
+    """Step 2 of guide registration: 6-digit email verification."""
+    safe_email = email.replace('"', '&quot;')
+    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px">&#9888; {error}</div>' if error else ""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Verify Email - ATLAS Guide Portal</title>
+<link rel="stylesheet" href="/css/styles.css"/>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#003087,#0038A8);font-family:'Segoe UI',sans-serif;padding:24px}}
+.verify-box{{background:#fff;border-radius:20px;padding:44px 52px;max-width:500px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.2);text-align:center}}
+.code-inputs{{display:flex;gap:10px;justify-content:center;margin:28px 0}}
+.code-input{{width:52px;height:62px;border:2px solid #E2E8F0;border-radius:12px;font-size:26px;font-weight:900;text-align:center;outline:none;color:#0F172A;font-family:monospace;transition:.15s}}
+.code-input:focus{{border-color:#0038A8;box-shadow:0 0 0 3px rgba(0,56,168,.12);background:#F0F7FF}}
+.submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}}
+.submit-btn:hover{{background:#0050D0}}
+</style>
+</head>
+<body>
+<div class="verify-box">
+  <div style="margin-bottom:16px">
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0038A8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+  </div>
+  <div style="font-size:24px;font-weight:900;color:#0F172A;margin-bottom:8px">Check your email</div>
+  <div style="font-size:14px;color:#475569;line-height:1.6;margin-bottom:4px">We sent a 6-digit verification code to</div>
+  <div style="font-size:15px;font-weight:700;color:#0038A8;margin-bottom:4px">{safe_email}</div>
+  <div style="font-size:13px;color:#94A3B8;margin-bottom:12px">Enter the code below to activate your guide account.</div>
+  {err}
+  <form method="post" action="/guide/verify" id="gverify-form">
+    <input type="hidden" name="email" value="{safe_email}"/>
+    <input type="hidden" name="code" id="gcode-hidden"/>
+    <div class="code-inputs">
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc0" autofocus/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc1"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc2"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc3"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc4"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc5"/>
+    </div>
+    <button class="submit-btn" type="submit">&#10003; Verify &amp; Activate Account</button>
+  </form>
+  <div style="margin-top:18px;font-size:13px;color:#94A3B8">
+    Didn't receive it? Check your spam folder or <a href="/guide/register" style="color:#0038A8;font-weight:600">register again</a>.
+  </div>
+  <div style="margin-top:12px"><a href="/guide" style="font-size:13px;color:#6B7280">&#8592; Back to Guide Login</a></div>
+</div>
+<script>
+var inputs = document.querySelectorAll('.code-input');
+inputs.forEach(function(inp, idx) {{
+  inp.addEventListener('input', function() {{
+    this.value = this.value.replace(/[^0-9]/g,'').slice(-1);
+    if (this.value && idx < 5) inputs[idx+1].focus();
+  }});
+  inp.addEventListener('keydown', function(e) {{
+    if (e.key==='Backspace' && !this.value && idx > 0) inputs[idx-1].focus();
+    if (e.key==='ArrowLeft' && idx > 0) inputs[idx-1].focus();
+    if (e.key==='ArrowRight' && idx < 5) inputs[idx+1].focus();
+  }});
+  inp.addEventListener('paste', function(e) {{
+    var pasted = (e.clipboardData||window.clipboardData).getData('text').replace(/\\D/g,'');
+    if (pasted.length >= 6) {{
+      for (var i=0;i<6;i++) inputs[i].value = pasted[i]||'';
+      inputs[5].focus();
+      e.preventDefault();
+    }}
+  }});
+}});
+document.getElementById('gverify-form').addEventListener('submit', function(e) {{
+  var code = Array.from(inputs).map(function(i){{return i.value;}}).join('');
+  if (code.length < 6) {{ e.preventDefault(); alert('Please enter all 6 digits.'); return; }}
+  document.getElementById('gcode-hidden').value = code;
+}});
+</script>
 </body></html>"""
 
 # ─────────────────────── DASHBOARD ───────────────────────
@@ -183,7 +282,6 @@ def render_dashboard(guide, msg="", err=""):
     if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#10003; {msg}</div>'
     if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#9888; {err}</div>'
 
-    # Stat cards
     stats = f"""
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
       <div class="g-stat" style="background:linear-gradient(135deg,#0038A8,#0050d0)"><div style="font-size:32px;font-weight:900">{len(packages)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Packages</div></div>
@@ -192,7 +290,6 @@ def render_dashboard(guide, msg="", err=""):
       <div class="g-stat" style="background:linear-gradient(135deg,#DC2626,#EF4444)"><div style="font-size:32px;font-weight:900">{avg_rating}&#9733;</div><div style="font-size:12px;opacity:.85;margin-top:4px">Avg Rating</div></div>
     </div>"""
 
-    # Pending requests
     pending_html = ""
     if pending:
         rows = "".join(f"""
@@ -209,7 +306,6 @@ def render_dashboard(guide, msg="", err=""):
         </div>""" for b in pending)
         pending_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#0038A8">&#9888; Pending Booking Requests ({len(pending)})</div><div class="g-card-body">{rows}</div></div>'
 
-    # Upcoming bookings table
     upcoming_html = ""
     if upcoming:
         rows = "".join(f'<tr style="border-bottom:1px solid #F3F4F6"><td style="padding:11px 14px;font-weight:600">{b["tourist_name"]}</td><td style="padding:11px 14px;color:#6B7280">{b["tour_date"]}</td><td style="padding:11px 14px;color:#6B7280">{b["package_title"] or "Custom"}</td><td style="padding:11px 14px;color:#6B7280">{b["pax"]} pax</td></tr>' for b in upcoming[:6])
@@ -403,7 +499,7 @@ def render_ratings(guide):
         <div style="color:#F59E0B;font-size:16px">{"&#9733;"*r["rating"]}{"&#9734;"*(5-r["rating"])}</div>
       </div>
       {"" if not r["feedback"] else f'<div style="font-size:13px;color:#4B5563;line-height:1.6;font-style:italic">&ldquo;{r["feedback"]}&rdquo;</div>'}
-      <div style="font-size:11px;color:#9CA3AF;margin-top:8px">{r["created"][:10]}</div>
+      <div style="font-size:11px;color:#9CA3AF;margin-top:8px">{str(r["created"])[:10]}</div>
     </div>""" for r in ratings) or '<div style="text-align:center;padding:40px;color:#9CA3AF"><div style="font-size:48px;margin-bottom:12px">&#11088;</div><div style="font-weight:700">No reviews yet</div></div>'
 
     body = f"""

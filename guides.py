@@ -1,23 +1,9 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
-from data import GUIDES
-
-EXTRA_GUIDES = [
-    {"name": "Carlo Mendoza",   "city": "Tagaytay",    "lang": "EN, FIL",     "rate": "P1,800/day", "rating": 4.7, "tours": 63,  "spec": "Volcano & Nature",        "avail": "Mon-Sun", "bio": "Tagaytay native with expertise in Taal Volcano day trips and Highlands tours. Perfect for families.",      "pkgs": ["Taal Volcano Day - P1,500","Sky Ranch + Picnic Grove - P1,200","Full Tagaytay Tour - P1,800"]},
-    {"name": "Elena Cruz",      "city": "Tagaytay",    "lang": "EN, FIL",     "rate": "P1,600/day", "rating": 4.5, "tours": 41,  "spec": "Food & Scenic Tours",     "avail": "Wed-Mon", "bio": "Food blogger turned guide. Knows all the best bulalo spots and scenic viewpoints in Tagaytay.",            "pkgs": ["Food Trip Tour - P1,000","Scenic Views Tour - P1,200","Full Day - P1,600"]},
-    {"name": "Pedro Villanueva","city": "Albay",        "lang": "EN, FIL",     "rate": "P2,000/day", "rating": 4.8, "tours": 97,  "spec": "Mayon Volcano & ATV",     "avail": "Mon-Sat", "bio": "Certified Mayon Volcano guide. Leads ATV tours on lava trails and sunrise viewing expeditions.",           "pkgs": ["ATV Lava Trail - P1,500","Cagsawa Ruins Tour - P900","Full Albay Day - P2,000"]},
-    {"name": "Rosa Bicol",      "city": "Albay",        "lang": "EN, FIL",     "rate": "P1,700/day", "rating": 4.6, "tours": 55,  "spec": "Culture & Food Tours",    "avail": "Tue-Sun", "bio": "Bicolana guide specializing in local culture, cuisine (Bicol Express!), and island hopping trips.",         "pkgs": ["Bicolano Food Tour - P1,200","Island Hopping - P1,500","Cultural Walk - P900"]},
-    {"name": "Noel Pangasinan", "city": "Pangasinan",  "lang": "EN, FIL",     "rate": "P1,900/day", "rating": 4.7, "tours": 78,  "spec": "Hundred Islands & Beach", "avail": "Mon-Sun", "bio": "Born in Alaminos, expert in Hundred Islands boat tours, Bolinao Falls, and Pangasinan bangus culture.",   "pkgs": ["Hundred Islands - P1,500","Bolinao Falls - P1,200","Full Province Tour - P1,900"]},
-    {"name": "Carla Santos",    "city": "Pangasinan",  "lang": "EN, FIL",     "rate": "P1,500/day", "rating": 4.4, "tours": 34,  "spec": "Pilgrimage & Heritage",   "avail": "Mon-Fri", "bio": "Specialist in religious and heritage tours including Our Lady of Manaoag and ancestral houses.",           "pkgs": ["Manaoag Pilgrimage - P900","Heritage Walk - P1,200","Full Day - P1,500"]},
-    {"name": "Danilo Bataan",   "city": "Bataan",       "lang": "EN, FIL",     "rate": "P1,800/day", "rating": 4.9, "tours": 112, "spec": "War History & Corregidor","avail": "Mon-Sun", "bio": "Military history expert. Led hundreds of tours to Corregidor, Mt. Samat, and Death March sites.",         "pkgs": ["Corregidor Island - P2,200","Mt. Samat Shrine - P1,000","Full Bataan History - P1,800"]},
-    {"name": "Grace Mariveles", "city": "Bataan",       "lang": "EN, FIL",     "rate": "P1,600/day", "rating": 4.5, "tours": 48,  "spec": "Eco & Beach Tours",       "avail": "Thu-Tue", "bio": "Eco-tourism advocate specializing in Pawikan conservation tours, mangrove forests, and beach hopping.",    "pkgs": ["Pawikan Tour - P900","Las Casas Heritage - P1,500","Beach Eco Tour - P1,600"]},
-]
-
-ALL_GUIDES = GUIDES + EXTRA_GUIDES
+import guide_db
 
 def get_all_guides_combined(city="All"):
-    import guide_db
     try:
         db_guides = guide_db.get_public_guides(city if city != "All" else None)
         avg_data = {g["id"]: guide_db.get_avg_rating(g["id"]) for g in db_guides}
@@ -26,22 +12,21 @@ def get_all_guides_combined(city="All"):
             pkgs = guide_db.get_packages(g["id"])
             avg, cnt = avg_data.get(g["id"], (4.5, 0))
             converted.append({
-                "name":   f'{g["fname"]} {g["lname"]}',
-                "city":   g["city"],
-                "lang":   g.get("languages","EN, FIL"),
-                "rate":   g.get("rate","P1,500/day"),
-                "rating": avg if avg > 0 else 4.5,
-                "tours":  cnt,
-                "spec":   g.get("speciality","General Tours"),
-                "avail":  g.get("availability","Mon-Sun"),
-                "bio":    g.get("bio","Registered local tour guide."),
-                "pkgs":   [f'{p["title"]} - {p["price"]}' for p in pkgs] or ["Custom Tour Available"],
+                "name":     f'{g["fname"]} {g["lname"]}',
+                "city":     g["city"],
+                "lang":     g.get("languages", "EN, FIL"),
+                "rate":     g.get("rate", "P1,500/day"),
+                "rating":   avg if avg > 0 else 4.5,
+                "tours":    cnt,
+                "spec":     g.get("speciality", "General Tours"),
+                "avail":    g.get("availability", "Mon-Sun"),
+                "bio":      g.get("bio", "Registered local tour guide."),
+                "pkgs":     [f'{p["title"]} - {p["price"]}' for p in pkgs] or ["Custom Tour Available"],
                 "guide_id": g["id"],
             })
-        static = [g for g in ALL_GUIDES if city == "All" or g["city"] == city]
-        return converted + static
+        return converted
     except:
-        return [g for g in ALL_GUIDES if city == "All" or g["city"] == city]
+        return []
 
 COLORS = ["#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8"]
 
@@ -79,15 +64,20 @@ def _card(g, i):
     )
 
 def render(filter_city="All", filter_lang="All", user=None, booked=False):
-    cities   = ["All"] + sorted(set(g["city"] for g in ALL_GUIDES))
+    try:
+        all_db_guides = guide_db.get_public_guides()
+        cities = ["All"] + sorted(set(g["city"] for g in all_db_guides))
+    except:
+        cities = ["All"]
+
     city_opts = "".join(f'<option {"selected" if c==filter_city else ""}>{c}</option>' for c in cities)
     lang_opts = "".join(f'<option {"selected" if l==filter_lang else ""}>{l}</option>' for l in ["All","EN","FIL","ES","IL"])
     combined  = get_all_guides_combined(filter_city)
-    filtered  = [g for g in combined
-        if (filter_lang=="All" or filter_lang in g["lang"])]
+    filtered  = [g for g in combined if (filter_lang=="All" or filter_lang in g["lang"])]
     guide_html = "".join(_card(g,i) for i,g in enumerate(filtered)) if filtered else (
         '<div class="guide-empty"><div style="font-size:48px;margin-bottom:12px">&#129517;</div>'
-        '<div style="font-weight:700;font-size:18px">No Tour Guides Found</div></div>'
+        '<div style="font-weight:700;font-size:18px">No Tour Guides Found</div>'
+        '<div style="color:#6B7280;font-size:14px;margin-top:8px">No guides have registered yet. Check back soon!</div></div>'
     )
     count = f"{len(filtered)} guide(s) available" if filtered else "0 guides found"
 
@@ -99,8 +89,6 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
         <div class="section-title">Tour Guide Booking</div>
         <div class="section-sub">Book a verified local guide for your Luzon adventure</div>
       </div>
-
-
 
       <div class="card" style="margin-bottom:20px">
         <div class="card-hdr" style="background:#0038A8"><span>Find Your Guide</span></div>
@@ -177,7 +165,6 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
       var pkg   = document.getElementById("bk-pkg").value;
       var notes = document.getElementById("bk-notes").value.trim();
       if (!name || !phone || !date) {{ alert("Please fill in your name, contact number, and date."); return; }}
-      // POST to server so guide receives the booking
       var form = document.createElement("form");
       form.method = "post";
       form.action = "/book-guide";
@@ -225,4 +212,3 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
     </script>
     """
     return build_shell("Tour Guides", body, "guides", user=user)
-

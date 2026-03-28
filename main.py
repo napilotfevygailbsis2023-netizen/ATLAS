@@ -49,7 +49,6 @@ def send_html(handler, html, cookie=None):
     handler.send_header("Content-Length", str(len(b)))
     if cookie: handler.send_header("Set-Cookie", cookie)
     handler.end_headers()
-    handler.wfile.write(b)
     try:
         handler.wfile.write(b)
     except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
@@ -246,14 +245,12 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 send_html(self, admin_panel.profile_page(admin)); return
             redirect(self, "/admin/dashboard"); return
 
-        # Email verification route
+        # Email verification route (GET = show verify page)
         if path == "/verify":
-            token = params.get("token","")
-            ok, msg = db.activate_user(token)
-            if ok:
-                send_html(self, login.render(success=msg)); return
-            else:
-                send_html(self, login.render(msg, "")); return
+            email = params.get("email","")
+            if email:
+                send_html(self, register.render_verify(email)); return
+            redirect(self, "/register.py"); return
 
         # Public routes
         handler = ROUTES.get(path)
@@ -294,6 +291,17 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/register.py":
             _, html = register.handle_post(form)
             send_html(self, html)
+
+        elif path == "/verify":
+            email = form.get("email","").strip().lower()
+            code  = form.get("code","").strip()
+            if not email or not code:
+                send_html(self, register.render_verify(email, error="Missing email or code.")); return
+            ok, msg = db.activate_user(email, code)
+            if ok:
+                send_html(self, login.render(success="Account verified! You can now log in."))
+            else:
+                send_html(self, register.render_verify(email, error=msg))
 
         elif path == "/admin/login":
             token, err = admin_login.handle_post(form)

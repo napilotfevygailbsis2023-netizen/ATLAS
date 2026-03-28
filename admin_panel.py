@@ -298,7 +298,7 @@ def dashboard(admin):
         if st=="archived": return '<span class=bar>Archived</span>'
         if st=="suspended": return '<span class=bs>Suspended</span>'
         return '<span class=ba>Active</span>'
-    rows = "".join(f'<tr><td style="font-weight:600;color:#1E293B">{u["fname"]} {u["lname"]}</td><td>{u["email"]}</td><td>{(u.get("created") or "")[:10]}</td><td>{_badge(u.get("status") or "active")}</td></tr>' for u in recent) or '<tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:20px">No tourists yet</td></tr>'
+    rows = "".join(f'<tr><td style="font-weight:600;color:#1E293B">{u["fname"]} {u["lname"]}</td><td>{u["email"]}</td><td>{str(u.get("created") or "")[:10]}</td><td>{_badge(u.get("status") or "active")}</td></tr>' for u in recent) or '<tr><td colspan="4" style="text-align:center;color:#94A3B8;padding:20px">No tourists yet</td></tr>'
 
     body = f'''
     <div style="font-size:22px;font-weight:900;margin-bottom:4px">Dashboard</div>
@@ -348,7 +348,7 @@ def tourists_page(admin, msg="", err="", tab="active"):
     counts["all"] = len(users)
 
     # Get unique months from joined dates
-    months = sorted(set((u.get("created","") or "")[:7] for u in users if u.get("created")), reverse=True)
+    months = sorted(set(str(u.get("created","") or "")[:7] for u in users if u.get("created")), reverse=True)
     month_opts = '<option value="">All Months</option>' + "".join(f'<option value="{m}">{m}</option>' for m in months)
 
     def build_rows(lst):
@@ -362,7 +362,7 @@ def tourists_page(admin, msg="", err="", tab="active"):
                 acts = f'<a href="/admin/tourists/activate/{u["id"]}"><button class="btn bsuccess" style="margin-right:4px">Activate</button></a><a href="/admin/tourists/archive/{u["id"]}"><button class="btn bgray" style="margin-right:4px">Archive</button></a><a href="/admin/tourists/delete/{u["id"]}" onclick="return confirm(\'Delete?\')"><button class="btn bdanger">Delete</button></a>'
             else:
                 acts = f'<a href="/admin/tourists/suspend/{u["id"]}"><button class="btn bwarn" style="margin-right:4px">Suspend</button></a><a href="/admin/tourists/archive/{u["id"]}"><button class="btn bgray" style="margin-right:4px">Archive</button></a><a href="/admin/tourists/delete/{u["id"]}" onclick="return confirm(\'Delete?\')"><button class="btn bdanger">Delete</button></a>'
-            rows += f'<tr><td style="font-weight:600;color:#1E293B">{u["fname"]} {u["lname"]}</td><td>{u["email"]}</td><td>{(u.get("created") or "")[:10]}</td><td>{_badge(st)}</td><td>{acts}</td></tr>'
+            rows += f'<tr><td style="font-weight:600;color:#1E293B">{u["fname"]} {u["lname"]}</td><td>{u["email"]}</td><td>{str(u.get("created") or "")[:10]}</td><td>{_badge(st)}</td><td>{acts}</td></tr>'
         return rows
 
     tab_labels = [("all","All",counts["all"],"#1D4ED8"),("active","Active",counts["active"],"#16A34A"),("suspended","Suspended",counts["suspended"],"#D97706"),("archived","Archived",counts["archived"],"#6B7280")]

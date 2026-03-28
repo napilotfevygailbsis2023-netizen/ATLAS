@@ -2,21 +2,13 @@ import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# ── Gmail credentials ──────────────────────────────────────────
-# Use a Gmail App Password (NOT your real password).
-# Steps to get one:
-#   1. Go to myaccount.google.com → Security → 2-Step Verification (enable it)
-#   2. Then go to myaccount.google.com/apppasswords
-#   3. Create an app password for "Mail" → copy the 16-char password
-GMAIL_USER     = "travelatatlas2026@gmail.com"   # your Gmail address
-GMAIL_APP_PASS = "lvjy udcy kmfm bwgd"         # 16-char App Password
-
-SITE_URL = "http://localhost:5000"   # change to your deployed URL when live
+GMAIL_USER     = "travelatatlas2026@gmail.com"
+GMAIL_APP_PASS = "lvjy udcy kmfm bwgd"
+SITE_URL       = "https://atlas-production.up.railway.app"  # update for production
 
 
-def send_verification_email(to_email: str, fname: str, token: str) -> bool:
-    """Send a verification email. Returns True on success, False on failure."""
-    verify_url = f"{SITE_URL}/verify?token={token}"
+def send_verification_email(to_email: str, fname: str, code: str) -> bool:
+    """Send a 6-digit verification code email. Returns True on success."""
 
     html_body = f"""
 <!DOCTYPE html>
@@ -24,40 +16,26 @@ def send_verification_email(to_email: str, fname: str, token: str) -> bool:
 <head><meta charset="UTF-8"/></head>
 <body style="margin:0;padding:0;background:#F1F5F9;font-family:'Segoe UI',sans-serif">
   <div style="max-width:520px;margin:40px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.08)">
-
-    <!-- Header -->
-    <div style="background:#0038A8;padding:32px 40px;text-align:center">
+    <div style="background:#1E3A5F;padding:32px 40px;text-align:center">
       <div style="font-size:28px;font-weight:900;color:#fff;letter-spacing:1px">ATLAS</div>
       <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:4px">Luzon Travel Companion</div>
     </div>
-
-    <!-- Body -->
     <div style="padding:36px 40px">
-      <div style="font-size:22px;font-weight:800;color:#0F172A;margin-bottom:8px">
-        Hi {fname}! 👋
-      </div>
+      <div style="font-size:22px;font-weight:800;color:#0F172A;margin-bottom:8px">Hi {fname}!</div>
       <div style="font-size:15px;color:#475569;line-height:1.7;margin-bottom:28px">
-        Thank you for creating an ATLAS account. Please verify your email address
-        to complete your registration and start exploring Luzon!
+        Use the verification code below to activate your ATLAS account.
+        The code expires in <strong>15 minutes</strong>.
       </div>
-
-      <!-- Button -->
       <div style="text-align:center;margin-bottom:28px">
-        <a href="{verify_url}" style="display:inline-block;background:#0038A8;color:#fff;text-decoration:none;padding:14px 36px;border-radius:10px;font-size:16px;font-weight:700;letter-spacing:.3px">
-          ✅ Verify My Email
-        </a>
+        <div style="display:inline-block;background:#F8FAFC;border:2px solid #0038A8;border-radius:14px;padding:20px 40px">
+          <div style="font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">Verification Code</div>
+          <div style="font-size:42px;font-weight:900;color:#0038A8;letter-spacing:10px;font-family:monospace">{code}</div>
+        </div>
       </div>
-
       <div style="font-size:13px;color:#94A3B8;line-height:1.6;border-top:1px solid #F1F5F9;padding-top:20px">
-        If the button doesn't work, copy and paste this link into your browser:<br/>
-        <a href="{verify_url}" style="color:#0038A8;word-break:break-all">{verify_url}</a>
-      </div>
-      <div style="font-size:12px;color:#CBD5E1;margin-top:12px">
-        This link will expire after 24 hours. If you didn't create an ATLAS account, you can safely ignore this email.
+        Enter this code on the verification page. If you didn't create an ATLAS account, ignore this email.
       </div>
     </div>
-
-    <!-- Footer -->
     <div style="background:#F8FAFC;padding:18px 40px;text-align:center;border-top:1px solid #E2E8F0">
       <div style="font-size:12px;color:#94A3B8">&copy; 2026 ATLAS. All Rights Reserved.</div>
       <div style="font-size:12px;color:#94A3B8;margin-top:2px">Luzon, Philippines &middot; travelatatlas2026@gmail.com</div>
@@ -67,7 +45,7 @@ def send_verification_email(to_email: str, fname: str, token: str) -> bool:
 </html>"""
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = "✅ Verify your ATLAS account"
+    msg["Subject"] = f"Your ATLAS verification code: {code}"
     msg["From"]    = f"ATLAS Travel <{GMAIL_USER}>"
     msg["To"]      = to_email
     msg.attach(MIMEText(html_body, "html"))
