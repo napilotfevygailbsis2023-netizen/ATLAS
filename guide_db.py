@@ -1,213 +1,283 @@
-import sqlite3, hashlib, os, secrets
-sys_path = os.path.dirname(os.path.abspath(__file__))
+import hashlib, secrets
+try:
+    import mysql.connector
+    from mysql.connector import IntegrityError
+except ImportError:
+    raise ImportError("mysql-connector-python is not installed. Run: pip install mysql-connector-python")
 
-DB_PATH = os.path.join(sys_path, "atlas.db")
+from db_config import DB_CONFIG
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH, timeout=30, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=15000")
-    conn.execute("PRAGMA synchronous=NORMAL")
+    conn = mysql.connector.connect(**DB_CONFIG)
     return conn
+
+def _cursor(conn):
+    return conn.cursor(dictionary=True)
 
 def hash_pw(p):
     return hashlib.sha256(p.encode()).hexdigest()
 
 def init_guide_tables():
-    conn = get_conn()
-    conn.execute("""CREATE TABLE IF NOT EXISTS tour_guides (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        fname       TEXT NOT NULL,
-        lname       TEXT NOT NULL,
-        email       TEXT UNIQUE NOT NULL,
-        password    TEXT NOT NULL,
-        phone       TEXT DEFAULT '',
-        city        TEXT DEFAULT 'Manila',
-        languages   TEXT DEFAULT 'EN, FIL',
-        speciality  TEXT DEFAULT 'General Tours',
-        bio         TEXT DEFAULT '',
-        rate        TEXT DEFAULT 'P1,500/day',
-        availability TEXT DEFAULT 'Mon-Sun',
-        status      TEXT DEFAULT 'active',
-        created     DATETIME DEFAULT CURRENT_TIMESTAMP
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS guide_sessions (
-        token       TEXT PRIMARY KEY,
-        guide_id    INTEGER NOT NULL,
-        created     DATETIME DEFAULT CURRENT_TIMESTAMP
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS tour_packages (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        guide_id    INTEGER NOT NULL,
-        title       TEXT NOT NULL,
-        description TEXT DEFAULT '',
-        price       TEXT NOT NULL,
-        duration    TEXT DEFAULT 'Full Day',
-        inclusions  TEXT DEFAULT '',
-        city        TEXT DEFAULT 'Manila',
-        status      TEXT DEFAULT 'active',
-        created     DATETIME DEFAULT CURRENT_TIMESTAMP
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS bookings (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        guide_id    INTEGER NOT NULL,
-        tourist_name TEXT NOT NULL,
-        tourist_email TEXT DEFAULT '',
-        tourist_phone TEXT DEFAULT '',
-        package_id  INTEGER,
-        package_title TEXT DEFAULT '',
-        tour_date   TEXT NOT NULL,
-        pax         INTEGER DEFAULT 1,
-        notes       TEXT DEFAULT '',
-        status      TEXT DEFAULT 'pending',
-        guide_notes TEXT DEFAULT '',
-        created     DATETIME DEFAULT CURRENT_TIMESTAMP
-    )""")
-    conn.execute("""CREATE TABLE IF NOT EXISTS guide_ratings (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        guide_id    INTEGER NOT NULL,
-        tourist_name TEXT NOT NULL,
-        rating      INTEGER NOT NULL,
-        feedback    TEXT DEFAULT '',
-        created     DATETIME DEFAULT CURRENT_TIMESTAMP
-    )""")
-    conn.commit()
-    conn.close()
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS tour_guides (
+            id           INT AUTO_INCREMENT PRIMARY KEY,
+            fname        VARCHAR(100) NOT NULL,
+            lname        VARCHAR(100) NOT NULL,
+            email        VARCHAR(255) UNIQUE NOT NULL,
+            password     VARCHAR(64)  NOT NULL,
+            phone        VARCHAR(50)  DEFAULT '',
+            city         VARCHAR(100) DEFAULT 'Manila',
+            languages    VARCHAR(200) DEFAULT 'EN, FIL',
+            speciality   VARCHAR(200) DEFAULT 'General Tours',
+            bio          TEXT,
+            rate         VARCHAR(100) DEFAULT 'P1,500/day',
+            availability VARCHAR(200) DEFAULT 'Mon-Sun',
+            status       VARCHAR(20)  DEFAULT 'active',
+            created      DATETIME     DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS guide_sessions (
+            token    VARCHAR(64) PRIMARY KEY,
+            guide_id INT         NOT NULL,
+            created  DATETIME    DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS tour_packages (
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            guide_id    INT          NOT NULL,
+            title       VARCHAR(200) NOT NULL,
+            description TEXT,
+            price       VARCHAR(100) NOT NULL,
+            duration    VARCHAR(100) DEFAULT 'Full Day',
+            inclusions  TEXT,
+            city        VARCHAR(100) DEFAULT 'Manila',
+            status      VARCHAR(20)  DEFAULT 'active',
+            created     DATETIME     DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS bookings (
+            id            INT AUTO_INCREMENT PRIMARY KEY,
+            guide_id      INT          NOT NULL,
+            tourist_name  VARCHAR(200) NOT NULL,
+            tourist_email VARCHAR(255) DEFAULT '',
+            tourist_phone VARCHAR(50)  DEFAULT '',
+            package_id    INT          DEFAULT 0,
+            package_title VARCHAR(200) DEFAULT '',
+            tour_date     VARCHAR(20)  NOT NULL,
+            pax           INT          DEFAULT 1,
+            notes         TEXT,
+            status        VARCHAR(20)  DEFAULT 'pending',
+            guide_notes   TEXT,
+            created       DATETIME     DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS guide_ratings (
+            id           INT AUTO_INCREMENT PRIMARY KEY,
+            guide_id     INT          NOT NULL,
+            tourist_name VARCHAR(200) NOT NULL,
+            rating       INT          NOT NULL,
+            feedback     TEXT,
+            created      DATETIME     DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pending_guides (
+            id       INT AUTO_INCREMENT PRIMARY KEY,
+            fname    VARCHAR(100) NOT NULL,
+            lname    VARCHAR(100) NOT NULL,
+            email    VARCHAR(255) NOT NULL,
+            password VARCHAR(64)  NOT NULL,
+            phone    VARCHAR(50)  DEFAULT '',
+            city     VARCHAR(100) DEFAULT 'Manila',
+            code     VARCHAR(10)  NOT NULL,
+            created  DATETIME     DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+    conn.commit(); cur.close(); conn.close()
 
-# ── GUIDE AUTH ──
+
+def guide_email_registered(email):
+    email = email.strip().lower()
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT COUNT(*) AS cnt FROM tour_guides WHERE email=%s", (email,))
+    in_guides = (cur.fetchone() or {}).get("cnt", 0)
+    try:
+        cur.execute("SELECT COUNT(*) AS cnt FROM pending_guides WHERE email=%s", (email,))
+        in_pending = (cur.fetchone() or {}).get("cnt", 0)
+    except:
+        in_pending = 0
+    cur.close(); conn.close()
+    return (in_guides + in_pending) > 0
+
+def store_pending_guide(fname, lname, email, password, phone, city):
+    import random
+    code = str(random.randint(100000, 999999))
+    email = email.strip().lower()
+    conn = get_conn(); cur = _cursor(conn)
+    try: cur.execute("DELETE FROM pending_guides WHERE email=%s", (email,))
+    except: pass
+    cur.execute(
+        "INSERT INTO pending_guides (fname,lname,email,password,phone,city,code) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+        (fname.strip(), lname.strip(), email, hash_pw(password), phone.strip(), city, code)
+    )
+    conn.commit(); cur.close(); conn.close()
+    return code
+
+def activate_guide(email, code):
+    email = email.strip().lower()
+    conn = get_conn(); cur = _cursor(conn)
+    try:
+        cur.execute("SELECT * FROM pending_guides WHERE email=%s AND code=%s", (email, code))
+        row = cur.fetchone()
+        if not row:
+            cur.close(); conn.close()
+            return False, "Invalid or expired code. Please try again."
+        try:
+            cur.execute(
+                "INSERT INTO tour_guides (fname,lname,email,password,phone,city) VALUES (%s,%s,%s,%s,%s,%s)",
+                (row["fname"], row["lname"], row["email"], row["password"], row["phone"], row["city"])
+            )
+        except IntegrityError:
+            pass
+        cur.execute("DELETE FROM pending_guides WHERE email=%s", (email,))
+        conn.commit(); cur.close(); conn.close()
+        return True, "Email verified! Your guide account is now active."
+    except Exception as e:
+        cur.close(); conn.close()
+        return False, f"Verification error: {e}"
+
 def register_guide(fname, lname, email, password, phone, city):
     try:
-        conn = get_conn()
-        conn.execute("INSERT INTO tour_guides (fname,lname,email,password,phone,city) VALUES (?,?,?,?,?,?)",
-                     (fname.strip(), lname.strip(), email.strip().lower(), hash_pw(password), phone.strip(), city))
-        conn.commit(); conn.close()
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("INSERT INTO tour_guides (fname,lname,email,password,phone,city) VALUES (%s,%s,%s,%s,%s,%s)",
+                    (fname.strip(), lname.strip(), email.strip().lower(), hash_pw(password), phone.strip(), city))
+        conn.commit(); cur.close(); conn.close()
         return True, "Account created!"
-    except sqlite3.IntegrityError:
+    except IntegrityError:
         return False, "Email already registered."
     except Exception as e:
         return False, str(e)
 
 def login_guide(email, password):
-    conn = get_conn()
-    try:
-        guide = conn.execute("SELECT * FROM tour_guides WHERE email=? AND password=?",
-                             (email.strip().lower(), hash_pw(password))).fetchone()
-        if not guide: return False, None, None
-        token = secrets.token_hex(32)
-        conn.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (?,?)", (token, guide["id"]))
-        conn.commit()
-        return True, token, dict(guide)
-    finally:
-        conn.close()
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT * FROM tour_guides WHERE email=%s AND password=%s",
+                (email.strip().lower(), hash_pw(password)))
+    guide = cur.fetchone(); cur.close(); conn.close()
+    if not guide: return False, None, None
+    token = secrets.token_hex(32)
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (%s,%s)", (token, guide["id"]))
+    conn.commit(); cur.close(); conn.close()
+    return True, token, guide
 
 def get_guide_by_token(token):
     if not token: return None
     try:
-        conn = get_conn()
-        row = conn.execute("""SELECT g.* FROM tour_guides g
-            JOIN guide_sessions s ON s.guide_id=g.id WHERE s.token=?""", (token,)).fetchone()
-        conn.close()
-        return dict(row) if row else None
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("""SELECT g.* FROM tour_guides g
+            JOIN guide_sessions s ON s.guide_id=g.id WHERE s.token=%s""", (token,))
+        row = cur.fetchone(); cur.close(); conn.close()
+        return row
     except: return None
 
 def logout_guide(token):
     try:
-        conn = get_conn()
-        conn.execute("DELETE FROM guide_sessions WHERE token=?", (token,))
-        conn.commit(); conn.close()
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("DELETE FROM guide_sessions WHERE token=%s", (token,))
+        conn.commit(); cur.close(); conn.close()
     except: pass
 
 def get_guide_by_id(gid):
-    conn = get_conn()
-    row = conn.execute("SELECT * FROM tour_guides WHERE id=?", (gid,)).fetchone()
-    conn.close()
-    return dict(row) if row else None
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT * FROM tour_guides WHERE id=%s", (gid,))
+    row = cur.fetchone(); cur.close(); conn.close()
+    return row
 
 def update_guide_profile(gid, data):
-    conn = get_conn()
-    conn.execute("""UPDATE tour_guides SET fname=?,lname=?,phone=?,city=?,languages=?,
-        speciality=?,bio=?,rate=?,availability=? WHERE id=?""",
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""UPDATE tour_guides SET fname=%s,lname=%s,phone=%s,city=%s,languages=%s,
+        speciality=%s,bio=%s,rate=%s,availability=%s WHERE id=%s""",
         (data["fname"], data["lname"], data["phone"], data["city"], data["languages"],
          data["speciality"], data["bio"], data["rate"], data["availability"], gid))
-    conn.commit(); conn.close()
+    conn.commit(); cur.close(); conn.close()
 
 def change_guide_password(gid, new_pw):
-    conn = get_conn()
-    conn.execute("UPDATE tour_guides SET password=? WHERE id=?", (hash_pw(new_pw), gid))
-    conn.commit(); conn.close()
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE tour_guides SET password=%s WHERE id=%s", (hash_pw(new_pw), gid))
+    conn.commit(); cur.close(); conn.close()
 
-# ── PACKAGES ──
 def get_packages(guide_id):
-    conn = get_conn()
-    rows = conn.execute("SELECT * FROM tour_packages WHERE guide_id=? ORDER BY id DESC", (guide_id,)).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT * FROM tour_packages WHERE guide_id=%s ORDER BY id DESC", (guide_id,))
+    rows = cur.fetchall(); cur.close(); conn.close()
+    return rows
 
 def add_package(guide_id, data):
-    conn = get_conn()
-    conn.execute("INSERT INTO tour_packages (guide_id,title,description,price,duration,inclusions,city) VALUES (?,?,?,?,?,?,?)",
-                 (guide_id, data["title"], data.get("description",""), data["price"],
-                  data.get("duration","Full Day"), data.get("inclusions",""), data.get("city","Manila")))
-    conn.commit(); conn.close()
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("INSERT INTO tour_packages (guide_id,title,description,price,duration,inclusions,city) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                (guide_id, data["title"], data.get("description",""), data["price"],
+                 data.get("duration","Full Day"), data.get("inclusions",""), data.get("city","Manila")))
+    conn.commit(); cur.close(); conn.close()
 
 def delete_package(pkg_id, guide_id):
-    conn = get_conn()
-    conn.execute("DELETE FROM tour_packages WHERE id=? AND guide_id=?", (pkg_id, guide_id))
-    conn.commit(); conn.close()
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("DELETE FROM tour_packages WHERE id=%s AND guide_id=%s", (pkg_id, guide_id))
+    conn.commit(); cur.close(); conn.close()
 
-# ── BOOKINGS ──
 def get_bookings(guide_id, status=None):
-    conn = get_conn()
+    conn = get_conn(); cur = _cursor(conn)
     if status:
-        rows = conn.execute("SELECT * FROM bookings WHERE guide_id=? AND status=? ORDER BY tour_date ASC", (guide_id, status)).fetchall()
+        cur.execute("SELECT * FROM bookings WHERE guide_id=%s AND status=%s ORDER BY tour_date ASC", (guide_id, status))
     else:
-        rows = conn.execute("SELECT * FROM bookings WHERE guide_id=? ORDER BY tour_date ASC", (guide_id,)).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+        cur.execute("SELECT * FROM bookings WHERE guide_id=%s ORDER BY tour_date ASC", (guide_id,))
+    rows = cur.fetchall(); cur.close(); conn.close()
+    return rows
 
 def update_booking_status(booking_id, guide_id, status, notes=""):
-    conn = get_conn()
-    conn.execute("UPDATE bookings SET status=?, guide_notes=? WHERE id=? AND guide_id=?",
-                 (status, notes, booking_id, guide_id))
-    conn.commit(); conn.close()
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE bookings SET status=%s, guide_notes=%s WHERE id=%s AND guide_id=%s",
+                (status, notes, booking_id, guide_id))
+    conn.commit(); cur.close(); conn.close()
 
 def add_booking(data):
-    conn = get_conn()
-    conn.execute("""INSERT INTO bookings (guide_id,tourist_name,tourist_email,tourist_phone,
-        package_id,package_title,tour_date,pax,notes) VALUES (?,?,?,?,?,?,?,?,?)""",
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""INSERT INTO bookings (guide_id,tourist_name,tourist_email,tourist_phone,
+        package_id,package_title,tour_date,pax,notes) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
         (data["guide_id"], data["tourist_name"], data.get("tourist_email",""),
          data.get("tourist_phone",""), data.get("package_id",0), data.get("package_title",""),
          data["tour_date"], int(data.get("pax",1)), data.get("notes","")))
-    conn.commit(); conn.close()
+    conn.commit(); cur.close(); conn.close()
 
-# ── RATINGS ──
 def get_ratings(guide_id):
-    conn = get_conn()
-    rows = conn.execute("SELECT * FROM guide_ratings WHERE guide_id=? ORDER BY created DESC", (guide_id,)).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT * FROM guide_ratings WHERE guide_id=%s ORDER BY created DESC", (guide_id,))
+    rows = cur.fetchall(); cur.close(); conn.close()
+    return rows
 
 def add_rating(guide_id, tourist_name, rating, feedback):
-    conn = get_conn()
-    conn.execute("INSERT INTO guide_ratings (guide_id,tourist_name,rating,feedback) VALUES (?,?,?,?)",
-                 (guide_id, tourist_name, int(rating), feedback))
-    conn.commit(); conn.close()
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("INSERT INTO guide_ratings (guide_id,tourist_name,rating,feedback) VALUES (%s,%s,%s,%s)",
+                (guide_id, tourist_name, int(rating), feedback))
+    conn.commit(); cur.close(); conn.close()
 
 def get_avg_rating(guide_id):
-    conn = get_conn()
-    row = conn.execute("SELECT AVG(rating) as avg, COUNT(*) as cnt FROM guide_ratings WHERE guide_id=?", (guide_id,)).fetchone()
-    conn.close()
-    return round(row["avg"] or 0, 1), row["cnt"]
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT AVG(rating) AS avg_r, COUNT(*) AS cnt FROM guide_ratings WHERE guide_id=%s", (guide_id,))
+    row = cur.fetchone(); cur.close(); conn.close()
+    return round(float(row["avg_r"] or 0), 1), row["cnt"]
 
-# ── PUBLIC GUIDE LISTING (for tourists) ──
 def get_public_guides(city=None):
-    conn = get_conn()
+    conn = get_conn(); cur = _cursor(conn)
     if city and city != "All":
-        rows = conn.execute("SELECT * FROM tour_guides WHERE status='active' AND city=? ORDER BY id DESC", (city,)).fetchall()
+        cur.execute("SELECT * FROM tour_guides WHERE status='active' AND city=%s ORDER BY id DESC", (city,))
     else:
-        rows = conn.execute("SELECT * FROM tour_guides WHERE status='active' ORDER BY id DESC").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+        cur.execute("SELECT * FROM tour_guides WHERE status='active' ORDER BY id DESC")
+    rows = cur.fetchall(); cur.close(); conn.close()
+    return rows
 
 init_guide_tables()

@@ -224,13 +224,7 @@ RESTAURANTS = [
     {"name": "Surf and Turf La Union",        "city": "La Union",     "type": "Surf Cafe",         "price": "PHP 250-550",  "rating": 4.5, "desc": "Popular cafe and restaurant at Urbiztondo Beach. Known for surf-side dining with great food and ocean views."},
 ]
 
-GUIDES = [
-    {"name": "Maria Santos",   "city": "Manila",       "lang": "EN, FIL, ES", "rate": "P2,500/day", "rating": 4.9, "tours": 142, "spec": "Historical & Cultural",   "avail": "Mon-Sat", "bio": "Certified guide with 8 years in Intramuros and Rizal Park. Fluent in Spanish.",              "pkgs": ["Half Day City Tour - P1,200", "Full Day Heritage - P2,500", "Private Group - P4,000"]},
-    {"name": "Jose Dela Cruz", "city": "Baguio",       "lang": "EN, FIL",     "rate": "P2,000/day", "rating": 4.7, "tours": 89,  "spec": "Nature & Trekking",        "avail": "Tue-Sun", "bio": "Adventure guide specializing in Cordillera trekking. Certified first aid responder.",        "pkgs": ["Mt. Pulag Trek - P1,800", "Highlands Tour - P1,500", "Strawberry Farm - P800"]},
-    {"name": "Ana Reyes",      "city": "Ilocos Norte", "lang": "EN, FIL, IL", "rate": "P1,800/day", "rating": 4.8, "tours": 116, "spec": "Heritage & Food Tours",    "avail": "Mon-Sun", "bio": "Native Ilocana with deep knowledge of heritage and food culture. Speaks Ilocano.",           "pkgs": ["Vigan Heritage Walk - P1,200", "Ilocos Food Tour - P1,600", "Paoay Trip - P1,800"]},
-    {"name": "Liza Fernandez", "city": "Vigan",        "lang": "EN, FIL",     "rate": "P1,600/day", "rating": 4.6, "tours": 74,  "spec": "Spanish Colonial Heritage", "avail": "Mon-Fri", "bio": "Historian-trained guide for Vigan UNESCO heritage zone. Expert in colonial architecture.",   "pkgs": ["Calle Crisologo Walk - P900", "Full Heritage Day - P1,600", "Kalesa Tour - P1,200"]},
-    {"name": "Ramon Garcia",   "city": "Batangas",     "lang": "EN, FIL",     "rate": "P2,200/day", "rating": 4.5, "tours": 58,  "spec": "Volcano & Beach Tours",    "avail": "Thu-Tue", "bio": "Local Batangueno guide with expertise in Taal Volcano treks and coastal tours.",            "pkgs": ["Taal Volcano Trek - P2,000", "Beach Hopping - P1,800", "Full Day Batangas - P2,200"]},
-]
+
 
 TRANSPORT = [
     {"type": "Bus",   "name": "Victory Liner",    "route": "Manila to Baguio",          "duration": "5-6 hours",   "price": "P450-650",  "schedule": "Every 30 mins", "class": "Aircon / Deluxe"},
