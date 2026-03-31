@@ -31,7 +31,7 @@ MEAL_IDEAS = {
     "La Union":     ["Flotsam and Jetsam","Halo Halo de Iloco","Texto Restaurant","Kusina Salud","Surf and Turf La Union","La Union Farmhouse Cafe"],
 }
 
-DAY_COLORS = ["#0038A8","#CE1126","#C8930A","#065F46","#6B21A8","#0077B6","#B45309","#047857","#9D174D"]
+DAY_COLORS = ["#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8"]
 
 def generate_days(dest, num_days):
     highlights = CITY_HIGHLIGHTS.get(dest, CITY_HIGHLIGHTS["Manila"])
@@ -146,12 +146,12 @@ def render(dest="Manila", days=None, user=None):
               <label class="lbl">Custom Activity</label>
               <input class="inp" id="add-custom-text" placeholder="e.g. Souvenir shopping" style="width:240px"/>
             </div>
-            <button class="btn" style="background:#065F46;color:#fff;padding:10px 22px;font-size:14px" onclick="manualAdd()">&#43; Add</button>
+            <button class="btn" style="background:#0038A8;color:#fff;padding:10px 22px;font-size:14px" onclick="manualAdd()">&#43; Add</button>
           </div>
           <div style="margin-top:12px;font-size:13px;color:#6B7280">
             &#128161; You can also add places directly from
             <a href="/attractions.py" style="color:#0038A8;font-weight:600">Attractions</a> or
-            <a href="/restaurants.py" style="color:#CE1126;font-weight:600">Restaurants</a> pages — they save here automatically.
+            <a href="/restaurants.py" style="color:#0038A8;font-weight:600">Restaurants</a> pages — they save here automatically.
           </div>
         </div>
       </div>
@@ -184,7 +184,7 @@ def render(dest="Manila", days=None, user=None):
               <label class="lbl">Number of Days</label>
               <input class="inp" type="number" id="planner-days" min="1" max="14" value="3" style="width:90px"/>
             </div>
-            <button class="btn" style="background:#6B21A8;color:#fff;padding:10px 22px" onclick="buildPlan()">&#9998; Build Plan</button>
+            <button class="btn" style="background:#0038A8;color:#fff;padding:10px 22px" onclick="buildPlan()">&#9998; Build Plan</button>
             <button id="print-btn" class="btn" onclick="printPlan()" disabled style="background:#9CA3AF;color:#fff;padding:10px 22px;cursor:not-allowed" title="Build your plan first">&#128424; Print / Save PDF</button>
           </div>
           <div style="font-size:13px;color:#6B7280;margin-bottom:16px">Set the <strong>Day #</strong> on each saved place above, then click Build Plan.</div>
@@ -207,12 +207,12 @@ def render(dest="Manila", days=None, user=None):
               <label class="lbl">Number of Days (1–14)</label>
               <input class="inp" type="number" name="days" min="1" max="14" value="{num_days}" style="width:110px"/>
             </div>
-            <button class="btn" style="background:#CE1126;color:#fff;padding:10px 24px" type="submit">Generate</button>
+            <button class="btn" style="background:#0038A8;color:#fff;padding:10px 24px" type="submit">Generate</button>
           </form>
           <div style="margin-top:20px">
             <div style="font-weight:700;font-size:15px;margin-bottom:4px;color:#1F2937">
               {dest} &mdash; {num_days}-Day Suggested Itinerary
-              <span style="background:#CE1126;color:#fff;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-left:8px">{num_days} Day{"s" if num_days > 1 else ""}</span>
+              <span style="background:#0038A8;color:#fff;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-left:8px">{num_days} Day{"s" if num_days > 1 else ""}</span>
             </div>
             <div style="font-size:13px;color:#9CA3AF;margin-bottom:14px">Auto-generated travel plan — use as inspiration!</div>
             {day_cards}
@@ -226,7 +226,7 @@ def render(dest="Manila", days=None, user=None):
     var KEY = 'atlas_itinerary_items';
     var SPOTS = {spots_js};
     var RESTS = {rests_js};
-    var COLORS = ["#0038A8","#CE1126","#C8930A","#065F46","#6B21A8","#0077B6","#B45309","#047857","#9D174D"];
+    var COLORS = ["#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8"];
 
     function load() {{
       try {{ return JSON.parse(localStorage.getItem(KEY) || '[]'); }} catch(e) {{ return []; }}
@@ -297,7 +297,7 @@ def render(dest="Manila", days=None, user=None):
       clearBtn.style.display = 'block';
 
       list.innerHTML = items.map(function(item, i) {{
-        var tc = item.type==='restaurant' ? '#C8930A' : item.type==='custom' ? '#6B21A8' : '#0038A8';
+        var tc = item.type==='restaurant' ? '#0038A8' : item.type==='custom' ? '#0038A8' : '#0038A8';
         var ti = item.type==='restaurant' ? '&#127869;' : item.type==='custom' ? '&#128393;' : '&#127981;';
         return (
           '<div style="display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #F3F4F6;flex-wrap:wrap">' +
@@ -313,7 +313,7 @@ def render(dest="Manila", days=None, user=None):
               '<input type="time" value="' + (item.time||'09:00') + '" data-i="' + i + '" data-f="time" onchange="updateField(this)" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:5px 6px;font-size:13px;width:106px"/></div>' +
               '<div style="flex:1;min-width:130px"><label style="font-size:10px;color:#9CA3AF;display:block;margin-bottom:2px">Note (optional)</label>' +
               '<input type="text" value="' + (item.note||'').replace(/"/g,"&quot;") + '" placeholder="Add a note..." data-i="' + i + '" data-f="note" onchange="updateField(this)" style="border:1.5px solid #E2E8F0;border-radius:8px;padding:5px 8px;font-size:13px;width:100%;box-sizing:border-box"/></div>' +
-              '<button onclick="removeItem(' + i + ')" style="background:#FEE2E2;color:#DC2626;border:none;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:15px;font-weight:700" title="Remove">&#128465;</button>' +
+              '<button onclick="removeItem(' + i + ')" style="background:rgba(0,56,168,0.12);color:#0038A8;border:none;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:15px;font-weight:700" title="Remove">&#128465;</button>' +
             '</div>' +
           '</div>'
         );

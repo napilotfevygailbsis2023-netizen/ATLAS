@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import http.server, socketserver, urllib.parse, os, sys
+import http.server, socketserver, urllib.parse, os, sys, re, email
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import index, flights, weather, attractions, restaurants, guides, transport, itinerary
@@ -163,6 +163,8 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             guide = guide_db.get_guide_by_token(g_tok)
             if not guide: redirect(self, "/guide"); return
             send_html(self, guide_portal.render_profile(guide)); return
+        if path == "/guide/profile/photo":
+            redirect(self, "/guide/profile"); return
 
         # User logout
         if path == "/logout.py":
@@ -258,7 +260,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, "Page not found"); return
         send_html(self, handler(params, user))
 
-    def do_POST(self, cgi=None):
+    def do_POST(self):
         path   = urllib.parse.urlparse(self.path).path
         cookie = self.headers.get("Cookie","")
         content_type = self.headers.get("Content-Type","")
@@ -266,18 +268,50 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
 
         # Handle multipart/form-data (file uploads)
         if "multipart/form-data" in content_type:
-            environ = {"REQUEST_METHOD":"POST","CONTENT_TYPE":content_type,"CONTENT_LENGTH":length}
-            fp = self.rfile
-            fs = cgi.FieldStorage(fp=fp, headers=self.headers, environ=environ)
+            raw = self.rfile.read(length)
             form = {}
             files = {}
-            for key in fs.keys():
-                field = fs[key]
-                if hasattr(field, "filename") and field.filename:
-                    files[key] = (field.filename, field.file.read())
-                else:
-                    form[key] = field.value if hasattr(field,"value") else ""
             body = ""
+            # Extract boundary
+            boundary = None
+            for part in content_type.split(";"):
+                part = part.strip()
+                if part.startswith("boundary="):
+                    boundary = part[len("boundary="):].strip().encode()
+                    break
+            if boundary:
+                delimiter = b"--" + boundary
+                parts = raw.split(delimiter)
+                for chunk in parts[1:]:  # skip preamble
+                    if chunk.strip() in (b"", b"--", b"--\r\n"):
+                        continue
+                    # Split headers from body on first blank line
+                    if b"\r\n\r\n" in chunk:
+                        hdr_raw, _, value = chunk.partition(b"\r\n\r\n")
+                    elif b"\n\n" in chunk:
+                        hdr_raw, _, value = chunk.partition(b"\n\n")
+                    else:
+                        continue
+                    # Strip trailing boundary delimiter marker
+                    value = value.rstrip(b"\r\n")
+                    # Parse headers
+                    hdr_text = hdr_raw.decode("utf-8", errors="replace")
+                    disposition = ""
+                    content_name = None
+                    filename = None
+                    for line in hdr_text.splitlines():
+                        if line.lower().startswith("content-disposition:"):
+                            disposition = line
+                            m = re.search(r'name="([^"]*)"', line)
+                            if m: content_name = m.group(1)
+                            m = re.search(r'filename="([^"]*)"', line)
+                            if m: filename = m.group(1)
+                    if content_name is None:
+                        continue
+                    if filename:
+                        files[content_name] = (filename, value)
+                    else:
+                        form[content_name] = value.decode("utf-8", errors="replace")
         else:
             body = self.rfile.read(length).decode("utf-8")
             form = dict(urllib.parse.parse_qsl(body))
@@ -424,6 +458,29 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 else:
                     send_html(self, guide_portal.render_register(error=msg))
 
+        elif path == "/guide/profile/photo":
+            import uuid as _uuid
+            g_tok = get_token(cookie, "atlas_guide")
+            guide = guide_db.get_guide_by_token(g_tok)
+            if not guide: redirect(self, "/guide"); return
+            if "photo_file" in files:
+                _fn, fdata = files["photo_file"]
+                if fdata and len(fdata) <= 3*1024*1024:
+                    ext = os.path.splitext(_fn)[-1].lower() or ".jpg"
+                    if ext not in (".jpg",".jpeg",".png",".webp"): ext = ".jpg"
+                    ud = os.path.join(BASE, "uploads"); os.makedirs(ud, exist_ok=True)
+                    nfn = f"guide_{guide['id']}_{_uuid.uuid4().hex[:8]}{ext}"
+                    with open(os.path.join(ud, nfn), "wb") as _f: _f.write(fdata)
+                    _c = guide_db.get_conn()
+                    _cur = _c.cursor()
+                    _cur.execute("UPDATE tour_guides SET photo_url=%s WHERE id=%s", (f"/uploads/{nfn}", guide["id"]))
+                    _c.commit(); _cur.close(); _c.close()
+                    guide = guide_db.get_guide_by_id(guide["id"])
+                    send_html(self, guide_portal.render_profile(guide, msg="Profile photo updated!")); return
+                else:
+                    send_html(self, guide_portal.render_profile(guide, err="File too large. Max 3 MB.")); return
+            redirect(self, "/guide/profile"); return
+
         elif path.startswith("/guide/"):
             g_tok = get_token(cookie, "atlas_guide")
             guide = guide_db.get_guide_by_token(g_tok)
@@ -437,6 +494,8 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 guide_db.delete_package(int(form.get("pkg_id",0)), guide["id"]); msg = "Package deleted."
             elif action == "accept_booking":
                 guide_db.update_booking_status(int(form.get("booking_id",0)), guide["id"], "accepted"); msg = "Booking accepted!"
+            elif action == "complete_booking":
+                guide_db.update_booking_status(int(form.get("booking_id",0)), guide["id"], "completed"); msg = "Tour marked as completed!"
             elif action == "reject_booking":
                 guide_db.update_booking_status(int(form.get("booking_id",0)), guide["id"], "rejected"); msg = "Booking rejected."
             elif action == "cancel_booking":
@@ -448,8 +507,9 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 avail = ",".join([v for k,v in urllib.parse.parse_qsl(body) if k=="days"])
                 if avail:
                     conn = guide_db.get_conn()
-                    conn.execute("UPDATE tour_guides SET availability=? WHERE id=?", (avail, guide["id"]))
-                    conn.commit(); conn.close()
+                    _cur = conn.cursor()
+                    _cur.execute("UPDATE tour_guides SET availability=%s WHERE id=%s", (avail, guide["id"]))
+                    conn.commit(); _cur.close(); conn.close()
                     guide = guide_db.get_guide_by_id(guide["id"])
                 msg = "Availability updated!"
             elif action == "update_profile":
@@ -460,16 +520,47 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 if pw1 and pw1==pw2 and len(pw1)>=6:
                     guide_db.change_guide_password(guide["id"], pw1); msg = "Password changed!"
                 else: err = "Passwords do not match or too short."
-            # Redirect to correct page
-            if path == "/guide/packages":
+            # Re-fetch guide to get latest data
+            guide = guide_db.get_guide_by_id(guide["id"]) or guide
+            # Route response to correct page
+            if path == "/guide/dashboard":
+                send_html(self, guide_portal.render_dashboard(guide, msg, err))
+            elif path == "/guide/packages":
                 send_html(self, guide_portal.render_packages(guide, msg, err))
             elif path == "/guide/bookings":
-                params = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(self.path).query))
-                send_html(self, guide_portal.render_bookings(guide, params.get("filter","all"), msg, err))
+                _qp = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(self.path).query))
+                send_html(self, guide_portal.render_bookings(guide, _qp.get("filter","all"), msg, err))
             elif path == "/guide/availability":
                 send_html(self, guide_portal.render_availability(guide, msg, err))
             elif path == "/guide/profile":
                 send_html(self, guide_portal.render_profile(guide, msg, err))
+            elif path == "/guide/ratings":
+                send_html(self, guide_portal.render_ratings(guide))
+            else:
+                redirect(self, "/guide/dashboard")
+
+        elif path == "/profile/photo":
+            import uuid as _uuid2
+            p_tok2 = get_token(cookie, "atlas_token")
+            pu2 = db.get_user_by_token(p_tok2) if p_tok2 else None
+            if not pu2: redirect(self, "/login.py"); return
+            if "photo_file" in files:
+                _fn2, fdata2 = files["photo_file"]
+                if fdata2 and len(fdata2) <= 3*1024*1024:
+                    ext2 = os.path.splitext(_fn2)[-1].lower() or ".jpg"
+                    if ext2 not in (".jpg",".jpeg",".png",".webp"): ext2 = ".jpg"
+                    ud2 = os.path.join(BASE, "uploads"); os.makedirs(ud2, exist_ok=True)
+                    nfn2 = f"tourist_{pu2['id']}_{_uuid2.uuid4().hex[:8]}{ext2}"
+                    with open(os.path.join(ud2, nfn2), "wb") as _f2: _f2.write(fdata2)
+                    _c2 = db.get_conn()
+                    _cur2 = _c2.cursor()
+                    _cur2.execute("UPDATE users SET photo_url=%s WHERE id=%s", (f"/uploads/{nfn2}", pu2["id"]))
+                    _c2.commit(); _cur2.close(); _c2.close()
+                    pu2 = db.get_user_by_token(p_tok2)
+                    send_html(self, profile_page.render(user=pu2, msg="Profile photo updated!")); return
+                else:
+                    send_html(self, profile_page.render(user=pu2, err="File too large. Max 3 MB.")); return
+            redirect(self, "/profile.py"); return
 
         elif path == "/profile/update":
             import hashlib
@@ -480,9 +571,10 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             action = form.get("action","")
             if action == "update_profile":
                 conn2 = db.get_conn()
-                conn2.execute("UPDATE users SET fname=?,lname=?,email=? WHERE id=?",
-                    (form.get("fname",""), form.get("lname",""), form.get("email",""), p_user["id"]))
-                conn2.commit(); conn2.close()
+                _cur2 = conn2.cursor()
+                _cur2.execute("UPDATE users SET email=%s WHERE id=%s",
+                    (form.get("email",""), p_user["id"]))
+                conn2.commit(); _cur2.close(); conn2.close()
                 p_user = db.get_user_by_token(p_token)
                 send_html(self, profile_page.render(user=p_user, msg="Profile updated successfully!"))
             elif action == "change_password":
@@ -490,15 +582,18 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 new_pw   = form.get("new_pw","")
                 new_pw2  = form.get("new_pw2","")
                 conn2    = db.get_conn()
-                row      = conn2.execute("SELECT password FROM users WHERE id=?", (p_user["id"],)).fetchone()
-                conn2.close()
+                _cur2    = conn2.cursor(dictionary=True)
+                _cur2.execute("SELECT password FROM users WHERE id=%s", (p_user["id"],))
+                row      = _cur2.fetchone()
+                _cur2.close(); conn2.close()
                 hashed_old = hashlib.sha256(old_pw.encode()).hexdigest()
                 if row and row["password"] == hashed_old:
                     if new_pw and new_pw == new_pw2 and len(new_pw) >= 6:
                         conn3 = db.get_conn()
-                        conn3.execute("UPDATE users SET password=? WHERE id=?",
+                        _cur3 = conn3.cursor()
+                        _cur3.execute("UPDATE users SET password=%s WHERE id=%s",
                             (hashlib.sha256(new_pw.encode()).hexdigest(), p_user["id"]))
-                        conn3.commit(); conn3.close()
+                        conn3.commit(); _cur3.close(); conn3.close()
                         send_html(self, profile_page.render(user=p_user, msg="Password changed!"))
                     else:
                         send_html(self, profile_page.render(user=p_user, err="Passwords do not match or too short."))
@@ -510,50 +605,77 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
 
         elif path == "/book-guide":
             guide_id_raw = form.get("guide_id","").strip()
+            print(f"[BOOK-GUIDE] Received form: {form}", flush=True)  # server log
             gid = 0
-            # Try numeric guide ID first (registered guides)
+
+            # Step 1: Use the numeric guide_id sent from the booking modal
             try:
                 gid = int(guide_id_raw) if guide_id_raw else 0
-            except:
+            except Exception:
                 gid = 0
-            # If no valid ID, match by name among registered guides
+
+            # Step 2: Fallback — match by exact full name if ID missing
             if not gid:
                 gname = form.get("guide_name","").strip()
                 try:
                     all_g = guide_db.get_public_guides()
                     for g2 in all_g:
                         full_name = f'{g2["fname"]} {g2["lname"]}'.strip()
-                        if full_name == gname or g2.get("fname","") == gname.split()[0]:
+                        if full_name == gname:
                             gid = g2["id"]; break
-                except:
-                    pass
-            # If still no ID (static guide), create a placeholder entry under guide id 0
-            # but still save the booking with guide_name in notes
+                except Exception as e:
+                    print(f"[BOOK-GUIDE] Name lookup error: {e}", flush=True)
+
+            print(f"[BOOK-GUIDE] Resolved guide_id={gid}", flush=True)
+
+            # Validate required fields
             tourist_name  = form.get("tourist_name","").strip()
             tourist_phone = form.get("tourist_phone","").strip()
             tour_date     = form.get("tour_date","").strip()
+
             if not tourist_name or not tourist_phone or not tour_date:
-                # Missing required fields — go back
-                redirect(self, "/guides.py?err=missing_fields"); return
-            guide_name = form.get("guide_name","")
-            notes_combined = form.get("notes","")
+                send_html(self, f"""<html><body style="font-family:sans-serif;padding:40px">
+                <h2 style="color:#DC2626">&#9888; Missing Fields</h2>
+                <p>Name: '{tourist_name}' | Phone: '{tourist_phone}' | Date: '{tour_date}'</p>
+                <p>Full form received: {form}</p>
+                <a href="/guides.py">Go back</a></body></html>"""); return
+
             if not gid:
-                notes_combined = f"Guide: {guide_name} | " + notes_combined
-                gid = 0
+                send_html(self, f"""<html><body style="font-family:sans-serif;padding:40px">
+                <h2 style="color:#DC2626">&#9888; Guide Not Found</h2>
+                <p>guide_id_raw='{guide_id_raw}' | guide_name='{form.get("guide_name","")}'</p>
+                <p>Full form: {form}</p>
+                <a href="/guides.py">Go back</a></body></html>"""); return
+
+            # Use logged-in tourist email if available
+            _btok  = get_token(cookie, "atlas_token")
+            _buser = db.get_user_by_token(_btok) if _btok else None
+            tourist_email = (_buser.get("email","") if _buser else "") or form.get("tourist_email","")
+
             booking_data = {
-                "guide_id":      gid if gid else 1,
+                "guide_id":      gid,
                 "tourist_name":  tourist_name,
-                "tourist_email": form.get("tourist_email",""),
+                "tourist_email": tourist_email,
                 "tourist_phone": tourist_phone,
                 "package_title": form.get("package_title",""),
                 "tour_date":     tour_date,
                 "pax":           form.get("pax", 1),
-                "notes":         notes_combined,
+                "notes":         form.get("notes",""),
             }
+            print(f"[BOOK-GUIDE] Inserting booking: {booking_data}", flush=True)
             try:
                 guide_db.add_booking(booking_data)
+                print("[BOOK-GUIDE] Booking saved OK", flush=True)
             except Exception as e:
-                pass  # log silently, still redirect
+                import traceback
+                tb = traceback.format_exc()
+                print(f"[BOOK-GUIDE] DB ERROR: {e}\n{tb}", flush=True)
+                send_html(self, f"""<html><body style="font-family:sans-serif;padding:40px">
+                <h2 style="color:#DC2626">&#9888; Database Error</h2>
+                <pre style="background:#FEF2F2;padding:16px;border-radius:8px">{tb}</pre>
+                <p>Booking data: {booking_data}</p>
+                <a href="/guides.py">Go back</a></body></html>"""); return
+
             self.send_response(302)
             self.send_header("Location", "/guides.py?booked=1")
             self.end_headers(); return

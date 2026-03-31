@@ -7,6 +7,7 @@ def get_all_guides_combined(city="All"):
     try:
         db_guides = guide_db.get_public_guides(city if city != "All" else None)
         avg_data = {g["id"]: guide_db.get_avg_rating(g["id"]) for g in db_guides}
+        completed_data = {g["id"]: guide_db.get_completed_tours_count(g["id"]) for g in db_guides}
         converted = []
         for g in db_guides:
             pkgs = guide_db.get_packages(g["id"])
@@ -17,12 +18,13 @@ def get_all_guides_combined(city="All"):
                 "lang":     g.get("languages", "EN, FIL"),
                 "rate":     g.get("rate", "P1,500/day"),
                 "rating":   avg if avg > 0 else 4.5,
-                "tours":    cnt,
+                "tours":    completed_data.get(g["id"], 0),
                 "spec":     g.get("speciality", "General Tours"),
                 "avail":    g.get("availability", "Mon-Sun"),
                 "bio":      g.get("bio", "Registered local tour guide."),
                 "pkgs":     [f'{p["title"]} - {p["price"]}' for p in pkgs] or ["Custom Tour Available"],
                 "guide_id": g["id"],
+                "photo_url": g.get("photo_url", ""),
             })
         return converted
     except:
@@ -42,10 +44,16 @@ def _card(g, i):
         for p in g["pkgs"]
     )
     avail_color = "#065F46" if "Sun" in g["avail"] or "Mon-Sun" in g["avail"] else "#C8930A"
+    guide_id_str = str(g.get("guide_id", g.get("id","")))
+    avatar = (
+        f'<img src="{g["photo_url"]}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.6);margin:0 auto 10px;display:block"/>'
+        if g.get("photo_url") else
+        f'<div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.25);border:3px solid rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;margin:0 auto 10px">{g["name"][0]}</div>'
+    )
     return (
         '<div class="grid-card" style="display:flex;flex-direction:column">'
         f'<div class="grid-card-top" style="background:linear-gradient(135deg,{col},{col}bb);position:relative">'
-        f'<div style="width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.25);border:3px solid rgba(255,255,255,.6);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;margin:0 auto 10px">{g["name"][0]}</div>'
+        + avatar +
         f'<div style="font-weight:800;font-size:16px;color:#fff;margin-bottom:3px">{g["name"]}</div>'
         f'<div style="font-size:12px;color:rgba(255,255,255,.85);margin-bottom:6px">{g["spec"]}</div>'
         f'<span style="background:rgba(255,255,255,.2);color:#fff;font-size:11px;padding:2px 10px;border-radius:20px">{city}</span>'
@@ -58,10 +66,11 @@ def _card(g, i):
         f'<div style="font-size:18px;font-weight:800;color:{col};margin-bottom:8px">{g["rate"]}</div>'
         f'<div style="margin-bottom:14px;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden"><div style="background:#F9FAFB;padding:6px 10px;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase">Packages</div>{pkgs}</div>'
         '<div style="margin-top:auto;display:flex;flex-direction:column;gap:7px">'
-        '<button class="btn" style="background:'+col+';color:#fff;width:100%;padding:10px;font-size:14px;font-weight:700" onclick="openBookingModal(\'' + name + '\',\'' + city + '\',\'' + g["rate"] + '\',\'' + str(g.get("guide_id", g.get("id",""))) + '\')">&#128197; Book This Guide</button>'
-        f'<button class="btn-outline" style="width:100%;padding:8px;color:{col};border-color:{col}" onclick="openProfileModal(\'{name}\',\'{city}\',\'{g["spec"]}\',\'{g["bio"]}\',\'{g["lang"]}\',\'{g["avail"]}\',\'{g["rate"]}\',\'{g["rating"]}\',\'{g["tours"]}\',\''+str(g.get("guide_id", g.get("id","")))+'\')">&#128100; View Full Profile</button>'
+        f'<button class="btn" style="background:{col};color:#fff;width:100%;padding:10px;font-size:14px;font-weight:700" onclick="openBookingModal(\'{name}\',\'{city}\',\'{g["rate"]}\',\'{guide_id_str}\')">&#128197; Book This Guide</button>'
+        f'<button class="btn-outline" style="width:100%;padding:8px;color:{col};border-color:{col}" onclick="openProfileModal(\'{name}\',\'{city}\',\'{g["spec"]}\',\'{g["bio"]}\',\'{g["lang"]}\',\'{g["avail"]}\',\'{g["rate"]}\',\'{g["rating"]}\',\'{g["tours"]}\',\'{guide_id_str}\')">&#128100; View Full Profile</button>'
         '</div></div></div>'
     )
+
 
 def render(filter_city="All", filter_lang="All", user=None, booked=False):
     try:

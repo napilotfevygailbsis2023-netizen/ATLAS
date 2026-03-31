@@ -28,7 +28,7 @@ def build_guide_shell(title, body, section="", guide=None):
             </a>
           </div>
           <a href="/guide/profile" style="display:flex;align-items:center;gap:12px;margin:12px 8px;background:rgba(255,255,255,.1);border-radius:10px;padding:12px;text-decoration:none;transition:background .2s" onmouseover="this.style.background='rgba(255,255,255,.18)'" onmouseout="this.style.background='rgba(255,255,255,.1)'">
-            <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#CE1126,#0038A8);border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;flex-shrink:0">{initials}</div>
+            {f'<img src="{guide["photo_url"]}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.5);flex-shrink:0"/>' if guide.get("photo_url") else f'<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#CE1126,#0038A8);border:2px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;flex-shrink:0">{initials}</div>'}
             <div style="min-width:0">
               <div style="font-weight:700;color:#fff;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{guide["fname"]} {guide["lname"]}</div>
               <div style="font-size:11px;color:#818CF8;margin-top:2px">{guide.get("city","")}</div>

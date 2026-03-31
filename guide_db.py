@@ -33,10 +33,16 @@ def init_guide_tables():
             bio          TEXT,
             rate         VARCHAR(100) DEFAULT 'P1,500/day',
             availability VARCHAR(200) DEFAULT 'Mon-Sun',
+            photo_url    VARCHAR(500) DEFAULT '',
             status       VARCHAR(20)  DEFAULT 'active',
             created      DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    try:
+        cur.execute("ALTER TABLE tour_guides ADD COLUMN photo_url VARCHAR(500) DEFAULT ''")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
     cur.execute("""
         CREATE TABLE IF NOT EXISTS guide_sessions (
             token    VARCHAR(64) PRIMARY KEY,
@@ -75,6 +81,11 @@ def init_guide_tables():
             created       DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    try:
+        cur.execute("ALTER TABLE bookings ADD COLUMN guide_notes TEXT")
+        conn.commit()
+    except Exception:
+        pass  # Already exists
     cur.execute("""
         CREATE TABLE IF NOT EXISTS guide_ratings (
             id           INT AUTO_INCREMENT PRIMARY KEY,
@@ -244,14 +255,63 @@ def update_booking_status(booking_id, guide_id, status, notes=""):
                 (status, notes, booking_id, guide_id))
     conn.commit(); cur.close(); conn.close()
 
+# ── FIXED: explicit column list matches exactly the values passed ──
 def add_booking(data):
+    guide_id      = int(data.get("guide_id", 0))
+    tourist_name  = str(data.get("tourist_name", "")).strip()
+    tourist_email = str(data.get("tourist_email", "")).strip()
+    tourist_phone = str(data.get("tourist_phone", "")).strip()
+    package_id    = int(data.get("package_id", 0))
+    package_title = str(data.get("package_title", "")).strip()
+    tour_date     = str(data.get("tour_date", "")).strip()
+    pax           = int(data.get("pax", 1))
+    notes         = str(data.get("notes", "")).strip()
+
+    if not guide_id:
+        raise ValueError("add_booking: guide_id is 0 or missing — booking aborted.")
+    if not tourist_name:
+        raise ValueError("add_booking: tourist_name is empty — booking aborted.")
+    if not tour_date:
+        raise ValueError("add_booking: tour_date is empty — booking aborted.")
+
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("""INSERT INTO bookings (guide_id,tourist_name,tourist_email,tourist_phone,
-        package_id,package_title,tour_date,pax,notes) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-        (data["guide_id"], data["tourist_name"], data.get("tourist_email",""),
-         data.get("tourist_phone",""), data.get("package_id",0), data.get("package_title",""),
-         data["tour_date"], int(data.get("pax",1)), data.get("notes","")))
-    conn.commit(); cur.close(); conn.close()
+    try:
+        cur.execute(
+            """INSERT INTO bookings
+               (guide_id, tourist_name, tourist_email, tourist_phone,
+                package_id, package_title, tour_date, pax, notes)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (guide_id, tourist_name, tourist_email, tourist_phone,
+             package_id, package_title, tour_date, pax, notes)
+        )
+        conn.commit()
+    except Exception:
+        import traceback; traceback.print_exc()
+        raise
+    finally:
+        cur.close(); conn.close()
+
+def get_bookings_by_tourist_email(email):
+    """Return all bookings for a tourist identified by email, newest first."""
+    if not email:
+        return []
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""
+        SELECT b.*, g.fname, g.lname, g.phone AS guide_phone,
+               g.city AS guide_city, g.photo_url AS guide_photo
+        FROM bookings b
+        JOIN tour_guides g ON g.id = b.guide_id
+        WHERE b.tourist_email = %s
+        ORDER BY b.created DESC
+    """, (email.strip().lower(),))
+    rows = cur.fetchall(); cur.close(); conn.close()
+    return rows
+
+def get_completed_tours_count(guide_id):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT COUNT(*) AS cnt FROM bookings WHERE guide_id=%s AND status='completed'", (guide_id,))
+    row = cur.fetchone(); cur.close(); conn.close()
+    return (row or {}).get("cnt", 0)
 
 def get_ratings(guide_id):
     conn = get_conn(); cur = _cursor(conn)

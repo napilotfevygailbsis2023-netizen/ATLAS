@@ -10,40 +10,36 @@ def render(user=None, msg="", err="", tab="profile"):
     lname    = user.get("lname","")
     email    = user.get("email","")
     initials = (fname[0] if fname else "?").upper()
+    photo_url = user.get("photo_url","")
 
     msg_html = f'<div style="background:#D1FAE5;color:#065F46;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-weight:600">&#10003; {msg}</div>' if msg else ""
     err_html = f'<div style="background:#FEE2E2;color:#CE1126;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-weight:600">&#9888; {err}</div>' if err else ""
 
-    # ── Load bookings for this tourist ──
+    # ── Load bookings for this tourist via MySQL ──
     current_bookings = []
     history_bookings = []
     try:
         import guide_db
-        import sqlite3, os as _os
-        DB = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "atlas.db")
-        conn = sqlite3.connect(DB); conn.row_factory = sqlite3.Row
         today = datetime.date.today().isoformat()
-        rows = conn.execute("""
-            SELECT b.*, g.fname as gfname, g.lname as glname, g.city as gcity, g.phone as gphone
-            FROM bookings b
-            LEFT JOIN tour_guides g ON g.id = b.guide_id
-            WHERE b.tourist_email = ?
-            ORDER BY b.tour_date DESC
-        """, (email,)).fetchall()
-        conn.close()
+        rows = guide_db.get_bookings_by_tourist_email(email)
         for r in rows:
             d = dict(r)
-            if d["status"] in ("cancelled","rejected"):
+            # Normalise guide name keys from the JOIN
+            if "fname" in d and "gfname" not in d:
+                d["gfname"] = d.pop("fname")
+            if "lname" in d and "glname" not in d:
+                d["glname"] = d.pop("lname")
+            if d["status"] in ("cancelled", "rejected", "completed"):
                 history_bookings.append(d)
             elif d["tour_date"] < today and d["status"] == "accepted":
                 history_bookings.append(d)
             else:
                 current_bookings.append(d)
-    except Exception as e:
+    except Exception:
         pass
 
-    STATUS_COLOR = {"pending":"#D97706","accepted":"#059669","rejected":"#DC2626","cancelled":"#6B7280","rescheduled":"#2563EB","completed":"#059669"}
-    STATUS_BG    = {"pending":"#FFFBEB","accepted":"#ECFDF5","rejected":"#FEF2F2","cancelled":"#F9FAFB","rescheduled":"#EFF6FF","completed":"#ECFDF5"}
+    STATUS_COLOR = {"pending":"#D97706","accepted":"#059669","rejected":"#DC2626","cancelled":"#6B7280","rescheduled":"#2563EB","completed":"#7C3AED"}
+    STATUS_BG    = {"pending":"#FFFBEB","accepted":"#ECFDF5","rejected":"#FEF2F2","cancelled":"#F9FAFB","rescheduled":"#EFF6FF","completed":"#F5F3FF"}
 
     def booking_card(b):
         sc = STATUS_COLOR.get(b["status"],"#6B7280")
@@ -125,27 +121,58 @@ def render(user=None, msg="", err="", tab="profile"):
       </div>
       {msg_html}{err_html}
 
-      <!-- Profile Card -->
+      <!-- Profile Photo Card -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-hdr" style="background:#0038A8">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Profile Photo
+        </div>
+        <div class="card-body" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="flex-shrink:0">
+            {f'<img src="{photo_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #E2E8F0"/>' if photo_url else f'<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#0038A8,#0050d0);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#fff">{initials}</div>'}
+          </div>
+          <div style="flex:1;min-width:180px">
+            <div style="font-size:20px;font-weight:800;color:#1F2937;margin-bottom:2px">{fname} {lname}</div>
+            <div style="font-size:13px;color:#6B7280;margin-bottom:10px">&#9993; {email}</div>
+            <form method="post" action="/profile/photo" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px dashed #CBD5E1;border-radius:8px;cursor:pointer;background:#F8FAFC;font-size:13px;color:#6B7280" onmouseover="this.style.borderColor='#0038A8'" onmouseout="this.style.borderColor='#CBD5E1'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span id="t-photo-lbl">Choose photo</span>
+                <input type="file" name="photo_file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="document.getElementById('t-photo-lbl').textContent=this.files[0]?.name||'Choose photo'"/>
+              </label>
+              <button class="btn" type="submit" style="background:#0038A8;color:#fff;padding:8px 18px;font-size:13px;font-weight:700">Upload</button>
+            </form>
+            <div style="font-size:11px;color:#9CA3AF;margin-top:5px">JPG, PNG or WEBP · Max 3 MB</div>
+          </div>
+        </div>
+      </div>
+      <!-- Account Info — name locked, only email editable -->
       <div class="card" style="margin-bottom:20px">
         <div class="card-hdr" style="background:#0038A8">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           Account Information
         </div>
         <div class="card-body">
-          <div style="display:flex;align-items:center;gap:20px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #F3F4F6">
-            <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#0038A8,#0050d0);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#fff;flex-shrink:0">{initials}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
             <div>
-              <div style="font-size:22px;font-weight:800;color:#1F2937">{fname} {lname}</div>
-              <div style="font-size:14px;color:#6B7280;margin-top:4px">&#9993; {email}</div>
-              <div style="margin-top:8px"><span style="background:#DBEAFE;color:#1D4ED8;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600">&#9989; Tourist Account</span></div>
+              <label class="lbl">First Name</label>
+              <div style="padding:10px 12px;background:#F3F4F6;border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;color:#6B7280;display:flex;align-items:center;gap:6px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                {fname}
+              </div>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Cannot be changed</div>
+            </div>
+            <div>
+              <label class="lbl">Last Name</label>
+              <div style="padding:10px 12px;background:#F3F4F6;border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;color:#6B7280;display:flex;align-items:center;gap:6px">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                {lname}
+              </div>
+              <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Cannot be changed</div>
             </div>
           </div>
           <form method="post" action="/profile/update">
             <input type="hidden" name="action" value="update_profile"/>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-              <div><label class="lbl">First Name</label><input class="inp" name="fname" value="{fname}" style="width:100%"/></div>
-              <div><label class="lbl">Last Name</label><input class="inp" name="lname" value="{lname}" style="width:100%"/></div>
-            </div>
             <div style="margin-bottom:16px"><label class="lbl">Email Address</label><input class="inp" name="email" value="{email}" style="width:100%"/></div>
             <button class="btn" style="background:#0038A8;color:#fff;padding:10px 28px" type="submit">Save Changes</button>
           </form>
