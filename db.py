@@ -24,15 +24,22 @@ def init_db():
     cur  = _cursor(conn)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id       INT AUTO_INCREMENT PRIMARY KEY,
-            fname    VARCHAR(100) NOT NULL,
-            lname    VARCHAR(100) NOT NULL,
-            email    VARCHAR(255) UNIQUE NOT NULL,
-            password VARCHAR(64)  NOT NULL,
-            status   VARCHAR(20)  DEFAULT 'active',
-            created  DATETIME     DEFAULT CURRENT_TIMESTAMP
+            id        INT AUTO_INCREMENT PRIMARY KEY,
+            fname     VARCHAR(100) NOT NULL,
+            lname     VARCHAR(100) NOT NULL,
+            email     VARCHAR(255) UNIQUE NOT NULL,
+            password  VARCHAR(64)  NOT NULL,
+            photo_url VARCHAR(500) DEFAULT '',
+            status    VARCHAR(20)  DEFAULT 'active',
+            created   DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    # Auto-migrate: add photo_url if missing (for existing databases)
+    try:
+        cur.execute("ALTER TABLE users ADD COLUMN photo_url VARCHAR(500) DEFAULT ''")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
     cur.execute("""
         CREATE TABLE IF NOT EXISTS sessions (
             token   VARCHAR(64) PRIMARY KEY,

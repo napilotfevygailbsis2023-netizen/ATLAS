@@ -5,8 +5,8 @@ import guide_db
 
 CITIES = ["Manila","Baguio","Tagaytay","Vigan","Ilocos Norte","Batangas","Albay","Pangasinan","Bataan"]
 DAYS   = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
-STATUS_COLORS = {"pending":"#D97706","accepted":"#059669","rejected":"#DC2626","cancelled":"#6B7280","rescheduled":"#2563EB"}
-STATUS_BG     = {"pending":"#FFFBEB","accepted":"#ECFDF5","rejected":"#FEF2F2","cancelled":"#F9FAFB","rescheduled":"#EFF6FF"}
+STATUS_COLORS = {"pending":"#D97706","accepted":"#059669","rejected":"#DC2626","cancelled":"#6B7280","rescheduled":"#2563EB","completed":"#7C3AED"}
+STATUS_BG     = {"pending":"#FFFBEB","accepted":"#ECFDF5","rejected":"#FEF2F2","cancelled":"#F9FAFB","rescheduled":"#EFF6FF","completed":"#F5F3FF"}
 
 def render_login(error="", success=""):
     err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px">&#9888; {error}</div>' if error else ""
@@ -275,18 +275,20 @@ def render_dashboard(guide, msg="", err=""):
     ratings  = guide_db.get_ratings(gid)
     avg_rating, rating_count = guide_db.get_avg_rating(gid)
     today = datetime.date.today().isoformat()
-    pending  = [b for b in bookings if b["status"] == "pending"]
-    upcoming = [b for b in bookings if b["status"] == "accepted" and b["tour_date"] >= today]
+    pending   = [b for b in bookings if b["status"] == "pending"]
+    upcoming  = [b for b in bookings if b["status"] == "accepted" and b["tour_date"] >= today]
+    completed = [b for b in bookings if b["status"] == "completed"]
 
     alert = ""
     if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#10003; {msg}</div>'
     if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#9888; {err}</div>'
 
     stats = f"""
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px">
       <div class="g-stat" style="background:linear-gradient(135deg,#0038A8,#0050d0)"><div style="font-size:32px;font-weight:900">{len(packages)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Packages</div></div>
       <div class="g-stat" style="background:linear-gradient(135deg,#D97706,#F59E0B)"><div style="font-size:32px;font-weight:900">{len(pending)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Pending</div></div>
       <div class="g-stat" style="background:linear-gradient(135deg,#059669,#10B981)"><div style="font-size:32px;font-weight:900">{len(upcoming)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Upcoming</div></div>
+      <div class="g-stat" style="background:linear-gradient(135deg,#7C3AED,#8B5CF6)"><div style="font-size:32px;font-weight:900">{len(completed)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Completed</div></div>
       <div class="g-stat" style="background:linear-gradient(135deg,#DC2626,#EF4444)"><div style="font-size:32px;font-weight:900">{avg_rating}&#9733;</div><div style="font-size:12px;opacity:.85;margin-top:4px">Avg Rating</div></div>
     </div>"""
 
@@ -297,6 +299,7 @@ def render_dashboard(guide, msg="", err=""):
           <div>
             <div style="font-weight:700;color:#1F2937;font-size:15px">{b["tourist_name"]}</div>
             <div style="font-size:12px;color:#6B7280;margin-top:3px">&#128197; {b["tour_date"]} &bull; {b["pax"]} pax &bull; {b["package_title"] or "Custom Tour"}</div>
+            <div style="font-size:12px;color:#374151;margin-top:2px">&#128222; {b.get("tourist_phone","N/A")} &nbsp;&#9993; {b.get("tourist_email","N/A")}</div>
             {"" if not b["notes"] else f'<div style="font-size:12px;color:#92400E;margin-top:4px;font-style:italic">"{b["notes"]}"</div>'}
           </div>
           <div style="display:flex;gap:8px">
@@ -308,8 +311,8 @@ def render_dashboard(guide, msg="", err=""):
 
     upcoming_html = ""
     if upcoming:
-        rows = "".join(f'<tr style="border-bottom:1px solid #F3F4F6"><td style="padding:11px 14px;font-weight:600">{b["tourist_name"]}</td><td style="padding:11px 14px;color:#6B7280">{b["tour_date"]}</td><td style="padding:11px 14px;color:#6B7280">{b["package_title"] or "Custom"}</td><td style="padding:11px 14px;color:#6B7280">{b["pax"]} pax</td></tr>' for b in upcoming[:6])
-        upcoming_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#2563EB">&#128197; Upcoming Bookings</div><div class="g-card-body" style="padding:0"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8FAFC"><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Tourist</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Date</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Package</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Pax</th></tr></thead><tbody>{rows}</tbody></table></div></div>'
+        rows = "".join(f'<tr style="border-bottom:1px solid #F3F4F6"><td style="padding:11px 14px;font-weight:600">{b["tourist_name"]}</td><td style="padding:11px 14px;color:#6B7280">{b.get("tourist_phone","N/A")}</td><td style="padding:11px 14px;color:#6B7280">{b["tour_date"]}</td><td style="padding:11px 14px;color:#6B7280">{b["package_title"] or "Custom"}</td><td style="padding:11px 14px;color:#6B7280">{b["pax"]} pax</td></tr>' for b in upcoming[:6])
+        upcoming_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#2563EB">&#128197; Upcoming Bookings</div><div class="g-card-body" style="padding:0"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8FAFC"><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Tourist</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Contact</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Date</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Package</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Pax</th></tr></thead><tbody>{rows}</tbody></table></div></div>'
 
     body = f"""
     <div style="margin-bottom:24px">
@@ -396,33 +399,38 @@ def render_bookings(guide, filter_status="all", msg="", err=""):
 
     tabs = "".join(
         f'<a href="/guide/bookings?filter={s}" style="padding:8px 18px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:600;background:{"#0038A8" if filter_status==s else "#fff"};color:{"#fff" if filter_status==s else "#374151"};border:1px solid {"#0038A8" if filter_status==s else "#E2E8F0"}">{s.title()} {"("+str(len([b for b in all_bookings if b["status"]==s]))+")" if s!="all" else "("+str(len(all_bookings))+")"}</a>'
-        for s in ["all","pending","accepted","rejected","cancelled","rescheduled"]
+        for s in ["all","pending","accepted","completed","rejected","cancelled","rescheduled"]
     )
 
     cards = ""
     for b in shown:
         sc = STATUS_COLORS.get(b["status"],"#6B7280")
         sb = STATUS_BG.get(b["status"],"#F9FAFB")
+        bid = b["id"]
         actions = ""
         if b["status"] == "pending":
             actions = f"""
             <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="accept_booking"/><input type="hidden" name="booking_id" value="{b["id"]}"/><button class="g-btn" style="background:#059669;color:#fff;padding:8px 16px;font-size:13px">&#10003; Accept</button></form>
-              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{b["id"]}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="accept_booking"/><input type="hidden" name="booking_id" value="{bid}"/><button class="g-btn" style="background:#059669;color:#fff;padding:8px 16px;font-size:13px">&#10003; Accept</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{bid}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
             </div>"""
         elif b["status"] == "accepted":
             actions = f"""
             <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
-              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="cancel_booking"/><input type="hidden" name="booking_id" value="{b["id"]}"/><button class="g-btn" style="background:#6B7280;color:#fff;padding:8px 16px;font-size:13px">Cancel</button></form>
-              <form method="post" action="/guide/bookings?filter={filter_status}" style="display:flex;align-items:center;gap:8px"><input type="hidden" name="action" value="reschedule_booking"/><input type="hidden" name="booking_id" value="{b["id"]}"/><input class="g-inp" type="date" name="new_date" required style="width:160px;padding:7px 10px"/><button class="g-btn" style="background:#2563EB;color:#fff;padding:8px 16px;font-size:13px">Reschedule</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="complete_booking"/><input type="hidden" name="booking_id" value="{bid}"/><button class="g-btn" style="background:#7C3AED;color:#fff;padding:8px 16px;font-size:13px">&#10003;&#10003; Mark as Completed</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="cancel_booking"/><input type="hidden" name="booking_id" value="{bid}"/><button class="g-btn" style="background:#6B7280;color:#fff;padding:8px 16px;font-size:13px">Cancel</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}" style="display:flex;align-items:center;gap:8px"><input type="hidden" name="action" value="reschedule_booking"/><input type="hidden" name="booking_id" value="{bid}"/><input class="g-inp" type="date" name="new_date" required style="width:160px;padding:7px 10px"/><button class="g-btn" style="background:#2563EB;color:#fff;padding:8px 16px;font-size:13px">Reschedule</button></form>
             </div>"""
         cards += f"""
         <div style="border:1px solid #E2E8F0;border-radius:12px;padding:18px;background:{sb};margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
             <div>
               <div style="font-weight:800;font-size:16px;color:#1F2937">{b["tourist_name"]}</div>
-              <div style="font-size:12px;color:#6B7280;margin-top:4px">
-                &#128222; {b.get("tourist_phone","N/A")} &bull; &#128197; {b["tour_date"]} &bull; &#128101; {b["pax"]} pax
+              <div style="font-size:12px;color:#6B7280;margin-top:4px;display:flex;flex-wrap:wrap;gap:10px">
+                <span>&#128222; {b.get("tourist_phone","N/A")}</span>
+                <span>&#9993; {b.get("tourist_email","N/A")}</span>
+                <span>&#128197; {b["tour_date"]}</span>
+                <span>&#128101; {b["pax"]} pax</span>
               </div>
               <div style="font-size:13px;color:#4B5563;margin-top:4px">Package: <strong>{b["package_title"] or "Custom Tour"}</strong></div>
               {"" if not b["notes"] else f'<div style="font-size:12px;color:#6B7280;margin-top:4px;font-style:italic;background:rgba(0,0,0,.03);padding:6px 10px;border-radius:6px">"{b["notes"]}"</div>'}
@@ -528,27 +536,60 @@ def render_ratings(guide):
 # ─────────────────────── PROFILE ───────────────────────
 def render_profile(guide, msg="", err=""):
     city_opts = "".join(f'<option {"selected" if c==guide.get("city","Manila") else ""}>{c}</option>' for c in CITIES)
-
     alert = ""
     if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px">&#10003; {msg}</div>'
     if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px">&#9888; {err}</div>'
-
+    photo_url = guide.get("photo_url","")
+    initials  = (guide.get("fname","?")[0]+guide.get("lname","?")[0]).upper()
+    avatar = (f'<img src="{photo_url}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #E2E8F0;display:block;margin:0 auto 8px"/>'
+              if photo_url else
+              f'<div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#CE1126,#0038A8);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#fff;margin:0 auto 8px">{initials}</div>')
     body = f"""
     <div style="margin-bottom:24px">
       <div style="font-size:24px;font-weight:900;color:#1F2937">My Profile</div>
       <div style="font-size:14px;color:#6B7280">Update your public guide profile</div>
     </div>
     {alert}
+    <div class="g-card" style="max-width:380px;margin-bottom:20px">
+      <div class="g-card-hdr" style="background:#0038A8">&#128247; Profile Photo</div>
+      <div class="g-card-body" style="text-align:center">
+        {avatar}
+        <div style="font-size:12px;color:#9CA3AF;margin-bottom:12px">{"Photo uploaded" if photo_url else "No photo yet — upload one below"}</div>
+        <form method="post" action="/guide/profile/photo" enctype="multipart/form-data">
+          <label style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px;border:2px dashed #CBD5E1;border-radius:10px;cursor:pointer;background:#F8FAFC;margin-bottom:10px" onmouseover="this.style.borderColor='#0038A8'" onmouseout="this.style.borderColor='#CBD5E1'">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span id="gp-lbl" style="font-size:13px;color:#6B7280">Click to choose photo</span>
+            <span style="font-size:11px;color:#9CA3AF">JPG, PNG or WEBP · Max 3 MB</span>
+            <input type="file" name="photo_file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="document.getElementById('gp-lbl').textContent=this.files[0]?.name||'Click to choose photo'"/>
+          </label>
+          <button class="g-btn" type="submit" style="background:#0038A8;color:#fff;width:100%;padding:10px">Upload Photo</button>
+        </form>
+      </div>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
       <div class="g-card">
         <div class="g-card-hdr" style="background:#0038A8">&#128100; Profile Information</div>
         <div class="g-card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div>
+              <label class="g-lbl">First Name</label>
+              <div style="padding:9px 12px;background:#F3F4F6;border:1px solid #E2E8F0;border-radius:8px;font-size:14px;color:#6B7280;display:flex;align-items:center;gap:6px">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                {guide.get("fname","")}
+              </div>
+              <div style="font-size:10px;color:#9CA3AF;margin-top:2px">Cannot be changed</div>
+            </div>
+            <div>
+              <label class="g-lbl">Last Name</label>
+              <div style="padding:9px 12px;background:#F3F4F6;border:1px solid #E2E8F0;border-radius:8px;font-size:14px;color:#6B7280;display:flex;align-items:center;gap:6px">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                {guide.get("lname","")}
+              </div>
+              <div style="font-size:10px;color:#9CA3AF;margin-top:2px">Cannot be changed</div>
+            </div>
+          </div>
           <form method="post" action="/guide/profile" style="display:flex;flex-direction:column;gap:14px">
             <input type="hidden" name="action" value="update_profile"/>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-              <div><label class="g-lbl">First Name</label><input class="g-inp" name="fname" value="{guide.get("fname","")}"/></div>
-              <div><label class="g-lbl">Last Name</label><input class="g-inp" name="lname" value="{guide.get("lname","")}"/></div>
-            </div>
             <div><label class="g-lbl">Phone</label><input class="g-inp" name="phone" value="{guide.get("phone","")}"/></div>
             <div><label class="g-lbl">City</label><select class="g-inp" name="city">{city_opts}</select></div>
             <div><label class="g-lbl">Languages</label><input class="g-inp" name="languages" value="{guide.get("languages","EN, FIL")}" placeholder="e.g. EN, FIL, ES"/></div>
