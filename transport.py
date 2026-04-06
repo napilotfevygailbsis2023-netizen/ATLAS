@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from template import build_shell
+from tourist_ui import build_shell
 from data import TRANSPORT
 
 COLORS = {"Bus":"#0038A8","Van":"#0038A8","Ferry":"#0038A8","Train":"#0038A8","Jeepney":"#0038A8"}
