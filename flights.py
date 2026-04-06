@@ -1,6 +1,6 @@
 import sys, os, urllib.request, urllib.parse, json, datetime, html
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from template import build_shell
+from tourist_ui import build_shell
 from data import FLIGHTS as FALLBACK
 
 API_KEY = "eff886bb35240c10f8071ebbcbd235c5"
@@ -45,7 +45,7 @@ def fetch_flights(dep_iata="MNL"):
     except:
         return FALLBACK
 
-def _card(f):
+def _card(f, user=None):
     col = AIRLINE_COLORS.get(f["airline"], "#0038A8")
     origin = f["from"].split("(")[0].strip()
     dest = f["to"].split("(")[0].strip()
@@ -55,6 +55,26 @@ def _card(f):
     booking_link = f"https://www.google.com/travel/flights?q={gf_q}"
     status_color = {"Scheduled":"#1E40AF","Active":"#065F46","Landed":"#475569","Cancelled":"#991B1B"}.get(status,"#475569")
     status_bg = {"Scheduled":"#DBEAFE","Active":"#D1FAE5","Landed":"#F1F5F9","Cancelled":"#FEE2E2"}.get(status,"#F1F5F9")
+
+    # Book button — only for logged-in users, only for schedulable flights
+    book_btn = ""
+    if user and status not in ("Landed","Cancelled"):
+        safe_airline  = html.escape(airline)
+        safe_origin   = html.escape(f["from"])
+        safe_dest     = html.escape(f["to"])
+        safe_dep      = html.escape(f["dep"])
+        safe_arr      = html.escape(f["arr"])
+        book_btn = f"""
+        <form method="post" action="/book-flight" style="margin-top:8px">
+          <input type="hidden" name="airline"     value="{safe_airline}"/>
+          <input type="hidden" name="origin"      value="{safe_origin}"/>
+          <input type="hidden" name="destination" value="{safe_dest}"/>
+          <input type="hidden" name="dep_time"    value="{safe_dep}"/>
+          <input type="hidden" name="arr_time"    value="{safe_arr}"/>
+          <button class="btn" type="submit" style="background:#059669;color:#fff;width:100%;padding:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">
+            <i class="fa-solid fa-bookmark"></i> Book This Flight
+          </button>
+        </form>"""
 
     return f"""
     <div class="grid-card">
@@ -80,12 +100,21 @@ def _card(f):
                     <i class="fa-solid fa-arrow-up-right-from-square"></i> View Details
                 </button>
             </a>
+            {book_btn}
         </div>
     </div>"""
 
 
 def render(filters=None, user=None):
     filters = filters or {}
+    # Log view history
+    if user:
+        import db as _db
+        origin_q = (filters.get("origin","") or "").strip()
+        dest_q   = (filters.get("destination","") or "").strip()
+        if origin_q or dest_q:
+            label = f"{origin_q or 'Any'} → {dest_q or 'Any'}"
+            _db.log_view(user["id"], "flight", label, item_extra=filters.get("dep_date",""))
     today = datetime.date.today().isoformat()
     in5   = (datetime.date.today() + datetime.timedelta(days=5)).isoformat()
     dep_airport = filters.get("dep_airport", "MNL").upper()
@@ -109,7 +138,7 @@ def render(filters=None, user=None):
     if dest_q:
         flights = [f for f in flights if dest_q in f["to"].lower()]
 
-    cards = "".join(_card(f) for f in flights)
+    cards = "".join(_card(f, user) for f in flights)
     dep_airport_opts = "".join(
         f'<option value="{v}" {"selected" if v == dep_airport else ""}>{k}</option>'
         for k, v in DEPARTURE_AIRPORTS.items()
@@ -121,12 +150,48 @@ def render(filters=None, user=None):
     safe_origin = html.escape(filters.get("origin", "") or "")
     safe_dest = html.escape(filters.get("destination", "") or "")
 
+    # ── Weather warning for departure city ──
+    dep_city = "Manila" if dep_airport == "MNL" else "Pampanga"
+    weather_banner = ""
+    booking_blocked = False
+    try:
+        import weather as _wx
+        wd = _wx.fetch_weather(dep_city)
+        cond = wd.get("cond","").lower()
+        SEVERE   = {"thunderstorm","typhoon","tropical storm"}
+        MODERATE = {"rain","heavy rain","drizzle","shower"}
+        is_severe   = any(s in cond for s in SEVERE)
+        is_moderate = any(s in cond for s in MODERATE)
+        if is_severe:
+            booking_blocked = True
+            weather_banner = f"""
+            <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:flex-start;gap:14px">
+              <div style="font-size:28px;flex-shrink:0">&#9928;</div>
+              <div>
+                <div style="font-weight:800;color:#991B1B;font-size:15px;margin-bottom:4px">Severe Weather — Flight Bookings Unavailable</div>
+                <div style="font-size:13px;color:#7F1D1D;line-height:1.6">Current conditions in <strong>{dep_city}</strong>: <strong>{wd["cond"]}</strong> · {wd["wind"]} winds · Visibility {wd["vis"]}.
+                Flights may be delayed or cancelled. Booking has been temporarily disabled for your safety.</div>
+              </div>
+            </div>"""
+        elif is_moderate:
+            weather_banner = f"""
+            <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:flex-start;gap:14px">
+              <div style="font-size:28px;flex-shrink:0">&#127783;</div>
+              <div>
+                <div style="font-weight:800;color:#92400E;font-size:15px;margin-bottom:4px">Weather Advisory — {dep_city}</div>
+                <div style="font-size:13px;color:#78350F;line-height:1.6">Current conditions: <strong>{wd["cond"]}</strong> · {wd["wind"]} winds. Some flights may experience delays. Check with your airline before travelling.</div>
+              </div>
+            </div>"""
+    except Exception:
+        pass
+
     body = f"""
     <div class="page-wrap">
       <div style="margin-bottom:22px">
         <div class="section-title">Flight Search</div>
         <div class="section-sub">Search domestic or international flights</div>
       </div>
+      {weather_banner}
       <div class="card" style="margin-bottom:24px">
         <div class="card-hdr" style="background:#0038A8"><span>Search Flights</span></div>
         <div class="card-body">

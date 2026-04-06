@@ -1,4 +1,8 @@
-import hashlib, secrets
+import hashlib, secrets, os
+try:
+    import bcrypt
+except ImportError:
+    raise ImportError("bcrypt is not installed. Run: pip install bcrypt")
 try:
     import mysql.connector
     from mysql.connector import IntegrityError
@@ -14,7 +18,15 @@ def _cursor(conn):
     return conn.cursor(dictionary=True)
 
 def hash_pw(p):
-    return hashlib.sha256(p.encode()).hexdigest()
+    """Hash a password with bcrypt (salted). Returns a str for DB storage."""
+    return bcrypt.hashpw(p.encode(), bcrypt.gensalt()).decode()
+
+def check_pw(plain, hashed):
+    """Verify a plain password against a bcrypt or legacy SHA-256 hash."""
+    try:
+        return bcrypt.checkpw(plain.encode(), hashed.encode())
+    except Exception:
+        return hashlib.sha256(plain.encode()).hexdigest() == hashed
 
 def init_admin():
     conn = get_conn(); cur = _cursor(conn)
@@ -69,28 +81,30 @@ def init_admin():
     except: pass
     conn.commit()
     try:
-        cur.execute("INSERT INTO admins (username,password) VALUES (%s,%s)", ("admin", hash_pw("admin123")))
+        default_pw = os.environ.get("ATLAS_ADMIN_PASSWORD", "admin123")
+        cur.execute("INSERT INTO admins (username,password) VALUES (%s,%s)", ("admin", hash_pw(default_pw)))
         conn.commit()
     except: pass
     cur.close(); conn.close()
 
 def admin_login(username, password):
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("SELECT * FROM admins WHERE username=%s AND password=%s", (username.strip(), hash_pw(password)))
+    cur.execute("SELECT * FROM admins WHERE username=%s", (username.strip(),))
     row = cur.fetchone(); cur.close(); conn.close()
-    if row:
-        token = secrets.token_hex(32)
-        conn = get_conn(); cur = _cursor(conn)
-        cur.execute("INSERT INTO admin_sessions (token,admin_id) VALUES (%s,%s)", (token, row["id"]))
-        conn.commit(); cur.close(); conn.close()
-        return token
+    if not row or not check_pw(password, row["password"]):
+        return None
+    token = secrets.token_hex(32)
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("INSERT INTO admin_sessions (token,admin_id) VALUES (%s,%s)", (token, row["id"]))
+    conn.commit(); cur.close(); conn.close()
+    return token
     return None
 
 def get_admin_by_token(token):
     if not token: return None
     try:
         conn = get_conn(); cur = _cursor(conn)
-        cur.execute("SELECT a.* FROM admins a JOIN admin_sessions s ON s.admin_id=a.id WHERE s.token=%s", (token,))
+        cur.execute("SELECT a.* FROM admins a JOIN admin_sessions s ON s.admin_id=a.id WHERE s.token=%s AND s.created > NOW() - INTERVAL 24 HOUR", (token,))
         row = cur.fetchone(); cur.close(); conn.close()
         return row
     except: return None

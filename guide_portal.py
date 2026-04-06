@@ -1,7 +1,11 @@
-import sys, os, datetime
+import sys, os, datetime, html
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from guide_template import build_guide_shell
+from guide_ui import build_guide_shell
 import guide_db
+
+def e(s):
+    """Escape a value for safe HTML insertion."""
+    return html.escape(str(s) if s is not None else "")
 
 CITIES = ["Manila","Baguio","Tagaytay","Vigan","Ilocos Norte","Batangas","Albay","Pangasinan","Bataan"]
 DAYS   = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
@@ -297,27 +301,27 @@ def render_dashboard(guide, msg="", err=""):
         rows = "".join(f"""
         <div style="border:1px solid #FDE68A;border-radius:10px;padding:14px 16px;background:#FFFBEB;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
           <div>
-            <div style="font-weight:700;color:#1F2937;font-size:15px">{b["tourist_name"]}</div>
-            <div style="font-size:12px;color:#6B7280;margin-top:3px">&#128197; {b["tour_date"]} &bull; {b["pax"]} pax &bull; {b["package_title"] or "Custom Tour"}</div>
-            <div style="font-size:12px;color:#374151;margin-top:2px">&#128222; {b.get("tourist_phone","N/A")} &nbsp;&#9993; {b.get("tourist_email","N/A")}</div>
-            {"" if not b["notes"] else f'<div style="font-size:12px;color:#92400E;margin-top:4px;font-style:italic">"{b["notes"]}"</div>'}
+            <div style="font-weight:700;color:#1F2937;font-size:15px">{e(b["tourist_name"])}</div>
+            <div style="font-size:12px;color:#6B7280;margin-top:3px">&#128197; {e(b["tour_date"])} &bull; {e(b["pax"])} pax &bull; {e(b["package_title"] or "Custom Tour")}</div>
+            <div style="font-size:12px;color:#374151;margin-top:2px">&#128222; {e(b.get("tourist_phone","N/A"))} &nbsp;&#9993; {e(b.get("tourist_email","N/A"))}</div>
+            {"" if not b["notes"] else f'<div style="font-size:12px;color:#92400E;margin-top:4px;font-style:italic">"{e(b["notes"])}"</div>'}
           </div>
           <div style="display:flex;gap:8px">
-            <form method="post" action="/guide/dashboard?section=dashboard"><input type="hidden" name="action" value="accept_booking"/><input type="hidden" name="booking_id" value="{b["id"]}"/><button class="g-btn" style="background:#059669;color:#fff;padding:8px 16px;font-size:13px">&#10003; Accept</button></form>
-            <form method="post" action="/guide/dashboard?section=dashboard"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{b["id"]}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
+            <form method="post" action="/guide/dashboard?section=dashboard"><input type="hidden" name="action" value="accept_booking"/><input type="hidden" name="booking_id" value="{e(b["id"])}"/><button class="g-btn" style="background:#059669;color:#fff;padding:8px 16px;font-size:13px">&#10003; Accept</button></form>
+            <form method="post" action="/guide/dashboard?section=dashboard"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{e(b["id"])}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
           </div>
         </div>""" for b in pending)
         pending_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#0038A8">&#9888; Pending Booking Requests ({len(pending)})</div><div class="g-card-body">{rows}</div></div>'
 
     upcoming_html = ""
     if upcoming:
-        rows = "".join(f'<tr style="border-bottom:1px solid #F3F4F6"><td style="padding:11px 14px;font-weight:600">{b["tourist_name"]}</td><td style="padding:11px 14px;color:#6B7280">{b.get("tourist_phone","N/A")}</td><td style="padding:11px 14px;color:#6B7280">{b["tour_date"]}</td><td style="padding:11px 14px;color:#6B7280">{b["package_title"] or "Custom"}</td><td style="padding:11px 14px;color:#6B7280">{b["pax"]} pax</td></tr>' for b in upcoming[:6])
+        rows = "".join(f'<tr style="border-bottom:1px solid #F3F4F6"><td style="padding:11px 14px;font-weight:600">{e(b["tourist_name"])}</td><td style="padding:11px 14px;color:#6B7280">{e(b.get("tourist_phone","N/A"))}</td><td style="padding:11px 14px;color:#6B7280">{e(b["tour_date"])}</td><td style="padding:11px 14px;color:#6B7280">{e(b["package_title"] or "Custom")}</td><td style="padding:11px 14px;color:#6B7280">{e(b["pax"])} pax</td></tr>' for b in upcoming[:6])
         upcoming_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#2563EB">&#128197; Upcoming Bookings</div><div class="g-card-body" style="padding:0"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8FAFC"><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Tourist</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Contact</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Date</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Package</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Pax</th></tr></thead><tbody>{rows}</tbody></table></div></div>'
 
     body = f"""
     <div style="margin-bottom:24px">
       <div style="font-size:24px;font-weight:900;color:#1F2937">Dashboard</div>
-      <div style="font-size:14px;color:#6B7280">Welcome back, {guide["fname"]}! &#128075;</div>
+      <div style="font-size:14px;color:#6B7280">Welcome back, {e(guide["fname"])}! &#128075;</div>
     </div>
     {alert}{stats}{pending_html}{upcoming_html}
     {"" if upcoming_html or pending_html else '<div class="g-card"><div class="g-card-body" style="text-align:center;padding:40px;color:#9CA3AF"><div style="font-size:48px;margin-bottom:12px">&#128197;</div><div style="font-weight:700;font-size:16px">No bookings yet</div><div style="font-size:13px;margin-top:6px">Add packages to start receiving bookings!</div></div></div>'}"""
@@ -335,21 +339,21 @@ def render_packages(guide, msg="", err=""):
 
     pkg_cards = ""
     for p in packages:
-        incl = "".join(f'<span style="background:#EDE9FE;color:#5B21B6;padding:3px 10px;border-radius:20px;font-size:12px;margin:2px 2px 2px 0;display:inline-block">{i.strip()}</span>' for i in p["inclusions"].split(",") if i.strip())
+        incl = "".join(f'<span style="background:#EDE9FE;color:#5B21B6;padding:3px 10px;border-radius:20px;font-size:12px;margin:2px 2px 2px 0;display:inline-block">{e(i.strip())}</span>' for i in p["inclusions"].split(",") if i.strip())
         pkg_cards += f"""
         <div style="border:1px solid #E2E8F0;border-radius:12px;padding:18px;background:#fff;margin-bottom:14px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
             <div style="flex:1">
-              <div style="font-weight:800;font-size:16px;color:#1F2937">{p["title"]}</div>
-              <div style="font-size:12px;color:#6B7280;margin-top:3px">&#128205; {p["city"]} &bull; &#9202; {p["duration"]}</div>
-              {"" if not p["description"] else f'<div style="font-size:13px;color:#4B5563;margin-top:8px;line-height:1.6">{p["description"]}</div>'}
+              <div style="font-weight:800;font-size:16px;color:#1F2937">{e(p["title"])}</div>
+              <div style="font-size:12px;color:#6B7280;margin-top:3px">&#128205; {e(p["city"])} &bull; &#9202; {e(p["duration"])}</div>
+              {"" if not p["description"] else f'<div style="font-size:13px;color:#4B5563;margin-top:8px;line-height:1.6">{e(p["description"])}</div>'}
               {"" if not incl else f'<div style="margin-top:10px">{incl}</div>'}
             </div>
             <div style="text-align:right">
-              <div style="font-size:22px;font-weight:900;color:#0038A8;white-space:nowrap">{p["price"]}</div>
+              <div style="font-size:22px;font-weight:900;color:#0038A8;white-space:nowrap">{e(p["price"])}</div>
               <form method="post" action="/guide/packages" style="margin-top:8px">
                 <input type="hidden" name="action" value="delete_package"/>
-                <input type="hidden" name="pkg_id" value="{p["id"]}"/>
+                <input type="hidden" name="pkg_id" value="{e(p["id"])}"/>
                 <button class="g-btn" style="background:#FEE2E2;color:#DC2626;padding:6px 12px;font-size:12px" onclick="return confirm('Delete this package?')">&#128465; Delete</button>
               </form>
             </div>
@@ -411,32 +415,32 @@ def render_bookings(guide, filter_status="all", msg="", err=""):
         if b["status"] == "pending":
             actions = f"""
             <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="accept_booking"/><input type="hidden" name="booking_id" value="{bid}"/><button class="g-btn" style="background:#059669;color:#fff;padding:8px 16px;font-size:13px">&#10003; Accept</button></form>
-              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{bid}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="accept_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><button class="g-btn" style="background:#059669;color:#fff;padding:8px 16px;font-size:13px">&#10003; Accept</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
             </div>"""
         elif b["status"] == "accepted":
             actions = f"""
             <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
-              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="complete_booking"/><input type="hidden" name="booking_id" value="{bid}"/><button class="g-btn" style="background:#7C3AED;color:#fff;padding:8px 16px;font-size:13px">&#10003;&#10003; Mark as Completed</button></form>
-              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="cancel_booking"/><input type="hidden" name="booking_id" value="{bid}"/><button class="g-btn" style="background:#6B7280;color:#fff;padding:8px 16px;font-size:13px">Cancel</button></form>
-              <form method="post" action="/guide/bookings?filter={filter_status}" style="display:flex;align-items:center;gap:8px"><input type="hidden" name="action" value="reschedule_booking"/><input type="hidden" name="booking_id" value="{bid}"/><input class="g-inp" type="date" name="new_date" required style="width:160px;padding:7px 10px"/><button class="g-btn" style="background:#2563EB;color:#fff;padding:8px 16px;font-size:13px">Reschedule</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="complete_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><button class="g-btn" style="background:#7C3AED;color:#fff;padding:8px 16px;font-size:13px">&#10003;&#10003; Mark as Completed</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="cancel_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><button class="g-btn" style="background:#6B7280;color:#fff;padding:8px 16px;font-size:13px">Cancel</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}" style="display:flex;align-items:center;gap:8px"><input type="hidden" name="action" value="reschedule_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><input class="g-inp" type="date" name="new_date" required style="width:160px;padding:7px 10px"/><button class="g-btn" style="background:#2563EB;color:#fff;padding:8px 16px;font-size:13px">Reschedule</button></form>
             </div>"""
         cards += f"""
         <div style="border:1px solid #E2E8F0;border-radius:12px;padding:18px;background:{sb};margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
             <div>
-              <div style="font-weight:800;font-size:16px;color:#1F2937">{b["tourist_name"]}</div>
+              <div style="font-weight:800;font-size:16px;color:#1F2937">{e(b["tourist_name"])}</div>
               <div style="font-size:12px;color:#6B7280;margin-top:4px;display:flex;flex-wrap:wrap;gap:10px">
-                <span>&#128222; {b.get("tourist_phone","N/A")}</span>
-                <span>&#9993; {b.get("tourist_email","N/A")}</span>
-                <span>&#128197; {b["tour_date"]}</span>
-                <span>&#128101; {b["pax"]} pax</span>
+                <span>&#128222; {e(b.get("tourist_phone","N/A"))}</span>
+                <span>&#9993; {e(b.get("tourist_email","N/A"))}</span>
+                <span>&#128197; {e(b["tour_date"])}</span>
+                <span>&#128101; {e(b["pax"])} pax</span>
               </div>
-              <div style="font-size:13px;color:#4B5563;margin-top:4px">Package: <strong>{b["package_title"] or "Custom Tour"}</strong></div>
-              {"" if not b["notes"] else f'<div style="font-size:12px;color:#6B7280;margin-top:4px;font-style:italic;background:rgba(0,0,0,.03);padding:6px 10px;border-radius:6px">"{b["notes"]}"</div>'}
-              {"" if not b["guide_notes"] else f'<div style="font-size:12px;color:#2563EB;margin-top:4px">&#128221; {b["guide_notes"]}</div>'}
+              <div style="font-size:13px;color:#4B5563;margin-top:4px">Package: <strong>{e(b["package_title"] or "Custom Tour")}</strong></div>
+              {"" if not b["notes"] else f'<div style="font-size:12px;color:#6B7280;margin-top:4px;font-style:italic;background:rgba(0,0,0,.03);padding:6px 10px;border-radius:6px">"{e(b["notes"])}"</div>'}
+              {"" if not b["guide_notes"] else f'<div style="font-size:12px;color:#2563EB;margin-top:4px">&#128221; {e(b["guide_notes"])}</div>'}
             </div>
-            <span style="background:{sc}22;color:{sc};padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">{b["status"].upper()}</span>
+            <span style="background:{sc}22;color:{sc};padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">{e(b["status"]).upper()}</span>
           </div>
           {actions}
         </div>"""
@@ -480,7 +484,7 @@ def render_availability(guide, msg="", err=""):
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">{checkboxes}</div>
           <div>
             <label class="g-lbl">Additional Notes (optional)</label>
-            <input class="g-inp" name="avail_note" placeholder="e.g. Available on holidays, Off on rainy season..."/>
+            <input class="g-inp" name="avail_note" value="{e(guide.get('avail_note',''))}" placeholder="e.g. Available on holidays, Off on rainy season..."/>
           </div>
           <div><button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:12px 28px">Save Availability</button></div>
         </form>
@@ -503,11 +507,11 @@ def render_ratings(guide):
     cards = "".join(f"""
     <div style="border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:12px;background:#fff">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div style="font-weight:700;color:#1F2937">{r["tourist_name"]}</div>
+        <div style="font-weight:700;color:#1F2937">{e(r["tourist_name"])}</div>
         <div style="color:#F59E0B;font-size:16px">{"&#9733;"*r["rating"]}{"&#9734;"*(5-r["rating"])}</div>
       </div>
-      {"" if not r["feedback"] else f'<div style="font-size:13px;color:#4B5563;line-height:1.6;font-style:italic">&ldquo;{r["feedback"]}&rdquo;</div>'}
-      <div style="font-size:11px;color:#9CA3AF;margin-top:8px">{str(r["created"])[:10]}</div>
+      {"" if not r["feedback"] else f'<div style="font-size:13px;color:#4B5563;line-height:1.6;font-style:italic">&ldquo;{e(r["feedback"])}&rdquo;</div>'}
+      <div style="font-size:11px;color:#9CA3AF;margin-top:8px">{e(str(r["created"])[:10])}</div>
     </div>""" for r in ratings) or '<div style="text-align:center;padding:40px;color:#9CA3AF"><div style="font-size:48px;margin-bottom:12px">&#11088;</div><div style="font-weight:700">No reviews yet</div></div>'
 
     body = f"""
@@ -541,15 +545,70 @@ def render_profile(guide, msg="", err=""):
     if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px">&#9888; {err}</div>'
     photo_url = guide.get("photo_url","")
     initials  = (guide.get("fname","?")[0]+guide.get("lname","?")[0]).upper()
+    doc_url    = guide.get("doc_url","")
+    doc_status = guide.get("doc_status","none")
+    doc_notes  = guide.get("doc_ai_notes","") or ""
+    DOC_STATUS_COLOR = {"none":"#9CA3AF","pending":"#D97706","approved":"#059669","rejected":"#DC2626"}
+    DOC_STATUS_BG    = {"none":"#F9FAFB","pending":"#FFFBEB","approved":"#ECFDF5","rejected":"#FEF2F2"}
+    DOC_STATUS_LABEL = {"none":"Not uploaded","pending":"Under Review","approved":"&#10003; Verified","rejected":"&#9888; Rejected"}
+    dsc = DOC_STATUS_COLOR.get(doc_status,"#9CA3AF")
+    dsb = DOC_STATUS_BG.get(doc_status,"#F9FAFB")
+    dsl = DOC_STATUS_LABEL.get(doc_status,"Unknown")
+    doc_card = f"""
+    <div class="g-card" style="margin-bottom:20px">
+      <div class="g-card-hdr" style="background:#0038A8">&#128196; License / Permit Verification</div>
+      <div class="g-card-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#1F2937;margin-bottom:4px">Verification Status</div>
+            <span style="background:{dsb};color:{dsc};padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700">{dsl}</span>
+          </div>
+          {f'<a href="{e(doc_url)}" target="_blank" style="font-size:13px;color:#0038A8;font-weight:600">View uploaded doc</a>' if doc_url else ""}
+        </div>
+        {f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;color:#4B5563"><strong>AI Review Notes:</strong> {e(doc_notes)}</div>' if doc_notes else ""}
+        <form method="post" action="/guide/profile/doc" enctype="multipart/form-data">
+          <div style="font-size:13px;color:#6B7280;margin-bottom:10px">
+            Upload your tour guide license, accreditation, or government-issued permit (JPG, PNG or PDF, max 5 MB).
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px dashed #CBD5E1;border-radius:8px;cursor:pointer;background:#F8FAFC;font-size:13px;color:#6B7280" onmouseover="this.style.borderColor='#0038A8'" onmouseout="this.style.borderColor='#CBD5E1'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span id="doc-lbl">Choose file</span>
+              <input type="file" name="doc_file" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none" onchange="document.getElementById('doc-lbl').textContent=this.files[0]?.name||'Choose file'"/>
+            </label>
+            <button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:9px 18px">Upload for Review</button>
+          </div>
+        </form>
+      </div>
+    </div>"""
     avatar = (f'<img src="{photo_url}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #E2E8F0;display:block;margin:0 auto 8px"/>'
               if photo_url else
               f'<div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#CE1126,#0038A8);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#fff;margin:0 auto 8px">{initials}</div>')
+    tfa_enabled = guide.get("totp_enabled", 0)
+    tfa_card = f"""
+    <div class="g-card" style="margin-bottom:20px">
+      <div class="g-card-hdr" style="background:#0038A8">&#128737; Two-Factor Authentication</div>
+      <div class="g-card-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#1F2937;margin-bottom:4px">Google Authenticator</div>
+          <div style="font-size:13px;color:#6B7280">{"&#10003; Enabled — your account is protected" if tfa_enabled else "Not enabled — add an extra layer of security"}</div>
+        </div>
+        <a href="/guide/setup-2fa">
+          <button class="g-btn" style="background:{"#FEE2E2;color:#DC2626" if tfa_enabled else "#0038A8;color:#fff"};padding:9px 18px;font-size:13px">
+            {"Manage 2FA" if tfa_enabled else "&#128274; Enable 2FA"}
+          </button>
+        </a>
+      </div>
+    </div>"""
+
     body = f"""
     <div style="margin-bottom:24px">
       <div style="font-size:24px;font-weight:900;color:#1F2937">My Profile</div>
       <div style="font-size:14px;color:#6B7280">Update your public guide profile</div>
     </div>
     {alert}
+    {doc_card}
+    {tfa_card}
     <div class="g-card" style="max-width:380px;margin-bottom:20px">
       <div class="g-card-hdr" style="background:#0038A8">&#128247; Profile Photo</div>
       <div class="g-card-body" style="text-align:center">
@@ -590,12 +649,12 @@ def render_profile(guide, msg="", err=""):
           </div>
           <form method="post" action="/guide/profile" style="display:flex;flex-direction:column;gap:14px">
             <input type="hidden" name="action" value="update_profile"/>
-            <div><label class="g-lbl">Phone</label><input class="g-inp" name="phone" value="{guide.get("phone","")}"/></div>
+            <div><label class="g-lbl">Phone</label><input class="g-inp" name="phone" value="{e(guide.get("phone",""))}"/></div>
             <div><label class="g-lbl">City</label><select class="g-inp" name="city">{city_opts}</select></div>
-            <div><label class="g-lbl">Languages</label><input class="g-inp" name="languages" value="{guide.get("languages","EN, FIL")}" placeholder="e.g. EN, FIL, ES"/></div>
-            <div><label class="g-lbl">Speciality</label><input class="g-inp" name="speciality" value="{guide.get("speciality","")}" placeholder="e.g. Nature Tours, Historical"/></div>
-            <div><label class="g-lbl">Daily Rate</label><input class="g-inp" name="rate" value="{guide.get("rate","P1,500/day")}" placeholder="e.g. P1,500/day"/></div>
-            <div><label class="g-lbl">Bio / About You</label><textarea class="g-inp" name="bio" rows="4" placeholder="Tell tourists about yourself..." style="resize:none">{guide.get("bio","")}</textarea></div>
+            <div><label class="g-lbl">Languages</label><input class="g-inp" name="languages" value="{e(guide.get("languages","EN, FIL"))}" placeholder="e.g. EN, FIL, ES"/></div>
+            <div><label class="g-lbl">Speciality</label><input class="g-inp" name="speciality" value="{e(guide.get("speciality",""))}" placeholder="e.g. Nature Tours, Historical"/></div>
+            <div><label class="g-lbl">Daily Rate</label><input class="g-inp" name="rate" value="{e(guide.get("rate","P1,500/day"))}" placeholder="e.g. P1,500/day"/></div>
+            <div><label class="g-lbl">Bio / About You</label><textarea class="g-inp" name="bio" rows="4" placeholder="Tell tourists about yourself..." style="resize:none">{e(guide.get("bio",""))}</textarea></div>
             <button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:12px">Save Profile</button>
           </form>
         </div>

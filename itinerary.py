@@ -1,6 +1,6 @@
 import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from template import build_shell
+from tourist_ui import build_shell
 from data import ITINERARIES, ITINERARIES_EXTRA, SPOTS as STATIC_SPOTS, RESTAURANTS as STATIC_RESTS
 
 ALL_ITINERARIES = {**ITINERARIES, **ITINERARIES_EXTRA}

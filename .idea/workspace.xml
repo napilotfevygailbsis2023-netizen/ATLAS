@@ -5,21 +5,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e85fe3d4-4214-4234-876f-2a74b8689c42" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/db_migration.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/guide_1_a9c936b3.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/guide_1_b3259208.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/guide_1_b891481b.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/uploads/tourist_4_a50f4bc5.jpg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/admin_db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin_panel.py" beforeDir="false" afterPath="$PROJECT_DIR$/admin_panel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/attractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/attractions.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/email_sender.py" beforeDir="false" afterPath="$PROJECT_DIR$/email_sender.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/flights.py" beforeDir="false" afterPath="$PROJECT_DIR$/flights.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/guide_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/guide_db.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/guide_portal.py" beforeDir="false" afterPath="$PROJECT_DIR$/guide_portal.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/guide_template.py" beforeDir="false" afterPath="$PROJECT_DIR$/guide_template.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/guide_template.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/guides.py" beforeDir="false" afterPath="$PROJECT_DIR$/guides.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.py" beforeDir="false" afterPath="$PROJECT_DIR$/index.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/itinerary.py" beforeDir="false" afterPath="$PROJECT_DIR$/itinerary.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/login.py" beforeDir="false" afterPath="$PROJECT_DIR$/login.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/profile.py" beforeDir="false" afterPath="$PROJECT_DIR$/profile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/restaurants.py" beforeDir="false" afterPath="$PROJECT_DIR$/restaurants.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/template.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/transport.py" beforeDir="false" afterPath="$PROJECT_DIR$/transport.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/weather.py" beforeDir="false" afterPath="$PROJECT_DIR$/weather.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

@@ -1,5 +1,9 @@
 import hashlib, secrets
 try:
+    import bcrypt
+except ImportError:
+    raise ImportError("bcrypt is not installed. Run: pip install bcrypt")
+try:
     import mysql.connector
     from mysql.connector import IntegrityError
 except ImportError:
@@ -16,7 +20,16 @@ def _cursor(conn):
     return conn.cursor(dictionary=True)
 
 def hash_pw(p):
-    return hashlib.sha256(p.encode()).hexdigest()
+    """Hash a password with bcrypt (salted). Returns a str for DB storage."""
+    return bcrypt.hashpw(p.encode(), bcrypt.gensalt()).decode()
+
+def check_pw(plain, hashed):
+    """Verify a plain password against a bcrypt or legacy SHA-256 hash."""
+    try:
+        return bcrypt.checkpw(plain.encode(), hashed.encode())
+    except Exception:
+        # Legacy SHA-256 fallback — allows existing accounts to still log in
+        return hashlib.sha256(plain.encode()).hexdigest() == hashed
 
 # ── INIT ──
 def init_db():
@@ -24,14 +37,16 @@ def init_db():
     cur  = _cursor(conn)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id        INT AUTO_INCREMENT PRIMARY KEY,
-            fname     VARCHAR(100) NOT NULL,
-            lname     VARCHAR(100) NOT NULL,
-            email     VARCHAR(255) UNIQUE NOT NULL,
-            password  VARCHAR(64)  NOT NULL,
-            photo_url VARCHAR(500) DEFAULT '',
-            status    VARCHAR(20)  DEFAULT 'active',
-            created   DATETIME     DEFAULT CURRENT_TIMESTAMP
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            fname       VARCHAR(100) NOT NULL,
+            lname       VARCHAR(100) NOT NULL,
+            email       VARCHAR(255) UNIQUE NOT NULL,
+            password    VARCHAR(64)  NOT NULL,
+            photo_url   VARCHAR(500) DEFAULT '',
+            status      VARCHAR(20)  DEFAULT 'active',
+            totp_secret VARCHAR(64)  DEFAULT '',
+            totp_enabled TINYINT(1)  DEFAULT 0,
+            created     DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
     # Auto-migrate: add photo_url if missing (for existing databases)
@@ -40,6 +55,41 @@ def init_db():
         conn.commit()
     except Exception:
         pass  # Column already exists
+    for _col, _defn in [
+        ("totp_secret",  "VARCHAR(64) DEFAULT ''"),
+        ("totp_enabled", "TINYINT(1) DEFAULT 0"),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE users ADD COLUMN {_col} {_defn}")
+            conn.commit()
+        except Exception:
+            pass  # Column already exists
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS view_history (
+            id         INT AUTO_INCREMENT PRIMARY KEY,
+            user_id    INT          NOT NULL,
+            item_type  VARCHAR(20)  NOT NULL,
+            item_name  VARCHAR(200) NOT NULL,
+            item_city  VARCHAR(100) DEFAULT '',
+            item_extra VARCHAR(300) DEFAULT '',
+            viewed_at  DATETIME     DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS flight_bookings (
+            id             INT AUTO_INCREMENT PRIMARY KEY,
+            user_id        INT          NOT NULL,
+            airline        VARCHAR(200) NOT NULL,
+            origin         VARCHAR(200) NOT NULL,
+            destination    VARCHAR(200) NOT NULL,
+            dep_time       VARCHAR(20)  DEFAULT '',
+            arr_time       VARCHAR(20)  DEFAULT '',
+            flight_number  VARCHAR(50)  DEFAULT '',
+            status         VARCHAR(50)  DEFAULT 'Scheduled',
+            booked_at      DATETIME     DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS sessions (
             token   VARCHAR(64) PRIMARY KEY,
@@ -49,11 +99,25 @@ def init_db():
     """)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS admins (
-            id       INT AUTO_INCREMENT PRIMARY KEY,
-            username VARCHAR(100) UNIQUE NOT NULL,
-            password VARCHAR(64)  NOT NULL
+            id        INT AUTO_INCREMENT PRIMARY KEY,
+            username  VARCHAR(100) UNIQUE NOT NULL,
+            password  VARCHAR(64)  NOT NULL,
+            email     VARCHAR(255) DEFAULT 'admin@atlas.ph',
+            fullname  VARCHAR(200) DEFAULT 'ATLAS Administrator',
+            created   DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    # Auto-migrate: add missing admin columns for existing databases
+    for _col, _defn in [
+        ("email",    "VARCHAR(255) DEFAULT 'admin@atlas.ph'"),
+        ("fullname", "VARCHAR(200) DEFAULT 'ATLAS Administrator'"),
+        ("created",  "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE admins ADD COLUMN {_col} {_defn}")
+            conn.commit()
+        except Exception:
+            pass  # column already exists
     cur.execute("""
         CREATE TABLE IF NOT EXISTS admin_sessions (
             token    VARCHAR(64) PRIMARY KEY,
@@ -95,11 +159,7 @@ def init_db():
             created  DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
-    # Seed default admin
-    cur.execute("SELECT COUNT(*) AS cnt FROM admins")
-    if cur.fetchone()["cnt"] == 0:
-        cur.execute("INSERT INTO admins (username, password) VALUES (%s, %s)",
-                    ("admin", hash_pw("atlas2026")))
+    # Note: default admin account is seeded by admin_db.init_admin()
     conn.commit()
     cur.close(); conn.close()
 
@@ -119,30 +179,56 @@ def register_user(fname, lname, email, password):
 
 def login_user(email, password):
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("SELECT * FROM users WHERE email=%s AND password=%s",
-                (email.strip().lower(), hash_pw(password)))
+    cur.execute("SELECT * FROM users WHERE email=%s",
+                (email.strip().lower(),))
     user = cur.fetchone()
     cur.close(); conn.close()
+    if user and not check_pw(password, user["password"]):
+        user = None
     if not user:
         return False, None, None
     if user.get("status", "active") == "suspended":
         return "suspended", None, None
+    # Re-hash with bcrypt if user still has a legacy SHA-256 hash
+    if not user["password"].startswith("$2"):
+        conn2 = get_conn(); cur2 = _cursor(conn2)
+        cur2.execute("UPDATE users SET password=%s WHERE id=%s", (hash_pw(password), user["id"]))
+        conn2.commit(); cur2.close(); conn2.close()
     token = secrets.token_hex(32)
     conn = get_conn(); cur = _cursor(conn)
     cur.execute("INSERT INTO sessions (token,user_id) VALUES (%s,%s)", (token, user["id"]))
     conn.commit(); cur.close(); conn.close()
     return True, token, user
 
+def get_user_by_email(email):
+    try:
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("SELECT * FROM users WHERE email=%s", (email.strip().lower(),))
+        row = cur.fetchone(); cur.close(); conn.close()
+        return row
+    except: return None
+
 def get_user_by_token(token):
     if not token: return None
     try:
         conn = get_conn(); cur = _cursor(conn)
         cur.execute("""SELECT u.* FROM users u
-            JOIN sessions s ON s.user_id=u.id WHERE s.token=%s""", (token,))
+            JOIN sessions s ON s.user_id=u.id
+            WHERE s.token=%s
+            AND s.created > NOW() - INTERVAL 24 HOUR""", (token,))
         row = cur.fetchone()
         cur.close(); conn.close()
         return row
     except: return None
+
+def purge_expired_sessions():
+    """Delete sessions older than 24 hours. Call periodically on startup."""
+    try:
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("DELETE FROM sessions WHERE created < NOW() - INTERVAL 24 HOUR")
+        cur.execute("DELETE FROM admin_sessions WHERE created < NOW() - INTERVAL 24 HOUR")
+        conn.commit(); cur.close(); conn.close()
+    except: pass
 
 def logout(token):
     try:
@@ -155,16 +241,17 @@ def logout(token):
 # ── ADMIN AUTH ──
 def admin_login(username, password):
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("SELECT * FROM admins WHERE username=%s AND password=%s",
-                (username.strip(), hash_pw(password)))
+    cur.execute("SELECT * FROM admins WHERE username=%s",
+                (username.strip(),))
     admin = cur.fetchone()
     cur.close(); conn.close()
-    if admin:
-        token = secrets.token_hex(32)
-        conn = get_conn(); cur = _cursor(conn)
-        cur.execute("INSERT INTO admin_sessions (token,admin_id) VALUES (%s,%s)", (token, admin["id"]))
-        conn.commit(); cur.close(); conn.close()
-        return True, token
+    if not admin or not check_pw(password, admin["password"]):
+        return False, None
+    token = secrets.token_hex(32)
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("INSERT INTO admin_sessions (token,admin_id) VALUES (%s,%s)", (token, admin["id"]))
+    conn.commit(); cur.close(); conn.close()
+    return True, token
     return False, None
 
 def get_admin_by_token(token):
@@ -172,7 +259,9 @@ def get_admin_by_token(token):
     try:
         conn = get_conn(); cur = _cursor(conn)
         cur.execute("""SELECT a.* FROM admins a
-            JOIN admin_sessions s ON s.admin_id=a.id WHERE s.token=%s""", (token,))
+            JOIN admin_sessions s ON s.admin_id=a.id
+            WHERE s.token=%s
+            AND s.created > NOW() - INTERVAL 24 HOUR""", (token,))
         row = cur.fetchone()
         cur.close(); conn.close()
         return row
@@ -327,4 +416,93 @@ def clear_pending_by_email(email):
         conn.commit(); cur.close(); conn.close()
     except: pass
 
+# ── 2FA / TOTP ──────────────────────────────────────────────────────────────
+def set_totp_secret(user_id, secret):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE users SET totp_secret=%s WHERE id=%s", (secret, user_id))
+    conn.commit(); cur.close(); conn.close()
+
+def enable_totp(user_id, enabled: bool):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE users SET totp_enabled=%s WHERE id=%s", (1 if enabled else 0, user_id))
+    conn.commit(); cur.close(); conn.close()
+
+# ── View history ─────────────────────────────────────────────────────────────
+def log_view(user_id, item_type, item_name, item_city="", item_extra=""):
+    """Log that a tourist viewed an item. Keeps last 50 entries per user."""
+    try:
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute(
+            "INSERT INTO view_history (user_id,item_type,item_name,item_city,item_extra) VALUES (%s,%s,%s,%s,%s)",
+            (user_id, item_type, item_name[:200], item_city[:100], item_extra[:300])
+        )
+        # Keep only the 50 most recent per user
+        cur.execute("""DELETE FROM view_history WHERE user_id=%s AND id NOT IN (
+            SELECT id FROM (SELECT id FROM view_history WHERE user_id=%s
+                            ORDER BY viewed_at DESC LIMIT 50) AS t)""",
+            (user_id, user_id))
+        conn.commit(); cur.close(); conn.close()
+    except: pass
+
+def get_view_history(user_id, limit=20):
+    try:
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("""SELECT * FROM view_history WHERE user_id=%s
+                       ORDER BY viewed_at DESC LIMIT %s""", (user_id, limit))
+        rows = cur.fetchall(); cur.close(); conn.close()
+        return rows
+    except: return []
+
+# ── Flight bookings ──────────────────────────────────────────────────────────
+def book_flight(user_id, airline, origin, destination, dep_time, arr_time, flight_number=""):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""INSERT INTO flight_bookings
+        (user_id,airline,origin,destination,dep_time,arr_time,flight_number)
+        VALUES (%s,%s,%s,%s,%s,%s,%s)""",
+        (user_id, airline, origin, destination, dep_time, arr_time, flight_number))
+    conn.commit()
+    bid = cur.lastrowid
+    cur.close(); conn.close()
+    return bid
+
+def get_flight_bookings(user_id):
+    try:
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("SELECT * FROM flight_bookings WHERE user_id=%s ORDER BY booked_at DESC", (user_id,))
+        rows = cur.fetchall(); cur.close(); conn.close()
+        return rows
+    except: return []
+
+def update_flight_booking_status(booking_id, status):
+    try:
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("UPDATE flight_bookings SET status=%s WHERE id=%s", (status, booking_id))
+        conn.commit(); cur.close(); conn.close()
+    except: pass
+
+def google_login_or_register(email, fname, lname, photo_url=""):
+    """Find or create a user from Google OAuth, then return a session token."""
+    import secrets as _sec
+    email = email.strip().lower()
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT * FROM users WHERE email=%s", (email,))
+    user = cur.fetchone()
+    if not user:
+        random_pw = hash_pw(_sec.token_hex(32))
+        cur.execute(
+            "INSERT INTO users (fname,lname,email,password,photo_url,status) VALUES (%s,%s,%s,%s,%s,'active')",
+            (fname or "Google", lname or "User", email, random_pw, photo_url or "")
+        )
+        conn.commit()
+        cur.execute("SELECT * FROM users WHERE email=%s", (email,))
+        user = cur.fetchone()
+    if not user or user.get("status") == "suspended":
+        cur.close(); conn.close()
+        return None, None
+    token = _sec.token_hex(32)
+    cur.execute("INSERT INTO sessions (token,user_id) VALUES (%s,%s)", (token, user["id"]))
+    conn.commit(); cur.close(); conn.close()
+    return token, user
+
+# ── INIT ── (called at module load)
 init_db()

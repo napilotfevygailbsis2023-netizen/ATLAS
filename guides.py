@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from template import build_shell
+from tourist_ui import build_shell
 import guide_db
 
 def get_all_guides_combined(city="All"):

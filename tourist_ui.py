@@ -15,7 +15,7 @@ _CHEVRON  = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke=
 _LOGIN_I  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>'
 _SIGNUP_I = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>'
 
-def build_shell(page_title, body_content, active="", user=None):
+def build_shell(page_title, body_content, active="", user=None, csrf_token=""):
     def na(p): return "active" if active == p else ""
     def ta(p): return "active" if active == p else ""
 
@@ -53,10 +53,10 @@ def build_shell(page_title, body_content, active="", user=None):
         }});
         </script>"""
     else:
+        # Only show Log In button (no Sign Up) in navbar
         auth_html = f"""
         <div class="nav-auth">
-          <a href="/login.py" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border:1.5px solid #0038A8;border-radius:8px;color:#0038A8;font-weight:700;font-size:13px;text-decoration:none">{_LOGIN_I} Log In</a>
-          <a href="/register.py" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#0038A8;border-radius:8px;color:#fff;font-weight:700;font-size:13px;text-decoration:none">{_SIGNUP_I} Sign Up</a>
+          <a href="/login.py" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#0038A8;border-radius:8px;color:#fff;font-weight:700;font-size:13px;text-decoration:none">{_LOGIN_I} Log In</a>
         </div>"""
 
     return f"""<!DOCTYPE html>
@@ -118,7 +118,7 @@ def build_shell(page_title, body_content, active="", user=None):
         <button style="width:100%;padding:12px;border:2px solid #0038A8;background:#fff;color:#0038A8;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Log In</button>
       </a>
       <a href="/register.py" style="flex:1;text-decoration:none">
-        <button style="width:100%;padding:12px;border:none;background:#0038A8;color:#fff;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Create Account</button>
+        <button style="width:100%;padding:12px;border:none;background:#0038A8;color:#fff;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Register</button>
       </a>
     </div>
   </div>
@@ -131,6 +131,7 @@ def build_shell(page_title, body_content, active="", user=None):
       <div id="modal-guide-name" style="opacity:.8;font-size:14px;margin-top:4px"></div>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="m-csrf" value="{csrf_token}"/>
       <div style="margin-bottom:14px"><label class="lbl">Tour Date</label><input class="inp" type="date" id="m-date"/></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
         <div><label class="lbl">Duration (days)</label><input class="inp" id="m-dur" value="2"/></div>
@@ -152,13 +153,15 @@ def build_shell(page_title, body_content, active="", user=None):
         <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:30px;height:30px;border-radius:50%;object-fit:cover;"/>
         <span style="font-size:18px;font-weight:900;color:#0038A8">ATLAS</span>
       </div>
-      <p style="font-size:13px;color:#9CA3AF;max-width:200px;line-height:1.6;margin-top:8px">Your Luzon Travel Companion</p>
+      <p style="font-size:13px;color:#9CA3AF;max-width:220px;line-height:1.6;margin-top:8px">Your all-in-one Luzon Travel Companion — discover attractions, book guides, search flights, and plan your perfect trip.</p>
     </div>
     <div class="footer-cols">
       <div class="footer-col">
         <div class="footer-col-hdr">The Company</div>
-        <a href="/">Home</a><a href="#about">About Us</a>
-        <a href="/register.py">Register</a><a href="/login.py">Login</a>
+        <a href="/">Home</a>
+        <a href="#about">About Us</a>
+        <a href="/register.py">Tourist Register</a>
+        <a href="/guide/register">Tour Guide Register</a>
       </div>
       <div class="footer-col">
         <div class="footer-col-hdr">Help</div>
@@ -170,17 +173,49 @@ def build_shell(page_title, body_content, active="", user=None):
       </div>
       <div class="footer-col">
         <div class="footer-col-hdr">Contact</div>
-        <div class="footer-contact"><strong>Office Hours:</strong><br>9:00 am - 6:00 pm</div>
         <div class="footer-contact"><strong>Location:</strong><br>Luzon, Philippines</div>
-        <div class="footer-contact"><strong>Email:</strong><br>travelatatlas2026@gmail.com
-</div>
+        <div class="footer-contact"><strong>Email:</strong><br><a href="mailto:travelatatlas2026@gmail.com" style="color:#9CA3AF;text-decoration:underline">travelatatlas2026@gmail.com</a></div>
       </div>
     </div>
   </div>
+
+  <!-- About Us Section -->
+  <div style="border-top:1px solid #E5E7EB;padding:40px 0 20px;margin-top:20px">
+    <div style="text-align:center;margin-bottom:30px">
+      <div style="font-size:22px;font-weight:900;color:#0038A8;margin-bottom:8px">About ATLAS</div>
+      <div style="font-size:14px;color:#6B7280;max-width:700px;margin:0 auto;line-height:1.8">
+        ATLAS (Accessible Travel and Luzon Assistance System) is a comprehensive travel platform designed to help tourists explore the beautiful provinces of Luzon, Philippines. We connect travelers with verified local tour guides, real-time flight information, live weather forecasts, curated tourist attractions, and the best local restaurants — all in one place.
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;max-width:900px;margin:0 auto;padding:0 20px">
+      <div style="text-align:center;padding:20px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
+        <div style="font-size:32px;margin-bottom:8px">&#9992;</div>
+        <div style="font-weight:700;color:#1F2937;margin-bottom:4px">Flight Search</div>
+        <div style="font-size:12px;color:#6B7280">Live domestic &amp; international flight data from Philippine airports</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
+        <div style="font-size:32px;margin-bottom:8px">&#127968;</div>
+        <div style="font-weight:700;color:#1F2937;margin-bottom:4px">Tourist Attractions</div>
+        <div style="font-size:12px;color:#6B7280">Curated top spots across all major Luzon destinations</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
+        <div style="font-size:32px;margin-bottom:8px">&#128100;</div>
+        <div style="font-weight:700;color:#1F2937;margin-bottom:4px">Tour Guide Booking</div>
+        <div style="font-size:12px;color:#6B7280">Book verified local guides with ratings and transparent pricing</div>
+      </div>
+      <div style="text-align:center;padding:20px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
+        <div style="font-size:32px;margin-bottom:8px">&#127774;</div>
+        <div style="font-weight:700;color:#1F2937;margin-bottom:4px">Live Weather</div>
+        <div style="font-size:12px;color:#6B7280">Real-time forecasts and travel advisories for every Luzon city</div>
+      </div>
+    </div>
+  </div>
+
   <div class="footer-bottom"><span>&copy; 2026 ATLAS. All Rights Reserved.</span></div>
 </footer>
 <script>
 var ATLAS_LOGGED_IN = {'true' if user else 'false'};
+var ATLAS_CSRF = '{csrf_token}';
 function openSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='flex';document.body.style.overflow='hidden';}}}}
 function closeSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='none';document.body.style.overflow='';}}}}
 document.addEventListener('keydown',function(e){{if(e.key==='Escape')closeSigninGate();}});

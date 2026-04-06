@@ -489,43 +489,166 @@ def restaurants_page(admin, msg="", err="", page=1, tab="list"):
 
 # ── TOUR GUIDES ──
 def guides_page(admin, msg="", err="", page=1, tab="registered"):
-    reg_guides = guide_db.get_public_guides()
-    ALL_CITIES = ["Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay","Albay","Pangasinan","Bataan","La Union","Bataan"]
-    LANGS = ["All","English","Filipino","Ilocano","Bicolano","Waray","Kapampangan"]
-    PER = 8
+    reg_guides    = guide_db.get_public_guides()
+    pending_docs  = guide_db.get_guides_with_pending_docs()
+    ALL_CITIES    = ["Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay","Albay","Pangasinan","Bataan","La Union"]
+    LANGS         = ["All","English","Filipino","Ilocano","Bicolano","Waray","Kapampangan"]
+    PER           = 8
 
+    # ── Registered guides tab ──
+    DOC_BADGE = {
+        "none":     "<span style='background:#F1F5F9;color:#94A3B8;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600'>No docs</span>",
+        "pending":  "<span style='background:#FFFBEB;color:#D97706;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600'>&#9200; Pending</span>",
+        "approved": "<span style='background:#ECFDF5;color:#059669;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600'>&#10003; Verified</span>",
+        "rejected": "<span style='background:#FEF2F2;color:#DC2626;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600'>&#9888; Rejected</span>",
+    }
     reg_list = []
     for g in reg_guides:
-        avg, cnt = guide_db.get_avg_rating(g["id"])
-        img = _img_cell(g.get("photo",""), "&#129517;")
-        city = g["city"]
-        lang = g.get("languages","EN, FIL")
-        rate = g.get("rate","N/A")
-        reg_list.append(f'<tr><td>{img}</td><td style="font-weight:600;color:#1E293B">{g["fname"]} {g["lname"]}</td><td>{city}</td><td>{lang}</td><td style="color:#7C3AED;font-weight:600">{rate}</td><td>{avg}&#9733; ({cnt})</td><td><span class=ba>Registered</span></td></tr>')
+        avg, cnt  = guide_db.get_avg_rating(g["id"])
+        img       = _img_cell(g.get("photo_url",""), "&#129517;")
+        ds        = g.get("doc_status","none")
+        doc_badge = DOC_BADGE.get(ds, DOC_BADGE["none"])
+        acts      = f'<a href="/admin/guides/delete/{g["id"]}" onclick="return confirm(\'Delete guide?\')"><button class="btn bdanger" style="font-size:12px;padding:5px 10px">Delete</button></a>'
+        reg_list.append(
+            f'<tr><td>{img}</td>'
+            f'<td style="font-weight:600;color:#1E293B">{g["fname"]} {g["lname"]}</td>'
+            f'<td>{g["city"]}</td>'
+            f'<td>{g.get("languages","EN, FIL")}</td>'
+            f'<td style="color:#7C3AED;font-weight:600">{g.get("rate","N/A")}</td>'
+            f'<td>{avg}&#9733; ({cnt})</td>'
+            f'<td>{doc_badge}</td>'
+            f'<td>{acts}</td></tr>'
+        )
 
     reg_rows, reg_pager, reg_total, _ = _paginate(reg_list, page, PER, "/admin/guides")
     city_opts = '<option value="">All Cities</option>' + "".join(f'<option value="{c}">{c}</option>' for c in sorted(set(ALL_CITIES)))
     lang_opts = "".join(f'<option value="{l if l!="All" else ""}">{l}</option>' for l in LANGS)
-    rat_opts  = "".join(f'<option value="{r if r!="All" else ""}">{r} &#9733;</option>' for r in ["All","5","4","3","2","1"])
+
+    # ── Pending docs tab ──
+    doc_rows = ""
+    for g in pending_docs:
+        doc_url = g.get("doc_url","")
+        gid     = g["id"]
+        ext     = os.path.splitext(doc_url)[-1].lower()
+        preview = (f'<img src="{doc_url}" style="width:60px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #E2E8F0"/>'
+                   if ext in (".jpg",".jpeg",".png",".webp")
+                   else f'<a href="{doc_url}" target="_blank" style="font-size:12px;color:#0038A8">&#128196; View PDF</a>')
+        ai_notes = g.get("doc_ai_notes","") or ""
+        notes_cell = f'<div style="font-size:11px;color:#6B7280;max-width:200px;line-height:1.4">{ai_notes[:120]}{"..." if len(ai_notes)>120 else ""}</div>' if ai_notes else "<span style='color:#D1D5DB;font-size:11px'>Not reviewed</span>"
+        doc_rows += (
+            f'<tr>'
+            f'<td>{preview}</td>'
+            f'<td style="font-weight:600">{g["fname"]} {g["lname"]}</td>'
+            f'<td>{g["city"]}</td>'
+            f'<td>{notes_cell}</td>'
+            f'<td style="white-space:nowrap">'
+            f'<button class="btn bprimary" style="font-size:11px;padding:5px 10px;margin-right:4px" '
+            f'onclick="runAIReview({gid}, this)">&#129302; AI Review</button>'
+            f'<a href="/admin/guides/doc-approve/{gid}"><button class="btn" style="background:#059669;color:#fff;font-size:11px;padding:5px 10px;margin-right:4px">&#10003; Approve</button></a>'
+            f'<a href="/admin/guides/doc-reject/{gid}"><button class="btn bdanger" style="font-size:11px;padding:5px 10px">&#10007; Reject</button></a>'
+            f'</td></tr>'
+        )
+
+    pending_count = len(pending_docs)
+    doc_table = f"""
+    <table id="tbl-docs">
+      <thead><tr><th>Document</th><th>Guide</th><th>City</th><th>AI Notes</th><th>Actions</th></tr></thead>
+      <tbody>{"<tr><td colspan=5 style='text-align:center;color:#94A3B8;padding:24px'>No pending documents</td></tr>" if not doc_rows else doc_rows}</tbody>
+    </table>"""
+
+    tab_btns = (
+        f'<button class="tab-btn {"active" if tab=="registered" else ""}" onclick="switchTab(\'guides\',\'registered\')">Registered ({reg_total})</button>'
+        f'<button class="tab-btn {"active" if tab=="docs" else ""}" onclick="switchTab(\'guides\',\'docs\')" style="{"color:#D97706;font-weight:700" if pending_count else ""}">'
+        f'&#128196; Pending Docs {"("+str(pending_count)+")" if pending_count else "(0)"}</button>'
+    )
 
     body = f'''
     <div style="font-size:22px;font-weight:900;margin-bottom:4px">Tour Guides</div>
-    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{reg_total} registered guides</div>
+    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{reg_total} registered · {pending_count} pending doc review</div>
     {_alert(msg,err)}
-    <div class="card">
-      <div class="filter-bar">
-        <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;padding:7px 12px;flex:1;max-width:240px">
-          <input placeholder="Search guides..." oninput="applyFilters('tbl-guides',[{{col:1,value:this.value}}])" style="border:none;background:none;outline:none;font-size:13px;width:100%;margin:0"/>
+    <div class="card"><div style="padding:0 20px" data-group="guides">
+      <div class="tabs">{tab_btns}</div>
+
+      <div id="guides-registered" class="tab-pane {"active" if tab=="registered" else ""}">
+        <div class="filter-bar">
+          <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;padding:7px 12px;flex:1;max-width:240px">
+            <input placeholder="Search guides..." oninput="applyFilters('tbl-guides',[{{col:1,value:this.value}}])" style="border:none;background:none;outline:none;font-size:13px;width:100%;margin:0"/>
+          </div>
+          <select onchange="applyFilters('tbl-guides',[{{col:2,value:this.value}}])" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{city_opts}</select>
+          <select onchange="applyFilters('tbl-guides',[{{col:3,value:this.value}}])" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{lang_opts}</select>
         </div>
-        <select onchange="applyFilters('tbl-guides',[{{col:2,value:this.value}}])" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{city_opts}</select>
-        <select onchange="applyFilters('tbl-guides',[{{col:3,value:this.value}}])" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{lang_opts}</select>
-        <select onchange="applyFilters('tbl-guides',[{{col:5,value:this.value}}])" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{rat_opts}</select>
+        <div style="padding:0 0 8px;display:flex;justify-content:flex-end">{_export_btns("tbl-guides","ATLAS_Tour_Guides")}</div>
+        <table id="tbl-guides">
+          <thead><tr><th>Photo</th><th>Name</th><th>City</th><th>Languages</th><th>Rate</th><th>Rating</th><th>Docs</th><th>Action</th></tr></thead>
+          <tbody>{"<tr><td colspan=8 style='text-align:center;color:#94A3B8;padding:20px'>No registered guides yet</td></tr>" if not reg_rows else ""}{reg_rows}</tbody>
+        </table>
+        {reg_pager}
       </div>
-      <div style="padding:0 16px 8px;display:flex;justify-content:flex-end">{_export_btns("tbl-guides","ATLAS_Tour_Guides")}</div>
-      <table id="tbl-guides"><thead><tr><th>Photo</th><th>Name</th><th>City</th><th>Languages</th><th>Rate</th><th>Rating</th><th>Status</th></tr></thead>
-      <tbody>{"" if reg_rows else "<tr><td colspan=7 style='text-align:center;color:#94A3B8;padding:20px'>No registered guides yet</td></tr>"}{reg_rows}</tbody></table>
-      {reg_pager}
-    </div>'''
+
+      <div id="guides-docs" class="tab-pane {"active" if tab=="docs" else ""}">
+        <div style="padding:16px 0 8px;font-size:13px;color:#6B7280">
+          Review uploaded guide licenses and permits. Use AI Review to automatically extract and verify document details.
+        </div>
+        {doc_table}
+      </div>
+    </div></div>
+
+    <div id="ai-result-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:14px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+        <div style="background:#0038A8;padding:20px 24px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:800;font-size:16px;color:#fff">&#129302; AI Document Review</div>
+          <button onclick="document.getElementById('ai-result-modal').style.display='none'" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:16px">&#x2715;</button>
+        </div>
+        <div id="ai-result-body" style="padding:24px">
+          <div style="text-align:center;color:#94A3B8;padding:20px">Running AI review...</div>
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid #E2E8F0;display:flex;gap:8px;justify-content:flex-end" id="ai-action-btns" style="display:none">
+        </div>
+      </div>
+    </div>
+
+    <script>
+    function runAIReview(guideId, btn) {{
+      btn.disabled = true;
+      btn.textContent = "Reviewing...";
+      document.getElementById("ai-result-modal").style.display = "flex";
+      document.getElementById("ai-result-body").innerHTML = '<div style="text-align:center;padding:32px"><div style="font-size:36px;margin-bottom:12px">&#129302;</div><div style="color:#6B7280;font-size:14px">Analyzing document with AI...</div></div>';
+      document.getElementById("ai-action-btns").style.display = "none";
+      fetch("/admin/guides/ai-review/" + guideId, {{method:"POST"}})
+        .then(r => r.json())
+        .then(data => {{
+          btn.disabled = false;
+          btn.textContent = "&#129302; AI Review";
+          var html = "";
+          if (data.error) {{
+            html = '<div style="background:#FEF2F2;border-radius:8px;padding:16px;color:#DC2626">' + data.error + "</div>";
+          }} else {{
+            var flagged = data.suspicious ? "&#9888; <strong>Suspicious — may be fake or tampered</strong>" : "&#10003; <strong>Document appears legitimate</strong>";
+            var flagColor = data.suspicious ? "#991B1B" : "#065F46";
+            var flagBg    = data.suspicious ? "#FEF2F2" : "#ECFDF5";
+            html = '<div style="background:' + flagBg + ';border-radius:8px;padding:12px 16px;margin-bottom:16px;color:' + flagColor + ';font-size:14px">' + flagged + "</div>";
+            html += "<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px'>";
+            var fields = [["Name on document", data.name], ["License number", data.license_number], ["Expiry date", data.expiry], ["Document type", data.doc_type]];
+            fields.forEach(function(f) {{
+              html += "<div style='background:#F8FAFC;border-radius:8px;padding:10px;border:1px solid #E2E8F0'><div style='font-size:11px;color:#94A3B8;text-transform:uppercase;margin-bottom:4px'>" + f[0] + "</div><div style='font-weight:700;font-size:13px;color:#1F2937'>" + (f[1] || "<em style='color:#D1D5DB'>Not found</em>") + "</div></div>";
+            }});
+            html += "</div>";
+            if (data.notes) html += "<div style='font-size:13px;color:#4B5563;background:#F1F5F9;border-radius:8px;padding:12px;line-height:1.6'><strong>Notes:</strong> " + data.notes + "</div>";
+          }}
+          document.getElementById("ai-result-body").innerHTML = html;
+          var actBtns = document.getElementById("ai-action-btns");
+          actBtns.style.display = "flex";
+          actBtns.innerHTML = '<a href="/admin/guides/doc-approve/' + guideId + '"><button style="padding:9px 20px;background:#059669;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">&#10003; Approve</button></a>'
+                            + '<a href="/admin/guides/doc-reject/' + guideId + '"><button style="padding:9px 20px;background:#DC2626;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">&#10007; Reject</button></a>'
+                            + '<button onclick="document.getElementById(\'ai-result-modal\').style.display=\'none\'" style="padding:9px 20px;background:#F3F4F6;color:#374151;border:none;border-radius:8px;font-weight:600;cursor:pointer">Close</button>';
+        }})
+        .catch(function(e) {{
+          btn.disabled = false;
+          btn.textContent = "&#129302; AI Review";
+          document.getElementById("ai-result-body").innerHTML = '<div style="color:#DC2626;padding:16px">Error contacting AI service. Please try again.</div>';
+        }});
+    }}
+    </script>'''
     return shell("Tour Guides", body, "guides", admin)
 
 # ── TRANSPORTATION ──

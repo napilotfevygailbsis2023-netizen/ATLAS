@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from template import build_shell
+from tourist_ui import build_shell
 
 HIGHLIGHTS = [
     {"name":"Intramuros",      "city":"Manila",       "color":"#0038A8","cat":"Historical","icon":"HIST"},

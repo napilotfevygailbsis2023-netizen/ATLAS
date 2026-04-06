@@ -1,5 +1,9 @@
 import hashlib, secrets
 try:
+    import bcrypt
+except ImportError:
+    raise ImportError("bcrypt is not installed. Run: pip install bcrypt")
+try:
     import mysql.connector
     from mysql.connector import IntegrityError
 except ImportError:
@@ -15,7 +19,15 @@ def _cursor(conn):
     return conn.cursor(dictionary=True)
 
 def hash_pw(p):
-    return hashlib.sha256(p.encode()).hexdigest()
+    """Hash a password with bcrypt (salted). Returns a str for DB storage."""
+    return bcrypt.hashpw(p.encode(), bcrypt.gensalt()).decode()
+
+def check_pw(plain, hashed):
+    """Verify a plain password against a bcrypt or legacy SHA-256 hash."""
+    try:
+        return bcrypt.checkpw(plain.encode(), hashed.encode())
+    except Exception:
+        return hashlib.sha256(plain.encode()).hexdigest() == hashed
 
 def init_guide_tables():
     conn = get_conn(); cur = _cursor(conn)
@@ -33,7 +45,13 @@ def init_guide_tables():
             bio          TEXT,
             rate         VARCHAR(100) DEFAULT 'P1,500/day',
             availability VARCHAR(200) DEFAULT 'Mon-Sun',
+            avail_note   VARCHAR(500) DEFAULT '',
             photo_url    VARCHAR(500) DEFAULT '',
+            doc_url      VARCHAR(500) DEFAULT '',
+            doc_status   VARCHAR(20)  DEFAULT 'none',
+            doc_ai_notes TEXT,
+            totp_secret  VARCHAR(64)  DEFAULT '',
+            totp_enabled TINYINT(1)   DEFAULT 0,
             status       VARCHAR(20)  DEFAULT 'active',
             created      DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
@@ -43,6 +61,23 @@ def init_guide_tables():
         conn.commit()
     except Exception:
         pass  # Column already exists
+    try:
+        cur.execute("ALTER TABLE tour_guides ADD COLUMN avail_note VARCHAR(500) DEFAULT ''")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+    for _col, _defn in [
+        ("doc_url",      "VARCHAR(500) DEFAULT ''"),
+        ("doc_status",   "VARCHAR(20) DEFAULT 'none'"),
+        ("doc_ai_notes", "TEXT"),
+        ("totp_secret",  "VARCHAR(64) DEFAULT ''"),
+        ("totp_enabled", "TINYINT(1) DEFAULT 0"),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE tour_guides ADD COLUMN {_col} {_defn}")
+            conn.commit()
+        except Exception:
+            pass
     cur.execute("""
         CREATE TABLE IF NOT EXISTS guide_sessions (
             token    VARCHAR(64) PRIMARY KEY,
@@ -176,10 +211,16 @@ def register_guide(fname, lname, email, password, phone, city):
 
 def login_guide(email, password):
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("SELECT * FROM tour_guides WHERE email=%s AND password=%s",
-                (email.strip().lower(), hash_pw(password)))
+    cur.execute("SELECT * FROM tour_guides WHERE email=%s",
+                (email.strip().lower(),))
     guide = cur.fetchone(); cur.close(); conn.close()
-    if not guide: return False, None, None
+    if not guide or not check_pw(password, guide["password"]):
+        return False, None, None
+    # Re-hash with bcrypt if guide still has a legacy SHA-256 hash
+    if not guide["password"].startswith("$2"):
+        conn2 = get_conn(); cur2 = _cursor(conn2)
+        cur2.execute("UPDATE tour_guides SET password=%s WHERE id=%s", (hash_pw(password), guide["id"]))
+        conn2.commit(); cur2.close(); conn2.close()
     token = secrets.token_hex(32)
     conn = get_conn(); cur = _cursor(conn)
     cur.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (%s,%s)", (token, guide["id"]))
@@ -191,10 +232,20 @@ def get_guide_by_token(token):
     try:
         conn = get_conn(); cur = _cursor(conn)
         cur.execute("""SELECT g.* FROM tour_guides g
-            JOIN guide_sessions s ON s.guide_id=g.id WHERE s.token=%s""", (token,))
+            JOIN guide_sessions s ON s.guide_id=g.id
+            WHERE s.token=%s
+            AND s.created > NOW() - INTERVAL 24 HOUR""", (token,))
         row = cur.fetchone(); cur.close(); conn.close()
         return row
     except: return None
+
+def purge_expired_guide_sessions():
+    """Delete guide sessions older than 24 hours. Call periodically on startup."""
+    try:
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("DELETE FROM guide_sessions WHERE created < NOW() - INTERVAL 24 HOUR")
+        conn.commit(); cur.close(); conn.close()
+    except: pass
 
 def logout_guide(token):
     try:
@@ -339,5 +390,35 @@ def get_public_guides(city=None):
         cur.execute("SELECT * FROM tour_guides WHERE status='active' ORDER BY id DESC")
     rows = cur.fetchall(); cur.close(); conn.close()
     return rows
+
+# ── Document validation ──────────────────────────────────────────────────────
+def save_guide_doc(guide_id, doc_url):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE tour_guides SET doc_url=%s, doc_status='pending', doc_ai_notes='' WHERE id=%s",
+                (doc_url, guide_id))
+    conn.commit(); cur.close(); conn.close()
+
+def update_doc_status(guide_id, status, ai_notes=""):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE tour_guides SET doc_status=%s, doc_ai_notes=%s WHERE id=%s",
+                (status, ai_notes, guide_id))
+    conn.commit(); cur.close(); conn.close()
+
+def get_guides_with_pending_docs():
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT * FROM tour_guides WHERE doc_status='pending' ORDER BY created DESC")
+    rows = cur.fetchall(); cur.close(); conn.close()
+    return rows
+
+# ── Guide 2FA ────────────────────────────────────────────────────────────────
+def set_guide_totp_secret(guide_id, secret):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE tour_guides SET totp_secret=%s WHERE id=%s", (secret, guide_id))
+    conn.commit(); cur.close(); conn.close()
+
+def enable_guide_totp(guide_id, enabled: bool):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE tour_guides SET totp_enabled=%s WHERE id=%s", (1 if enabled else 0, guide_id))
+    conn.commit(); cur.close(); conn.close()
 
 init_guide_tables()
