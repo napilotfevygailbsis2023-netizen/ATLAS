@@ -6,13 +6,17 @@ import login, register, db
 import admin_login, admin_panel, admin_db
 import guide_portal
 import profile as profile_page, guide_db
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
+GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
 PORT = int(os.environ.get("PORT", 5000))
 BASE = os.path.dirname(os.path.abspath(__file__))
 CSS  = os.path.join(BASE, "css", "styles.css")
 
-***REMOVED***
-***REMOVED***
+
 GOOGLE_REDIRECT_URI  = "http://localhost:5000/auth/google/callback"
 
 # ── CSRF helpers ──────────────────────────────────────────
