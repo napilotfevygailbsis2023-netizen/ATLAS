@@ -496,6 +496,11 @@ def google_login_or_register(email, fname, lname, photo_url=""):
         conn.commit()
         cur.execute("SELECT * FROM users WHERE email=%s", (email,))
         user = cur.fetchone()
+    else:
+        if photo_url:
+            cur.execute("UPDATE users SET photo_url=%s WHERE email=%s", (photo_url, email))
+            conn.commit()
+            user["photo_url"] = photo_url
     if not user or user.get("status") == "suspended":
         cur.close(); conn.close()
         return None, None
@@ -503,6 +508,11 @@ def google_login_or_register(email, fname, lname, photo_url=""):
     cur.execute("INSERT INTO sessions (token,user_id) VALUES (%s,%s)", (token, user["id"]))
     conn.commit(); cur.close(); conn.close()
     return token, user
+
+# Alias used by main.py Google OAuth callback
+def login_or_create_google_user(email: str, fname: str, lname: str, photo_url: str = "") -> str | None:
+    token, _ = google_login_or_register(email, fname, lname, photo_url)
+    return token
 
 # ── INIT ── (called at module load)
 init_db()

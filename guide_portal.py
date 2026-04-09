@@ -78,21 +78,156 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
     </div>
     <div style="font-size:13px;color:#6B7280">ATLAS Tour Guide Management</div>
   </div>
-  <div class="tab-row">
-    <a href="/guide" class="tab active">Log In</a>
-    <a href="/guide/register" class="tab">Register</a>
-  </div>
-  <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:6px">Welcome back!</div>
-  <div style="font-size:14px;color:#6B7280;margin-bottom:24px">Sign in to your guide account</div>
   {err}{suc}
-  <form method="post" action="/guide/login">
-    <div class="field"><label>Email Address</label><input type="email" name="email" placeholder="yourname@email.com" required/></div>
-    <div class="field"><label>Password</label><input type="password" name="password" placeholder="Enter your password" required/></div>
-    <button class="submit-btn" type="submit">Log In &#8594;</button>
-  </form>
-  <div style="text-align:center;margin-top:24px;font-size:13px;color:#6B7280">
-    Don't have an account? <a href="/guide/register" style="color:#0038A8;font-weight:700">Register as Guide</a>
+
+  <!-- Step 1: Email -->
+  <div id="step-email">
+    <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:4px">Welcome!</div>
+    <div style="font-size:14px;color:#6B7280;margin-bottom:24px">Sign in or create your guide account</div>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Email Address</label>
+      <input id="guide-email-input" type="email" placeholder="yourname@gmail.com"
+        style="width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB;box-sizing:border-box"
+        onfocus="this.style.borderColor='#0038A8';this.style.boxShadow='0 0 0 3px rgba(0,56,168,.08)'"
+        onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none'"/>
+      <div id="email-error" style="color:#DC2626;font-size:12px;margin-top:6px;display:none">Please enter a valid email address.</div>
+    </div>
+    <button onclick="goToPassword()" style="width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px">
+      Continue &rarr;
+    </button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="flex:1;height:1px;background:#E2E8F0"></div>
+      <span style="font-size:12px;color:#94A3B8;white-space:nowrap">or</span>
+      <div style="flex:1;height:1px;background:#E2E8F0"></div>
+    </div>
+    <a href="/auth/google?next=guide" id="google-btn" style="display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px;border:1.5px solid #E2E8F0;border-radius:12px;background:#fff;font-size:15px;font-weight:700;color:#1F2937;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.06)" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='#fff'">
+      <svg width="22" height="22" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Continue with Google
+    </a>
   </div>
+
+  <!-- Step 2: Password -->
+  <div id="step-password" style="display:none">
+    <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:6px" id="pw-title">Create a password</div>
+    <div style="font-size:13px;color:#6B7280;margin-bottom:20px" id="pw-subtitle">You'll use this password to log in to your guide account</div>
+    <div style="background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between">
+      <span id="display-email" style="font-size:14px;color:#1F2937;font-weight:600"></span>
+      <button onclick="editEmail()" style="background:none;border:none;color:#0038A8;font-size:13px;font-weight:600;cursor:pointer">Edit</button>
+    </div>
+    <!-- Name fields — only shown for new guides -->
+    <div id="name-fields" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">First Name</label>
+          <input id="guide-fname" type="text" placeholder="Juan"
+            style="width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB;box-sizing:border-box"
+            onfocus="this.style.borderColor='#0038A8'" onblur="this.style.borderColor='#E5E7EB'"/>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Last Name</label>
+          <input id="guide-lname" type="text" placeholder="Dela Cruz"
+            style="width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB;box-sizing:border-box"
+            onfocus="this.style.borderColor='#0038A8'" onblur="this.style.borderColor='#E5E7EB'"/>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;position:relative">
+      <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px" id="pw-label">Password</label>
+      <input id="guide-pw-input" type="password" placeholder="Min. 6 characters"
+        style="width:100%;padding:13px 16px;padding-right:48px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB;box-sizing:border-box"
+        onfocus="this.style.borderColor='#0038A8';this.style.boxShadow='0 0 0 3px rgba(0,56,168,.08)'"
+        onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none'"/>
+      <button type="button" onclick="togglePw()" style="position:absolute;right:14px;top:38px;background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:18px">&#128065;</button>
+      <div id="pw-error" style="color:#DC2626;font-size:12px;margin-top:6px;display:none"></div>
+    </div>
+    <form id="login-form" method="post" action="/guide/login" style="display:none">
+      <input type="hidden" name="email" id="form-email"/>
+      <input type="hidden" name="password" id="form-password"/>
+      <input type="hidden" name="fname" id="form-fname"/>
+      <input type="hidden" name="lname" id="form-lname"/>
+    </form>
+    <button onclick="submitPassword()" style="width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">
+      Continue &rarr;
+    </button>
+  </div>
+
+  <script>
+  var _isNewGuide = false;
+
+  function goToPassword() {{
+    var email = document.getElementById("guide-email-input").value.trim();
+    var errEl = document.getElementById("email-error");
+    if (!email || !email.includes("@") || !email.includes(".")) {{
+      errEl.style.display = "block"; return;
+    }}
+    errEl.style.display = "none";
+    document.getElementById("display-email").textContent = email;
+    document.getElementById("form-email").value = email;
+    // Check if guide exists via fetch
+    fetch("/guide/check-email?email=" + encodeURIComponent(email))
+      .then(function(r){{ return r.json(); }})
+      .then(function(d){{
+        _isNewGuide = !d.exists;
+        if (_isNewGuide) {{
+          document.getElementById("pw-title").textContent = "Create a password";
+          document.getElementById("pw-subtitle").textContent = "You'll use this password to log in to your guide account";
+          document.getElementById("pw-label").textContent = "Password";
+          document.getElementById("name-fields").style.display = "block";
+        }} else {{
+          document.getElementById("pw-title").textContent = "Welcome back!";
+          document.getElementById("pw-subtitle").textContent = "Enter your password to continue";
+          document.getElementById("pw-label").textContent = "Password";
+          document.getElementById("name-fields").style.display = "none";
+        }}
+        document.getElementById("step-email").style.display = "none";
+        document.getElementById("step-password").style.display = "block";
+      }}).catch(function(){{
+        document.getElementById("step-email").style.display = "none";
+        document.getElementById("step-password").style.display = "block";
+      }});
+  }}
+
+  function editEmail() {{
+    document.getElementById("step-password").style.display = "none";
+    document.getElementById("step-email").style.display = "block";
+  }}
+
+  function togglePw() {{
+    var inp = document.getElementById("guide-pw-input");
+    inp.type = inp.type === "password" ? "text" : "password";
+  }}
+
+  function submitPassword() {{
+    var pw = document.getElementById("guide-pw-input").value;
+    var errEl = document.getElementById("pw-error");
+    if (_isNewGuide) {{
+      var fname = document.getElementById("guide-fname").value.trim();
+      var lname = document.getElementById("guide-lname").value.trim();
+      if (!fname || !lname) {{
+        errEl.textContent = "Please enter your first and last name.";
+        errEl.style.display = "block"; return;
+      }}
+      document.getElementById("form-fname").value = fname;
+      document.getElementById("form-lname").value = lname;
+    }}
+    if (!pw || pw.length < 6) {{
+      errEl.textContent = "Password must be at least 6 characters.";
+      errEl.style.display = "block"; return;
+    }}
+    errEl.style.display = "none";
+    document.getElementById("form-password").value = pw;
+    document.getElementById("login-form").style.display = "block";
+    document.getElementById("login-form").submit();
+  }}
+
+  document.getElementById("guide-email-input").addEventListener("keydown", function(e) {{
+    if (e.key === "Enter") goToPassword();
+  }});
+  document.getElementById("google-btn").addEventListener("click", function() {{
+    var email = document.getElementById("guide-email-input").value.trim();
+    if (email) this.href = "/auth/google?next=guide&login_hint=" + encodeURIComponent(email);
+  }});
+  </script>
 </div>
 </body></html>"""
 
@@ -270,6 +405,35 @@ document.getElementById('gverify-form').addEventListener('submit', function(e) {
 }});
 </script>
 </body></html>"""
+
+def handle_login(form):
+    import guide_db as _gdb
+    email    = form.get("email","").strip().lower()
+    password = form.get("password","").strip()
+    fname    = form.get("fname","").strip()
+    lname    = form.get("lname","").strip()
+    if not email or not password:
+        return {"error": "Please fill in all fields."}
+    guide = _gdb.get_guide_by_email(email)
+    if not guide:
+        # New guide — require name
+        if not fname or not lname:
+            return {"error": "Please enter your first and last name."}
+        ok, msg = _gdb.register_guide(fname, lname, email, password, "", "Manila")
+        if not ok:
+            return {"error": msg}
+        guide = _gdb.get_guide_by_email(email)
+        if not guide:
+            return {"error": "Account creation failed. Please try again."}
+        token = _gdb.create_guide_session(guide["id"])
+        return {"token": token, "new": True}
+    # Existing guide — check password
+    if not _gdb.check_pw(password, guide["password"]):
+        return {"error": "Incorrect password. Please try again."}
+    if guide.get("status") == "suspended":
+        return {"error": "Your account has been suspended. Contact support."}
+    token = _gdb.create_guide_session(guide["id"])
+    return {"token": token}
 
 # ─────────────────────── DASHBOARD ───────────────────────
 def render_dashboard(guide, msg="", err=""):
@@ -544,7 +708,7 @@ def render_profile(guide, msg="", err=""):
     if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px">&#10003; {msg}</div>'
     if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px">&#9888; {err}</div>'
     photo_url = guide.get("photo_url","")
-    initials  = (guide.get("fname","?")[0]+guide.get("lname","?")[0]).upper()
+    initials  = ((guide.get("fname") or "G")[:1] + (guide.get("lname") or "?")[:1]).upper()
     doc_url    = guide.get("doc_url","")
     doc_status = guide.get("doc_status","none")
     doc_notes  = guide.get("doc_ai_notes","") or ""

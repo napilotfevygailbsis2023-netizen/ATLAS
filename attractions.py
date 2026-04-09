@@ -1,3 +1,5 @@
+"attraction"
+
 import sys, os, urllib.request, urllib.parse, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from tourist_ui import build_shell

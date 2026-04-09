@@ -81,7 +81,7 @@ def render(location="Manila", user=None):
     today     = datetime.date.today()
     today_str = today.strftime("%A, %B %d, %Y")
     day_labels = ["Today"]+[(today+datetime.timedelta(days=i)).strftime("%a %b %d") for i in range(1,7)]
-    loc_opts   = "".join(f'<option {"selected" if k==location else ""}>{k}</option>' for k in CITIES)
+    # loc_opts removed — unified text search replaces the dropdown
 
     fc_cells = "".join(f"""
     <div class="fc-day">
@@ -118,40 +118,57 @@ def render(location="Manila", user=None):
         <div class="section-sub">Live weather across all Luzon provinces &mdash; {today_str}</div>
       </div>
 
-      <!-- Auto-detect banner -->
-      <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div>
-          <div style="font-weight:700;font-size:14px;color:#1E40AF;margin-bottom:2px">&#127757; Auto-detect your nearest city</div>
-          <div style="font-size:13px;color:#3B82F6">Click to show weather for the Luzon city closest to you.</div>
+      <!-- ── UNIFIED SEARCH BAR ── -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-hdr" style="background:#0038A8"><span>Search City / Province</span></div>
+        <div class="card-body">
+          <form method="get" id="wx-search-form" autocomplete="off"
+                style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+            <div style="flex:1;min-width:220px;position:relative">
+              <label class="lbl">Type a city or use GPS 📍</label>
+              <div style="display:flex;gap:8px">
+                <input class="inp" id="wx-city-input" name="location"
+                       list="wx-city-list"
+                       placeholder="e.g. Manila, Baguio, Vigan…"
+                       value="{location}"
+                       style="flex:1"/>
+                <datalist id="wx-city-list">
+                  {''.join(f'<option value="{c}"/>' for c in CITIES)}
+                </datalist>
+                <button type="button" id="detect-btn"
+                        onclick="detectCity()"
+                        title="Detect my nearest city"
+                        style="background:#0038A8;color:#fff;border:none;border-radius:8px;
+                               padding:0 14px;font-size:18px;cursor:pointer;
+                               display:flex;align-items:center;gap:6px;white-space:nowrap;
+                               height:42px;flex-shrink:0">
+                  &#128205; <span style="font-size:13px;font-weight:700">Detect</span>
+                </button>
+              </div>
+              <div id="wx-suggestions"
+                   style="display:none;position:absolute;top:100%;left:0;right:0;
+                          background:#fff;border:1px solid #E5E7EB;border-radius:8px;
+                          box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:200;overflow:hidden">
+              </div>
+            </div>
+            <button class="btn" style="background:#CE1126;color:#fff;
+                                       display:inline-flex;align-items:center;gap:6px;
+                                       height:42px;padding:0 20px;white-space:nowrap" type="submit">
+              {SUN_ICON} Get Forecast
+            </button>
+          </form>
+          <div id="detect-status" style="margin-top:8px;font-size:13px;color:#0038A8;display:none"></div>
         </div>
-        <button onclick="detectCity()" style="background:#0038A8;color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
-          &#128205; Detect My City
-        </button>
       </div>
 
       <!-- All-cities overview — cards rendered by JS after page loads -->
       <div class="card" style="margin-bottom:20px">
         <div class="card-hdr" style="background:#0038A8">
           <span>All Luzon Provinces — Live Weather</span>
-          <span id="all-cities-status" style="font-size:12px;opacity:.75;margin-left:10px">Loading...</span>
+          <span id="all-cities-status" style="font-size:12px;opacity:.75;margin-left:10px">Loading…</span>
         </div>
         <div id="all-cities-grid" style="padding:16px;display:flex;flex-wrap:wrap;gap:10px;min-height:80px;align-items:center">
-          <!-- skeleton placeholders shown while JS fetches -->
-          {''.join(f'<div style="flex:1;min-width:130px;height:100px;background:linear-gradient(135deg,#0038A8,#1565C0);border-radius:12px;opacity:.35;animation:pulse 1.4s ease-in-out infinite"></div>' for _ in CITIES)}
-        </div>
-      </div>
-
-      <!-- Detailed city selector -->
-      <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#0038A8"><span>Detailed Forecast &mdash; Select City</span></div>
-        <div class="card-body">
-          <form method="get" style="display:flex;gap:14px;align-items:flex-end">
-            <div style="flex:1"><label class="lbl">City / Province</label>
-              <select class="inp" name="location">{loc_opts}</select></div>
-            <button class="btn" style="background:#0038A8;color:#fff;display:inline-flex;align-items:center;gap:6px" type="submit">
-              {SUN_ICON} Get Forecast
-            </button>
-          </form>
+          {''.join(f'<div data-city="{c}" style="flex:1;min-width:130px;height:100px;background:linear-gradient(135deg,#0038A8,#1565C0);border-radius:12px;opacity:.35;animation:pulse 1.4s ease-in-out infinite"></div>' for c in CITIES)}
         </div>
       </div>
 
@@ -189,44 +206,167 @@ def render(location="Manila", user=None):
     </style>
 
     <script>
-    var OWM_KEY   = "{API_KEY}";
-    var CITIES    = {_json.dumps(CITIES)};
-    var CQ        = {city_queries_js};
-    var COND_BG   = {cond_bg_js};
-    var ICONS     = {icons_js};
+    var OWM_KEY      = "{API_KEY}";
+    var CITIES       = {_json.dumps(CITIES)};
+    var CQ           = {city_queries_js};
+    var COND_BG      = {cond_bg_js};
+    var ICONS        = {icons_js};
     var LUZON_COORDS = {js_coords};
     var _done = 0;
 
-    // Fetch one city then render its card immediately (no waiting for others)
+    /* ── Haversine distance (km) ── */
+    function haversine(lat1, lon1, lat2, lon2) {{
+      var R = 6371;
+      var dLat = (lat2 - lat1) * Math.PI / 180;
+      var dLon = (lon2 - lon1) * Math.PI / 180;
+      var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+              Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+              Math.sin(dLon/2)*Math.sin(dLon/2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }}
+
+    /* ── Detect nearest city ── */
+    function detectCity() {{
+      var btn    = document.getElementById('detect-btn');
+      var status = document.getElementById('detect-status');
+      if (!navigator.geolocation) {{
+        showToast('❌ Geolocation is not supported by your browser.');
+        return;
+      }}
+      btn.disabled = true;
+      btn.innerHTML = '⏳ <span style="font-size:13px;font-weight:700">Locating…</span>';
+      status.style.display = 'block';
+      status.textContent   = '📍 Requesting your location…';
+
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {{
+          var lat = pos.coords.latitude;
+          var lng = pos.coords.longitude;
+          var nearest = null, minD = Infinity;
+          for (var city in LUZON_COORDS) {{
+            var c = LUZON_COORDS[city];
+            var d = haversine(lat, lng, c[0], c[1]);
+            if (d < minD) {{ minD = d; nearest = city; }}
+          }}
+          if (nearest) {{
+            status.textContent = '🌡️ Nearest city: ' + nearest + ' (' + Math.round(minD) + ' km away) — loading…';
+            document.getElementById('wx-city-input').value = nearest;
+            setTimeout(function() {{
+              document.getElementById('wx-search-form').submit();
+            }}, 700);
+          }} else {{
+            status.textContent = '⚠️ Could not match a nearby city.';
+            btn.disabled = false;
+            btn.innerHTML = '📍 <span style="font-size:13px;font-weight:700">Detect</span>';
+          }}
+        }},
+        function(err) {{
+          var msg = {{
+            1: 'Location permission denied. Please allow access in your browser settings.',
+            2: 'Location unavailable. Try again or search manually.',
+            3: 'Location request timed out. Try again.'
+          }}[err.code] || 'Could not detect location.';
+          status.textContent = '❌ ' + msg;
+          btn.disabled = false;
+          btn.innerHTML = '📍 <span style="font-size:13px;font-weight:700">Detect</span>';
+        }},
+        {{ timeout: 10000, maximumAge: 60000, enableHighAccuracy: false }}
+      );
+    }}
+
+    /* ── Autocomplete suggestions ── */
+    var _input = document.getElementById('wx-city-input');
+    var _sbox  = document.getElementById('wx-suggestions');
+    _input.addEventListener('input', function() {{
+      var q = this.value.trim().toLowerCase();
+      _sbox.innerHTML = '';
+      if (q.length < 1) {{ _sbox.style.display = 'none'; return; }}
+      var matches = CITIES.filter(function(c) {{
+        return c.toLowerCase().indexOf(q) !== -1;
+      }});
+      if (!matches.length) {{ _sbox.style.display = 'none'; return; }}
+      matches.forEach(function(c) {{
+        var item = document.createElement('div');
+        item.textContent = c;
+        item.style.cssText = 'padding:10px 14px;cursor:pointer;font-size:14px;color:#1F2937;' +
+                             'border-bottom:1px solid #F3F4F6';
+        item.onmouseover = function() {{ this.style.background = '#EFF6FF'; }};
+        item.onmouseout  = function() {{ this.style.background = ''; }};
+        item.onclick     = function() {{
+          _input.value = c;
+          _sbox.style.display = 'none';
+          document.getElementById('wx-search-form').submit();
+        }};
+        _sbox.appendChild(item);
+      }});
+      _sbox.style.display = 'block';
+    }});
+    document.addEventListener('click', function(e) {{
+      if (!_sbox.contains(e.target) && e.target !== _input)
+        _sbox.style.display = 'none';
+    }});
+
+    /* ── Validate form — only accept known cities ── */
+    document.getElementById('wx-search-form').addEventListener('submit', function(e) {{
+      var val = _input.value.trim();
+      if (CITIES.indexOf(val) === -1) {{
+        e.preventDefault();
+        _sbox.innerHTML = '';
+        var matches = CITIES.filter(function(c) {{
+          return c.toLowerCase().indexOf(val.toLowerCase()) !== -1;
+        }});
+        if (matches.length) {{
+          matches.forEach(function(c) {{
+            var item = document.createElement('div');
+            item.textContent = c;
+            item.style.cssText = 'padding:10px 14px;cursor:pointer;font-size:14px;color:#1F2937;' +
+                                 'border-bottom:1px solid #F3F4F6';
+            item.onmouseover = function() {{ this.style.background = '#EFF6FF'; }};
+            item.onmouseout  = function() {{ this.style.background = ''; }};
+            item.onclick     = function() {{
+              _input.value = c;
+              _sbox.style.display = 'none';
+              document.getElementById('wx-search-form').submit();
+            }};
+            _sbox.appendChild(item);
+          }});
+          _sbox.style.display = 'block';
+          showToast('Please select a city from the list.');
+        }} else {{
+          showToast('City not found. Try: ' + CITIES.slice(0,4).join(', ') + '…');
+        }}
+      }}
+    }});
+
+    /* ── All-cities live cards ── */
     function fetchOneCity(city) {{
       var q   = CQ[city] || city + ',PH';
-      var url = 'https://api.openweathermap.org/data/2.5/weather?q=' + encodeURIComponent(q) + '&appid=' + OWM_KEY + '&units=metric';
+      var url = 'https://api.openweathermap.org/data/2.5/weather?q=' +
+                encodeURIComponent(q) + '&appid=' + OWM_KEY + '&units=metric';
       fetch(url)
-        .then(function(r){{ return r.json(); }})
-        .then(function(d){{
+        .then(function(r) {{ return r.json(); }})
+        .then(function(d) {{
           var cond = d.weather[0].main;
           var icon = ICONS[cond] || '☀️';
           var bg   = COND_BG[cond] || COND_BG['default'];
           var temp = Math.round(d.main.temp) + '°C';
           var hum  = d.main.humidity + '%';
           var wind = Math.round(d.wind.speed * 3.6) + ' km/h';
-          var desc = d.weather[0].description.replace(/\\b\\w/g,function(c){{return c.toUpperCase();}});
+          var desc = d.weather[0].description.replace(/\b\w/g, function(c) {{ return c.toUpperCase(); }});
           renderCityCard(city, icon, bg, temp, hum, wind, desc);
         }})
-        .catch(function(){{
+        .catch(function() {{
           renderCityCard(city, '☀️', COND_BG['default'], '--', '--', '--', 'N/A');
         }});
     }}
 
     function renderCityCard(city, icon, bg, temp, hum, wind, desc) {{
       _done++;
-      // Find and replace the skeleton for this city's position
-      var idx = CITIES.indexOf(city);
       var grid = document.getElementById('all-cities-grid');
-      var skeletons = grid.querySelectorAll('div[style*="animation"]');
-      if (skeletons[idx]) {{
-        skeletons[idx].outerHTML =
-          '<div style="background:' + bg + ';border-radius:12px;padding:14px 16px;cursor:pointer;' +
+      var slot = grid.querySelector('[data-city="' + city + '"]');
+      if (slot) {{
+        slot.outerHTML =
+          '<div data-city="' + city + '" style="background:' + bg + ';border-radius:12px;padding:14px 16px;cursor:pointer;' +
           'transition:transform .2s,box-shadow .2s;min-width:130px;flex:1" ' +
           'onclick="location.href=\'/weather.py?location=' + encodeURIComponent(city) + '\'" ' +
           'onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 8px 24px rgba(0,0,0,.2)\'" ' +
@@ -242,34 +382,15 @@ def render(location="Manila", user=None):
       if (status) {{
         if (_done >= CITIES.length) {{
           status.textContent = 'All cities updated ✓';
-          setTimeout(function(){{ status.style.opacity='0'; }}, 2000);
+          setTimeout(function() {{ status.style.opacity = '0'; }}, 2000);
         }} else {{
-          status.textContent = _done + '/' + CITIES.length + ' loaded...';
+          status.textContent = _done + '/' + CITIES.length + ' loaded…';
         }}
       }}
     }}
 
-    // Fire all city fetches in parallel after page has rendered
     window.addEventListener('load', function() {{
       CITIES.forEach(function(city) {{ fetchOneCity(city); }});
     }});
-
-    function detectCity() {{
-      if (!navigator.geolocation) {{ showToast('Geolocation not supported.'); return; }}
-      showToast('📍 Detecting your nearest city...');
-      navigator.geolocation.getCurrentPosition(function(pos) {{
-        var lat = pos.coords.latitude, lng = pos.coords.longitude;
-        var nearest = null, minD = Infinity;
-        for (var city in LUZON_COORDS) {{
-          var c = LUZON_COORDS[city];
-          var d = Math.sqrt(Math.pow(lat-c[0],2)+Math.pow(lng-c[1],2));
-          if (d < minD) {{ minD = d; nearest = city; }}
-        }}
-        if (nearest) {{
-          showToast('🌡️ Nearest: ' + nearest + ' — loading...');
-          setTimeout(function(){{ location.href = '/weather.py?location=' + encodeURIComponent(nearest); }}, 800);
-        }}
-      }}, function() {{ showToast('Could not detect location. Please allow access.'); }});
-    }}
     </script>"""
     return build_shell("Weather", body, "weather", user=user)

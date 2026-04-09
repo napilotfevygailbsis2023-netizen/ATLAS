@@ -52,7 +52,7 @@ def init_guide_tables():
             doc_ai_notes TEXT,
             totp_secret  VARCHAR(64)  DEFAULT '',
             totp_enabled TINYINT(1)   DEFAULT 0,
-            status       VARCHAR(20)  DEFAULT 'active',
+            status       VARCHAR(20)  DEFAULT 'pending',
             created      DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
@@ -200,7 +200,7 @@ def activate_guide(email, code):
 def register_guide(fname, lname, email, password, phone, city):
     try:
         conn = get_conn(); cur = _cursor(conn)
-        cur.execute("INSERT INTO tour_guides (fname,lname,email,password,phone,city) VALUES (%s,%s,%s,%s,%s,%s)",
+        cur.execute("INSERT INTO tour_guides (fname,lname,email,password,phone,city,status) VALUES (%s,%s,%s,%s,%s,%s,'pending')",
                     (fname.strip(), lname.strip(), email.strip().lower(), hash_pw(password), phone.strip(), city))
         conn.commit(); cur.close(); conn.close()
         return True, "Account created!"
@@ -226,6 +226,28 @@ def login_guide(email, password):
     cur.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (%s,%s)", (token, guide["id"]))
     conn.commit(); cur.close(); conn.close()
     return True, token, guide
+
+def get_guide_by_email(email):
+    """Return a guide row by email address (any status), or None if not found."""
+    if not email: return None
+    try:
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("SELECT * FROM tour_guides WHERE email=%s",
+                    (email.strip().lower(),))
+        row = cur.fetchone(); cur.close(); conn.close()
+        return row
+    except: return None
+
+def create_guide_session(guide_id):
+    """Create a new session token for a guide and return it."""
+    try:
+        token = secrets.token_hex(32)
+        conn = get_conn(); cur = _cursor(conn)
+        cur.execute("INSERT INTO guide_sessions (token, guide_id) VALUES (%s, %s)",
+                    (token, guide_id))
+        conn.commit(); cur.close(); conn.close()
+        return token
+    except: return None
 
 def get_guide_by_token(token):
     if not token: return None
@@ -261,10 +283,11 @@ def get_guide_by_id(gid):
     return row
 
 def update_guide_profile(gid, data):
+    """Update guide profile — fname and lname are intentionally excluded (locked at signup)."""
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("""UPDATE tour_guides SET fname=%s,lname=%s,phone=%s,city=%s,languages=%s,
+    cur.execute("""UPDATE tour_guides SET phone=%s,city=%s,languages=%s,
         speciality=%s,bio=%s,rate=%s,availability=%s WHERE id=%s""",
-        (data["fname"], data["lname"], data["phone"], data["city"], data["languages"],
+        (data["phone"], data["city"], data["languages"],
          data["speciality"], data["bio"], data["rate"], data["availability"], gid))
     conn.commit(); cur.close(); conn.close()
 
