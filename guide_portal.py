@@ -1,7 +1,7 @@
 import sys, os, datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from guide_template import build_guide_shell
-import guide_db
+import guide_db_sqlite as guide_db
 
 CITIES = ["Manila","Baguio","Tagaytay","Vigan","Ilocos Norte","Batangas","Albay","Pangasinan","Bataan"]
 DAYS   = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]

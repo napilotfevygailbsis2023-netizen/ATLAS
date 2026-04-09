@@ -43,6 +43,49 @@ def init_guide_tables():
         conn.commit()
     except Exception:
         pass  # Column already exists
+    
+    # Add permit/license validation columns
+    try:
+        cur.execute("ALTER TABLE tour_guides ADD COLUMN permit_number VARCHAR(100)")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+    
+    try:
+        cur.execute("ALTER TABLE tour_guides ADD COLUMN permit_expiry DATE")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+    
+    try:
+        cur.execute("ALTER TABLE tour_guides ADD COLUMN license_number VARCHAR(100)")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+    
+    try:
+        cur.execute("ALTER TABLE tour_guides ADD COLUMN license_expiry DATE")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+    
+    try:
+        cur.execute("ALTER TABLE tour_guides ADD COLUMN verification_status VARCHAR(20) DEFAULT 'pending'")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+    
+    try:
+        cur.execute("ALTER TABLE tour_guides ADD COLUMN permit_document VARCHAR(500)")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
+    
+    try:
+        cur.execute("ALTER TABLE tour_guides ADD COLUMN license_document VARCHAR(500)")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
     cur.execute("""
         CREATE TABLE IF NOT EXISTS guide_sessions (
             token    VARCHAR(64) PRIMARY KEY,

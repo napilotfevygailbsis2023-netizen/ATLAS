@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import admin_db
+import admin_db_sqlite as admin_db
 
 def render(error="", success=""):
     err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:12px 16px;color:#991B1B;font-size:13px;margin-bottom:16px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-triangle-exclamation"></i> {error}</div>' if error else ""

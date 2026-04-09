@@ -1,6 +1,6 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import db
+import db_sqlite as db
 
 def _shell(right_content, error="", success=""):
     err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px;display:flex;align-items:center;gap:8px">&#9888; {error}</div>' if error else ""
@@ -12,6 +12,10 @@ def _shell(right_content, error="", success=""):
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Log In - ATLAS</title>
 <link rel="stylesheet" href="/css/styles.css"/>
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"/>
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;background:#F8F4EF}}
@@ -90,14 +94,46 @@ def render(error="", success=""):
     </form>"""
     return _shell(form, error, success)
 
+def render_2fa(error=""):
+    form = f"""
+    <form method="post" action="/login.py" style="display:flex;flex-direction:column;gap:0">
+      <div class="field">
+        <label>Authentication Code</label>
+        <input type="text" name="totp_token" placeholder="Enter your authentication code" required/>
+      </div>
+      <button class="submit-btn" type="submit">Verify &#8594;</button>
+    </form>
+    {error}"""
+    return _shell(form, "", "")
+
 def handle_post(form_data):
     email    = form_data.get("email","").strip()
     password = form_data.get("password","").strip()
+    totp_token = form_data.get("totp_token","").strip()
+    
     if not email or not password:
         return None, render("Please fill in all fields.")
+    
     ok, token, user = db.login_user(email, password)
     if ok is True:
-        return token, None
+        # Check if 2FA is enabled
+        if user and user.get('totp_enabled', False):
+            if not totp_token:
+                # Store partial login session and show 2FA prompt
+                import authenticator
+                import secrets
+                temp_token = secrets.token_urlsafe(32)
+                # Store temporary session data (simplified - in production use Redis)
+                return f"2FA_REQUIRED:{temp_token}:{user['id']}", render_2fa()
+            else:
+                # Verify 2FA token
+                import authenticator
+                if authenticator.verify_user_2fa(user['id'], totp_token):
+                    return token, None
+                else:
+                    return None, render_2fa("Invalid authentication code. Please try again.")
+        else:
+            return token, None
     if ok == "suspended":
         return None, render("Your account has been suspended. Please contact support.")
-    return None, render("Invalid email or password.")#DC2626
+    return None, render("Invalid email or password.")

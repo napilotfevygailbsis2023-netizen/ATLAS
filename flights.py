@@ -2,6 +2,7 @@ import sys, os, urllib.request, urllib.parse, json, datetime, html
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
 from data import FLIGHTS as FALLBACK
+import weather_flight_integration
 
 API_KEY = "eff886bb35240c10f8071ebbcbd235c5"
 DEPARTURE_AIRPORTS = {"Manila (MNL)": "MNL", "Pampanga (CRK)": "CRK"}
@@ -46,6 +47,13 @@ def fetch_flights(dep_iata="MNL"):
         return FALLBACK
 
 def _card(f):
+    
+    # Check weather impact for this route
+    origin_city = f["from"].split("(")[0].strip()
+    dest_city = f["to"].split("(")[0].strip()
+    weather_data = weather_flight_integration.check_flight_route_weather(origin_city, dest_city)
+    weather_alert = weather_flight_integration.render_weather_flight_alert(weather_data.get('origin', {}).get('weather', {}))
+    
     col = AIRLINE_COLORS.get(f["airline"], "#0038A8")
     origin = f["from"].split("(")[0].strip()
     dest = f["to"].split("(")[0].strip()

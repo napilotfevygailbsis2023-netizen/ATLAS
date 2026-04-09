@@ -1,6 +1,7 @@
 import sys, os, datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
+import system_messaging_sqlite as system_messaging
 
 def render(user=None, msg="", err="", tab="profile"):
     if not user:
@@ -16,10 +17,14 @@ def render(user=None, msg="", err="", tab="profile"):
     err_html = f'<div style="background:#FEE2E2;color:#CE1126;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-weight:600">&#9888; {err}</div>' if err else ""
 
     # ── Load bookings for this tourist via MySQL ──
+    
+    # System Status Updates
+    system_status = system_messaging.render_system_status()
+    
     current_bookings = []
     history_bookings = []
     try:
-        import guide_db
+        import guide_db_sqlite as guide_db
         today = datetime.date.today().isoformat()
         rows = guide_db.get_bookings_by_tourist_email(email)
         for r in rows:

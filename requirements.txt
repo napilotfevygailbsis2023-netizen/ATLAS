@@ -1,3 +1,5 @@
 # No external packages needed - uses Python standard library only
 
 mysql-connector-python
+pyotp
+qrcode[pil]

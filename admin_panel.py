@@ -1,6 +1,6 @@
 import sys, os, base64, uuid, json
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import admin_db, guide_db
+import admin_db_sqlite as admin_db, guide_db_sqlite as guide_db
 from datetime import datetime, date, timedelta
 
 CITIES = ['Albay','Baguio','Bataan','Batangas','Ilocos Norte','Manila','Pangasinan','Tagaytay','Vigan']

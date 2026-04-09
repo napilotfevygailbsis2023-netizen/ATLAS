@@ -2,11 +2,13 @@
 import http.server, socketserver, urllib.parse, os, sys, re, email
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+
 import index, flights, weather, attractions, restaurants, guides, transport, itinerary
-import login, register, db
-import admin_login, admin_panel, admin_db
+import login, register, db_sqlite as db
+import admin_login, admin_panel, admin_db_sqlite as admin_db
 import guide_portal
-import profile as profile_page, guide_db
+import profile as profile_page, guide_db_sqlite as guide_db
+import flight_booking_sqlite as flight_booking, setup_2fa, guide_verification, system_messaging_sqlite as system_messaging
 
 PORT = int(os.environ.get("PORT", 5000))
 BASE = os.path.dirname(os.path.abspath(__file__))
@@ -23,6 +25,12 @@ ROUTES = {
     "/transport.py":   lambda p, u: transport.render(p.get("type","All"), p.get("from","All"), p.get("search",""), u),
     "/itinerary.py":   lambda p, u: itinerary.render(p.get("dest","Manila"), p.get("days",None), u),
     "/profile.py":     lambda p, u: profile_page.render(user=u),
+
+    "/setup-2fa":      lambda p, u: setup_2fa.render(u) if u else setup_2fa.render(),
+    "/book-flight":    lambda p, u: flight_booking.handle_flight_booking(p, u) if u else None,
+    "/booking-confirmation": lambda p, u: flight_booking.render_booking_confirmation(p.get('id', ''), u) if u else None,
+    "/guide-verification": lambda p, u: guide_verification.render_verification_panel(u) if u else None,
+    "/system-messages": lambda p, u: system_messaging.render_thread_list(u['id']) if u else None,
     "/login.py":       lambda p, u: login.render(),
     "/register.py":    lambda p, u: register.render(),
 }
@@ -79,7 +87,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
         path   = parsed.path
         cookie = self.headers.get("Cookie","")
         token  = get_token(cookie, "atlas_token")
-        user   = db.get_user_by_token(token)
+        user   = db.get_user_from_token(token)
 
         # CSS
         if path == "/css/styles.css":
@@ -168,8 +176,43 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
 
         # User logout
         if path == "/logout.py":
-            if token: db.logout(token)
-            redirect(self, "/", "atlas_token=; Path=/; Max-Age=0")
+            if token: db.logout_user(token)
+            send_html(self, '''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>Logged Out - ATLAS</title>
+<link rel="stylesheet" href="/css/styles.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<style>
+body{font-family:'Segoe UI',sans-serif;background:#F8FAFC;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+.logout-box{background:#fff;border-radius:16px;padding:48px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.1);max-width:400px}
+.logout-icon{font-size:64px;margin-bottom:20px}
+.logout-title{font-size:24px;font-weight:800;color:#1F2937;margin-bottom:12px}
+.logout-text{font-size:16px;color:#6B7280;margin-bottom:24px}
+.btn{display:inline-block;padding:12px 24px;background:#0038A8;color:#fff;text-decoration:none;border-radius:8px;font-weight:600}
+.btn:hover{background:#0050D0}
+</style>
+</head>
+<body>
+<div class="logout-box">
+  <div class="logout-icon">&#128075;</div>
+  <div class="logout-title">Logged Out Successfully</div>
+  <div class="logout-text">You have been safely logged out of your ATLAS account.</div>
+  <a href="/" class="btn">Return to Home</a>
+</div>
+<script>
+Swal.fire({
+  title: 'Logged Out!',
+  text: 'You have been successfully logged out.',
+  icon: 'success',
+  timer: 2000,
+  showConfirmButton: false
+});
+</script>
+</body>
+</html>''')
             return
 
         # Admin entry
@@ -542,7 +585,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/profile/photo":
             import uuid as _uuid2
             p_tok2 = get_token(cookie, "atlas_token")
-            pu2 = db.get_user_by_token(p_tok2) if p_tok2 else None
+            pu2 = db.get_user_from_token(p_tok2) if p_tok2 else None
             if not pu2: redirect(self, "/login.py"); return
             if "photo_file" in files:
                 _fn2, fdata2 = files["photo_file"]
@@ -556,7 +599,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                     _cur2 = _c2.cursor()
                     _cur2.execute("UPDATE users SET photo_url=%s WHERE id=%s", (f"/uploads/{nfn2}", pu2["id"]))
                     _c2.commit(); _cur2.close(); _c2.close()
-                    pu2 = db.get_user_by_token(p_tok2)
+                    pu2 = db.get_user_from_token(p_tok2)
                     send_html(self, profile_page.render(user=pu2, msg="Profile photo updated!")); return
                 else:
                     send_html(self, profile_page.render(user=pu2, err="File too large. Max 3 MB.")); return
@@ -565,7 +608,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
         elif path == "/profile/update":
             import hashlib
             p_token = get_token(cookie, "atlas_token")
-            p_user  = db.get_user_by_token(p_token) if p_token else None
+            p_user  = db.get_user_from_token(p_token) if p_token else None
             if not p_user:
                 redirect(self, "/login.py"); return
             action = form.get("action","")
@@ -575,7 +618,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 _cur2.execute("UPDATE users SET email=%s WHERE id=%s",
                     (form.get("email",""), p_user["id"]))
                 conn2.commit(); _cur2.close(); conn2.close()
-                p_user = db.get_user_by_token(p_token)
+                p_user = db.get_user_from_token(p_token)
                 send_html(self, profile_page.render(user=p_user, msg="Profile updated successfully!"))
             elif action == "change_password":
                 old_pw   = form.get("old_pw","")
@@ -649,7 +692,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
 
             # Use logged-in tourist email if available
             _btok  = get_token(cookie, "atlas_token")
-            _buser = db.get_user_by_token(_btok) if _btok else None
+            _buser = db.get_user_from_token(_btok) if _btok else None
             tourist_email = (_buser.get("email","") if _buser else "") or form.get("tourist_email","")
 
             booking_data = {

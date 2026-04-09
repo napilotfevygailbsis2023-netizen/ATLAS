@@ -1,7 +1,8 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template import build_shell
-import guide_db
+import guide_db_sqlite as guide_db
+import guide_verification
 
 def get_all_guides_combined(city="All"):
     try:
@@ -33,6 +34,17 @@ def get_all_guides_combined(city="All"):
 COLORS = ["#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8","#0038A8"]
 
 def _card(g, i):
+    
+    # Check guide verification status
+    is_verified = False
+    verification_badge = ""
+    try:
+        is_legitimate, verification_msg = guide_verification.check_guide_legitimacy(g.get("guide_id", ""))
+        if is_legitimate:
+            verification_badge = '<div style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-bottom:6px">&#10003; Verified Guide</div>'
+    except:
+        pass
+    
     col   = COLORS[i % len(COLORS)]
     name  = g["name"].replace("'","&#39;")
     city  = g["city"]

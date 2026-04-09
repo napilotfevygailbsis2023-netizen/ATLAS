@@ -1,21 +1,22 @@
 import hashlib, secrets
-try:
-    import mysql.connector
-    from mysql.connector import IntegrityError
-except ImportError:
-    raise ImportError("mysql-connector-python is not installed. Run: pip install mysql-connector-python")
+import sqlite3
+import os
+from datetime import datetime
 
-from db_config import DB_CONFIG
+DB_PATH = os.path.join(os.path.dirname(__file__), 'atlas.db')
 
 def get_conn():
-    conn = mysql.connector.connect(**DB_CONFIG)
+    """Get SQLite database connection"""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
     return conn
 
 def _cursor(conn):
-    """Return a dict cursor."""
-    return conn.cursor(dictionary=True)
+    """Get cursor from connection"""
+    return conn.cursor()
 
 def hash_pw(p):
+    """Hash password"""
     return hashlib.sha256(p.encode()).hexdigest()
 
 # ── INIT ──
@@ -24,15 +25,18 @@ def init_db():
     cur  = _cursor(conn)
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id        INT AUTO_INCREMENT PRIMARY KEY,
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
             fname     VARCHAR(100) NOT NULL,
             lname     VARCHAR(100) NOT NULL,
             email     VARCHAR(255) UNIQUE NOT NULL,
             password  VARCHAR(64)  NOT NULL,
+            phone     VARCHAR(50) DEFAULT '',
             photo_url VARCHAR(500) DEFAULT '',
+            totp_secret VARCHAR(32),
+            totp_enabled BOOLEAN DEFAULT 0,
             status    VARCHAR(20)  DEFAULT 'active',
             created   DATETIME     DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        )
     """)
     # Auto-migrate: add photo_url if missing (for existing databases)
     try:

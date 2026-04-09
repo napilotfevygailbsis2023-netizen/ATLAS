@@ -35,7 +35,7 @@ def build_shell(page_title, body_content, active="", user=None):
               </div>
               <a href="/profile.py" style="display:flex;align-items:center;gap:10px;padding:12px 16px;text-decoration:none;color:#374151;font-size:14px;border-bottom:1px solid #F3F4F6" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''">{_USER_SM} My Profile</a>
               <a href="/itinerary.py" style="display:flex;align-items:center;gap:10px;padding:12px 16px;text-decoration:none;color:#374151;font-size:14px;border-bottom:1px solid #F3F4F6" onmouseover="this.style.background='#F3F4F6'" onmouseout="this.style.background=''">{_CAL_SM} My Itinerary</a>
-              <a href="/logout.py" style="display:flex;align-items:center;gap:10px;padding:12px 16px;text-decoration:none;color:#CE1126;font-size:14px" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">{_LOGOUT} Log Out</a>
+              <a href="#" onclick="confirmLogout()" style="display:flex;align-items:center;gap:10px;padding:12px 16px;text-decoration:none;color:#CE1126;font-size:14px" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background=''">{_LOGOUT} Log Out</a>
             </div>
           </div>
         </div>
@@ -66,6 +66,10 @@ def build_shell(page_title, body_content, active="", user=None):
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>{page_title} - ATLAS</title>
 <link rel="stylesheet" href="/css/styles.css"/>
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css"/>
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 <nav class="topnav">
@@ -190,6 +194,10 @@ function openBookingModal(name){{document.getElementById('modal-guide-name').tex
 function closeBooking(){{document.getElementById('booking-modal').style.display='none';document.body.style.overflow='';}}
 function confirmBooking(){{var name=document.getElementById('modal-guide-name').textContent;closeBooking();showToast('Booking sent to '+name+'!');}}
 function showToast(msg){{var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){{t.style.display='none';}},2800);}}
+function confirmLogout(){{Swal.fire({{title:'Log Out?',text:'Are you sure you want to log out?',icon:'warning',showCancelButton:true,confirmButtonColor:'#CE1126',cancelButtonColor:'#6B7280',confirmButtonText:'Yes, log out'}}).then((result)=>{{if(result.isConfirmed){{window.location.href='/logout.py';}}}});}}
+function showSuccess(title,text){{Swal.fire({{title:title,text:text,icon:'success',timer:2000,showConfirmButton:false}});}}
+function showError(title,text){{Swal.fire({{title:title,text:text,icon:'error'}});}}
+function showInfo(title,text){{Swal.fire({{title:title,text:text,icon:'info'}});}}
 </script>
 </body>
 </html>"""
