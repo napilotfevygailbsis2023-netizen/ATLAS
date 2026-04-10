@@ -1,0 +1,838 @@
+import sys, os, datetime, html
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from guide_ui import build_guide_shell
+import guide_db
+
+def e(s):
+    """Escape a value for safe HTML insertion."""
+    return html.escape(str(s) if s is not None else "")
+
+CITIES = ["Manila","Baguio","Tagaytay","Vigan","Ilocos Norte","Batangas","Albay","Pangasinan","Bataan"]
+DAYS   = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]
+STATUS_COLORS = {"pending":"#D97706","accepted":"#059669","rejected":"#DC2626","cancelled":"#6B7280","rescheduled":"#2563EB","completed":"#7C3AED"}
+STATUS_BG     = {"pending":"#FFFBEB","accepted":"#ECFDF5","rejected":"#FEF2F2","cancelled":"#F9FAFB","rescheduled":"#EFF6FF","completed":"#F5F3FF"}
+
+def render_login(error="", success=""):
+    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px">&#9888; {error}</div>' if error else ""
+    suc = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:10px 14px;color:#065F46;font-size:13px;margin-bottom:18px">&#10003; {success}</div>' if success else ""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Guide Login - ATLAS</title>
+<link rel="stylesheet" href="/css/styles.css"/>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;}}
+.split-left{{width:55%;background:linear-gradient(160deg,#003087 0%,#0038A8 50%,#001a5e 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
+.blob1{{position:absolute;width:420px;height:420px;border-radius:50%;background:rgba(255,255,255,.06);top:-100px;left:-80px}}
+.blob2{{position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.04);bottom:-60px;right:-40px}}
+.split-right{{width:45%;flex-shrink:0;background:linear-gradient(180deg,#F8F4FF 0%,#fff 40%);display:flex;flex-direction:column;justify-content:center;padding:52px 48px;min-height:100vh;overflow-y:auto}}
+.tab-row{{display:flex;background:#F3F4F6;border-radius:12px;padding:4px;margin-bottom:32px}}
+.tab{{flex:1;padding:10px;text-align:center;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;color:#6B7280}}
+.tab.active{{background:#fff;color:#1F2937;box-shadow:0 1px 4px rgba(0,0,0,.1)}}
+.field{{margin-bottom:18px}}
+.field label{{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}}
+.field input{{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB}}
+.field input:focus{{border-color:#0038A8;background:#fff;box-shadow:0 0 0 3px rgba(0,56,168,.08)}}
+.submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}}
+.back-link{{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);color:#fff;text-decoration:none;padding:8px 16px;border-radius:30px;font-size:13px;font-weight:600;z-index:999}}
+@media(max-width:700px){{.split-left{{display:none}}.split-right{{width:100%}}}}
+</style>
+</head>
+<body>
+<a href="/" class="back-link">&#8592; Tourist Site</a>
+<div class="split-left">
+  <div class="blob1"></div><div class="blob2"></div>
+  <div style="position:relative;z-index:2;text-align:center;color:#fff">
+    <div style="margin-bottom:20px">
+      <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.9"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+    </div>
+    <div style="font-size:34px;font-weight:900;line-height:1.2;margin-bottom:14px">ATLAS<br/>Guide Portal</div>
+    <div style="font-size:15px;opacity:.8;line-height:1.8;margin-bottom:32px;max-width:300px">Manage your tours, bookings and packages — all in one place.</div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;opacity:.9;text-align:left">
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:11px 16px;border-radius:12px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Create &amp; manage tour packages
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:11px 16px;border-radius:12px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>
+        Accept or reject bookings
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:11px 16px;border-radius:12px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Set your weekly availability
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:11px 16px;border-radius:12px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        View ratings &amp; feedback
+      </div>
+    </div>
+  </div>
+</div>
+<div class="split-right">
+  <div style="margin-bottom:28px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
+      <span style="font-weight:900;font-size:18px;color:#1F2937">Guide Portal</span>
+    </div>
+    <div style="font-size:13px;color:#6B7280">ATLAS Tour Guide Management</div>
+  </div>
+  {err}{suc}
+
+  <!-- Step 1: Email -->
+  <div id="step-email">
+    <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:4px">Welcome!</div>
+    <div style="font-size:14px;color:#6B7280;margin-bottom:24px">Sign in or create your guide account</div>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Email Address</label>
+      <input id="guide-email-input" type="email" placeholder="yourname@gmail.com"
+        style="width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB;box-sizing:border-box"
+        onfocus="this.style.borderColor='#0038A8';this.style.boxShadow='0 0 0 3px rgba(0,56,168,.08)'"
+        onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none'"/>
+      <div id="email-error" style="color:#DC2626;font-size:12px;margin-top:6px;display:none">Please enter a valid email address.</div>
+    </div>
+    <button onclick="goToPassword()" style="width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:16px">
+      Continue &rarr;
+    </button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="flex:1;height:1px;background:#E2E8F0"></div>
+      <span style="font-size:12px;color:#94A3B8;white-space:nowrap">or</span>
+      <div style="flex:1;height:1px;background:#E2E8F0"></div>
+    </div>
+    <a href="/auth/google?next=guide" id="google-btn" style="display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:14px;border:1.5px solid #E2E8F0;border-radius:12px;background:#fff;font-size:15px;font-weight:700;color:#1F2937;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.06)" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='#fff'">
+      <svg width="22" height="22" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Continue with Google
+    </a>
+  </div>
+
+  <!-- Step 2: Password -->
+  <div id="step-password" style="display:none">
+    <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:6px" id="pw-title">Create a password</div>
+    <div style="font-size:13px;color:#6B7280;margin-bottom:20px" id="pw-subtitle">You'll use this password to log in to your guide account</div>
+    <div style="background:#F9FAFB;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between">
+      <span id="display-email" style="font-size:14px;color:#1F2937;font-weight:600"></span>
+      <button onclick="editEmail()" style="background:none;border:none;color:#0038A8;font-size:13px;font-weight:600;cursor:pointer">Edit</button>
+    </div>
+    <!-- Name fields — only shown for new guides -->
+    <div id="name-fields" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">First Name</label>
+          <input id="guide-fname" type="text" placeholder="Juan"
+            style="width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB;box-sizing:border-box"
+            onfocus="this.style.borderColor='#0038A8'" onblur="this.style.borderColor='#E5E7EB'"/>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Last Name</label>
+          <input id="guide-lname" type="text" placeholder="Dela Cruz"
+            style="width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB;box-sizing:border-box"
+            onfocus="this.style.borderColor='#0038A8'" onblur="this.style.borderColor='#E5E7EB'"/>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;position:relative">
+      <label style="display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px" id="pw-label">Password</label>
+      <input id="guide-pw-input" type="password" placeholder="Min. 6 characters"
+        style="width:100%;padding:13px 16px;padding-right:48px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB;box-sizing:border-box"
+        onfocus="this.style.borderColor='#0038A8';this.style.boxShadow='0 0 0 3px rgba(0,56,168,.08)'"
+        onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none'"/>
+      <button type="button" onclick="togglePw()" style="position:absolute;right:14px;top:38px;background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:18px">&#128065;</button>
+      <div id="pw-error" style="color:#DC2626;font-size:12px;margin-top:6px;display:none"></div>
+    </div>
+    <form id="login-form" method="post" action="/guide/login" style="display:none">
+      <input type="hidden" name="email" id="form-email"/>
+      <input type="hidden" name="password" id="form-password"/>
+      <input type="hidden" name="fname" id="form-fname"/>
+      <input type="hidden" name="lname" id="form-lname"/>
+    </form>
+    <button onclick="submitPassword()" style="width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer">
+      Continue &rarr;
+    </button>
+  </div>
+
+  <script>
+  var _isNewGuide = false;
+
+  function goToPassword() {{
+    var email = document.getElementById("guide-email-input").value.trim();
+    var errEl = document.getElementById("email-error");
+    if (!email || !email.includes("@") || !email.includes(".")) {{
+      errEl.style.display = "block"; return;
+    }}
+    errEl.style.display = "none";
+    document.getElementById("display-email").textContent = email;
+    document.getElementById("form-email").value = email;
+    // Check if guide exists via fetch
+    fetch("/guide/check-email?email=" + encodeURIComponent(email))
+      .then(function(r){{ return r.json(); }})
+      .then(function(d){{
+        _isNewGuide = !d.exists;
+        if (_isNewGuide) {{
+          document.getElementById("pw-title").textContent = "Create a password";
+          document.getElementById("pw-subtitle").textContent = "You'll use this password to log in to your guide account";
+          document.getElementById("pw-label").textContent = "Password";
+          document.getElementById("name-fields").style.display = "block";
+        }} else {{
+          document.getElementById("pw-title").textContent = "Welcome back!";
+          document.getElementById("pw-subtitle").textContent = "Enter your password to continue";
+          document.getElementById("pw-label").textContent = "Password";
+          document.getElementById("name-fields").style.display = "none";
+        }}
+        document.getElementById("step-email").style.display = "none";
+        document.getElementById("step-password").style.display = "block";
+      }}).catch(function(){{
+        document.getElementById("step-email").style.display = "none";
+        document.getElementById("step-password").style.display = "block";
+      }});
+  }}
+
+  function editEmail() {{
+    document.getElementById("step-password").style.display = "none";
+    document.getElementById("step-email").style.display = "block";
+  }}
+
+  function togglePw() {{
+    var inp = document.getElementById("guide-pw-input");
+    inp.type = inp.type === "password" ? "text" : "password";
+  }}
+
+  function submitPassword() {{
+    var pw = document.getElementById("guide-pw-input").value;
+    var errEl = document.getElementById("pw-error");
+    if (_isNewGuide) {{
+      var fname = document.getElementById("guide-fname").value.trim();
+      var lname = document.getElementById("guide-lname").value.trim();
+      if (!fname || !lname) {{
+        errEl.textContent = "Please enter your first and last name.";
+        errEl.style.display = "block"; return;
+      }}
+      document.getElementById("form-fname").value = fname;
+      document.getElementById("form-lname").value = lname;
+    }}
+    if (!pw || pw.length < 6) {{
+      errEl.textContent = "Password must be at least 6 characters.";
+      errEl.style.display = "block"; return;
+    }}
+    errEl.style.display = "none";
+    document.getElementById("form-password").value = pw;
+    document.getElementById("login-form").style.display = "block";
+    document.getElementById("login-form").submit();
+  }}
+
+  document.getElementById("guide-email-input").addEventListener("keydown", function(e) {{
+    if (e.key === "Enter") goToPassword();
+  }});
+  document.getElementById("google-btn").addEventListener("click", function() {{
+    var email = document.getElementById("guide-email-input").value.trim();
+    if (email) this.href = "/auth/google?next=guide&login_hint=" + encodeURIComponent(email);
+  }});
+  </script>
+</div>
+</body></html>"""
+
+def render_register(error=""):
+    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px">&#9888; {error}</div>' if error else ""
+    city_opts = "".join(f'<option>{c}</option>' for c in CITIES)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Guide Register - ATLAS</title>
+<link rel="stylesheet" href="/css/styles.css"/>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;}}
+.split-left{{width:55%;background:linear-gradient(160deg,#003087 0%,#0038A8 50%,#001a5e 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}}
+.blob1{{position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.06);top:-80px;right:-80px}}
+.blob2{{position:absolute;width:280px;height:280px;border-radius:50%;background:rgba(255,255,255,.04);bottom:-60px;left:-40px}}
+.split-right{{width:45%;flex-shrink:0;background:linear-gradient(180deg,#F8F4FF 0%,#fff 40%);display:flex;flex-direction:column;justify-content:center;padding:48px;min-height:100vh;overflow-y:auto}}
+.tab-row{{display:flex;background:#F3F4F6;border-radius:12px;padding:4px;margin-bottom:28px}}
+.tab{{flex:1;padding:10px;text-align:center;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;color:#6B7280}}
+.tab.active{{background:#fff;color:#1F2937;box-shadow:0 1px 4px rgba(0,0,0,.1)}}
+.field{{margin-bottom:16px}}
+.field label{{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}}
+.field input,.field select{{width:100%;padding:13px 16px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB}}
+.field input:focus,.field select:focus{{border-color:#0038A8;background:#fff;box-shadow:0 0 0 3px rgba(0,56,168,.08)}}
+.submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}}
+.back-link{{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.3);color:#fff;text-decoration:none;padding:8px 16px;border-radius:30px;font-size:13px;font-weight:600;z-index:999}}
+@media(max-width:700px){{.split-left{{display:none}}.split-right{{width:100%}}}}
+</style>
+</head>
+<body>
+<a href="/" class="back-link">&#8592; Tourist Site</a>
+<div class="split-left">
+  <div class="blob1"></div><div class="blob2"></div>
+  <div style="position:relative;z-index:2;text-align:center;color:#fff">
+    <div style="margin-bottom:20px">
+      <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:.9"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+    </div>
+    <div style="font-size:34px;font-weight:900;line-height:1.2;margin-bottom:14px">Join ATLAS<br/>as a Guide!</div>
+    <div style="font-size:15px;opacity:.8;line-height:1.8;margin-bottom:32px;max-width:300px">Share your knowledge of Luzon and earn income helping tourists discover the Philippines.</div>
+    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;opacity:.9;text-align:left">
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <div><div style="font-weight:700">Earn Income</div><div style="font-size:12px;opacity:.8">Set your own rates and packages</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div><div style="font-weight:700">Meet Tourists</div><div style="font-size:12px;opacity:.8">Connect with travelers from everywhere</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <div><div style="font-weight:700">Build Your Reputation</div><div style="font-size:12px;opacity:.8">Collect ratings and grow your business</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.1);padding:12px 16px;border-radius:12px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <div><div style="font-weight:700">Email Verification</div><div style="font-size:12px;opacity:.8">Verified guides get more bookings</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="split-right">
+  <div style="margin-bottom:24px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
+      <span style="font-weight:900;font-size:18px;color:#1F2937">Guide Portal</span>
+    </div>
+    <div style="font-size:13px;color:#6B7280">ATLAS Tour Guide Management</div>
+  </div>
+  <div class="tab-row">
+    <a href="/guide" class="tab">Log In</a>
+    <a href="/guide/register" class="tab active">Register</a>
+  </div>
+  <div style="font-size:22px;font-weight:800;color:#1F2937;margin-bottom:4px">Create Guide Account</div>
+  <div style="font-size:14px;color:#6B7280;margin-bottom:6px">Join our network of verified local guides</div>
+  <div style="display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:20px">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    A verification code will be sent to your email
+  </div>
+  {err}
+  <form method="post" action="/guide/register">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="field"><label>First Name *</label><input name="fname" placeholder="Juan" required/></div>
+      <div class="field"><label>Last Name *</label><input name="lname" placeholder="Dela Cruz" required/></div>
+    </div>
+    <div class="field"><label>Email Address *</label><input type="email" name="email" placeholder="juan@email.com" required/></div>
+    <div class="field"><label>Phone Number *</label><input name="phone" placeholder="09XX-XXX-XXXX" required/></div>
+    <div class="field"><label>Your City / Area *</label><select name="city">{city_opts}</select></div>
+    <div class="field"><label>Password * (min 6 characters)</label><input type="password" name="password" required/></div>
+    <div class="field"><label>Confirm Password *</label><input type="password" name="password2" required/></div>
+    <button class="submit-btn" type="submit">
+      Create Account &amp; Verify Email &#8594;
+    </button>
+  </form>
+  <div style="text-align:center;margin-top:20px;font-size:13px;color:#6B7280">
+    Already have an account? <a href="/guide" style="color:#0038A8;font-weight:700">Log In</a>
+  </div>
+</div>
+</body></html>"""
+
+def render_verify_guide(email, error=""):
+    """Step 2 of guide registration: 6-digit email verification."""
+    safe_email = email.replace('"', '&quot;')
+    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px">&#9888; {error}</div>' if error else ""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Verify Email - ATLAS Guide Portal</title>
+<link rel="stylesheet" href="/css/styles.css"/>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#003087,#0038A8);font-family:'Segoe UI',sans-serif;padding:24px}}
+.verify-box{{background:#fff;border-radius:20px;padding:44px 52px;max-width:500px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.2);text-align:center}}
+.code-inputs{{display:flex;gap:10px;justify-content:center;margin:28px 0}}
+.code-input{{width:52px;height:62px;border:2px solid #E2E8F0;border-radius:12px;font-size:26px;font-weight:900;text-align:center;outline:none;color:#0F172A;font-family:monospace;transition:.15s}}
+.code-input:focus{{border-color:#0038A8;box-shadow:0 0 0 3px rgba(0,56,168,.12);background:#F0F7FF}}
+.submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}}
+.submit-btn:hover{{background:#0050D0}}
+</style>
+</head>
+<body>
+<div class="verify-box">
+  <div style="margin-bottom:16px">
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0038A8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+  </div>
+  <div style="font-size:24px;font-weight:900;color:#0F172A;margin-bottom:8px">Check your email</div>
+  <div style="font-size:14px;color:#475569;line-height:1.6;margin-bottom:4px">We sent a 6-digit verification code to</div>
+  <div style="font-size:15px;font-weight:700;color:#0038A8;margin-bottom:4px">{safe_email}</div>
+  <div style="font-size:13px;color:#94A3B8;margin-bottom:12px">Enter the code below to activate your guide account.</div>
+  {err}
+  <form method="post" action="/guide/verify" id="gverify-form">
+    <input type="hidden" name="email" value="{safe_email}"/>
+    <input type="hidden" name="code" id="gcode-hidden"/>
+    <div class="code-inputs">
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc0" autofocus/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc1"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc2"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc3"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc4"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" id="gc5"/>
+    </div>
+    <button class="submit-btn" type="submit">&#10003; Verify &amp; Activate Account</button>
+  </form>
+  <div style="margin-top:18px;font-size:13px;color:#94A3B8">
+    Didn't receive it? Check your spam folder or <a href="/guide/register" style="color:#0038A8;font-weight:600">register again</a>.
+  </div>
+  <div style="margin-top:12px"><a href="/guide" style="font-size:13px;color:#6B7280">&#8592; Back to Guide Login</a></div>
+</div>
+<script>
+var inputs = document.querySelectorAll('.code-input');
+inputs.forEach(function(inp, idx) {{
+  inp.addEventListener('input', function() {{
+    this.value = this.value.replace(/[^0-9]/g,'').slice(-1);
+    if (this.value && idx < 5) inputs[idx+1].focus();
+  }});
+  inp.addEventListener('keydown', function(e) {{
+    if (e.key==='Backspace' && !this.value && idx > 0) inputs[idx-1].focus();
+    if (e.key==='ArrowLeft' && idx > 0) inputs[idx-1].focus();
+    if (e.key==='ArrowRight' && idx < 5) inputs[idx+1].focus();
+  }});
+  inp.addEventListener('paste', function(e) {{
+    var pasted = (e.clipboardData||window.clipboardData).getData('text').replace(/\\D/g,'');
+    if (pasted.length >= 6) {{
+      for (var i=0;i<6;i++) inputs[i].value = pasted[i]||'';
+      inputs[5].focus();
+      e.preventDefault();
+    }}
+  }});
+}});
+document.getElementById('gverify-form').addEventListener('submit', function(e) {{
+  var code = Array.from(inputs).map(function(i){{return i.value;}}).join('');
+  if (code.length < 6) {{ e.preventDefault(); alert('Please enter all 6 digits.'); return; }}
+  document.getElementById('gcode-hidden').value = code;
+}});
+</script>
+</body></html>"""
+
+def handle_login(form):
+    import guide_db as _gdb
+    email    = form.get("email","").strip().lower()
+    password = form.get("password","").strip()
+    fname    = form.get("fname","").strip()
+    lname    = form.get("lname","").strip()
+    if not email or not password:
+        return {"error": "Please fill in all fields."}
+    guide = _gdb.get_guide_by_email(email)
+    if not guide:
+        # New guide — require name
+        if not fname or not lname:
+            return {"error": "Please enter your first and last name."}
+        ok, msg = _gdb.register_guide(fname, lname, email, password, "", "Manila")
+        if not ok:
+            return {"error": msg}
+        guide = _gdb.get_guide_by_email(email)
+        if not guide:
+            return {"error": "Account creation failed. Please try again."}
+        token = _gdb.create_guide_session(guide["id"])
+        return {"token": token, "new": True}
+    # Existing guide — check password
+    if not _gdb.check_pw(password, guide["password"]):
+        return {"error": "Incorrect password. Please try again."}
+    if guide.get("status") == "suspended":
+        return {"error": "Your account has been suspended. Contact support."}
+    token = _gdb.create_guide_session(guide["id"])
+    return {"token": token}
+
+# ─────────────────────── DASHBOARD ───────────────────────
+def render_dashboard(guide, msg="", err=""):
+    gid = guide["id"]
+    packages = guide_db.get_packages(gid)
+    bookings = guide_db.get_bookings(gid)
+    ratings  = guide_db.get_ratings(gid)
+    avg_rating, rating_count = guide_db.get_avg_rating(gid)
+    today = datetime.date.today().isoformat()
+    pending   = [b for b in bookings if b["status"] == "pending"]
+    upcoming  = [b for b in bookings if b["status"] == "accepted" and b["tour_date"] >= today]
+    completed = [b for b in bookings if b["status"] == "completed"]
+
+    alert = ""
+    if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#10003; {msg}</div>'
+    if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#9888; {err}</div>'
+
+    stats = f"""
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px">
+      <div class="g-stat" style="background:linear-gradient(135deg,#0038A8,#0050d0)"><div style="font-size:32px;font-weight:900">{len(packages)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Packages</div></div>
+      <div class="g-stat" style="background:linear-gradient(135deg,#D97706,#F59E0B)"><div style="font-size:32px;font-weight:900">{len(pending)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Pending</div></div>
+      <div class="g-stat" style="background:linear-gradient(135deg,#059669,#10B981)"><div style="font-size:32px;font-weight:900">{len(upcoming)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Upcoming</div></div>
+      <div class="g-stat" style="background:linear-gradient(135deg,#7C3AED,#8B5CF6)"><div style="font-size:32px;font-weight:900">{len(completed)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Completed</div></div>
+      <div class="g-stat" style="background:linear-gradient(135deg,#DC2626,#EF4444)"><div style="font-size:32px;font-weight:900">{avg_rating}&#9733;</div><div style="font-size:12px;opacity:.85;margin-top:4px">Avg Rating</div></div>
+    </div>"""
+
+    pending_html = ""
+    if pending:
+        rows = "".join(f"""
+        <div style="border:1px solid #FDE68A;border-radius:10px;padding:14px 16px;background:#FFFBEB;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <div>
+            <div style="font-weight:700;color:#1F2937;font-size:15px">{e(b["tourist_name"])}</div>
+            <div style="font-size:12px;color:#6B7280;margin-top:3px">&#128197; {e(b["tour_date"])} &bull; {e(b["pax"])} pax &bull; {e(b["package_title"] or "Custom Tour")}</div>
+            <div style="font-size:12px;color:#374151;margin-top:2px">&#128222; {e(b.get("tourist_phone","N/A"))} &nbsp;&#9993; {e(b.get("tourist_email","N/A"))}</div>
+            {"" if not b["notes"] else f'<div style="font-size:12px;color:#92400E;margin-top:4px;font-style:italic">"{e(b["notes"])}"</div>'}
+          </div>
+          <div style="display:flex;gap:8px">
+            <form method="post" action="/guide/dashboard?section=dashboard"><input type="hidden" name="action" value="accept_booking"/><input type="hidden" name="booking_id" value="{e(b["id"])}"/><button class="g-btn" style="background:#059669;color:#fff;padding:8px 16px;font-size:13px">&#10003; Accept</button></form>
+            <form method="post" action="/guide/dashboard?section=dashboard"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{e(b["id"])}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
+          </div>
+        </div>""" for b in pending)
+        pending_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#0038A8">&#9888; Pending Booking Requests ({len(pending)})</div><div class="g-card-body">{rows}</div></div>'
+
+    upcoming_html = ""
+    if upcoming:
+        rows = "".join(f'<tr style="border-bottom:1px solid #F3F4F6"><td style="padding:11px 14px;font-weight:600">{e(b["tourist_name"])}</td><td style="padding:11px 14px;color:#6B7280">{e(b.get("tourist_phone","N/A"))}</td><td style="padding:11px 14px;color:#6B7280">{e(b["tour_date"])}</td><td style="padding:11px 14px;color:#6B7280">{e(b["package_title"] or "Custom")}</td><td style="padding:11px 14px;color:#6B7280">{e(b["pax"])} pax</td></tr>' for b in upcoming[:6])
+        upcoming_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#2563EB">&#128197; Upcoming Bookings</div><div class="g-card-body" style="padding:0"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8FAFC"><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Tourist</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Contact</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Date</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Package</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Pax</th></tr></thead><tbody>{rows}</tbody></table></div></div>'
+
+    body = f"""
+    <div style="margin-bottom:24px">
+      <div style="font-size:24px;font-weight:900;color:#1F2937">Dashboard</div>
+      <div style="font-size:14px;color:#6B7280">Welcome back, {e(guide["fname"])}! &#128075;</div>
+    </div>
+    {alert}{stats}{pending_html}{upcoming_html}
+    {"" if upcoming_html or pending_html else '<div class="g-card"><div class="g-card-body" style="text-align:center;padding:40px;color:#9CA3AF"><div style="font-size:48px;margin-bottom:12px">&#128197;</div><div style="font-weight:700;font-size:16px">No bookings yet</div><div style="font-size:13px;margin-top:6px">Add packages to start receiving bookings!</div></div></div>'}"""
+    return build_guide_shell("Dashboard", body, "dashboard", guide)
+
+# ─────────────────────── PACKAGES ───────────────────────
+def render_packages(guide, msg="", err=""):
+    gid = guide["id"]
+    packages = guide_db.get_packages(gid)
+    city_opts = "".join(f'<option>{c}</option>' for c in CITIES)
+
+    alert = ""
+    if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px">&#10003; {msg}</div>'
+    if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px">&#9888; {err}</div>'
+
+    pkg_cards = ""
+    for p in packages:
+        incl = "".join(f'<span style="background:#EDE9FE;color:#5B21B6;padding:3px 10px;border-radius:20px;font-size:12px;margin:2px 2px 2px 0;display:inline-block">{e(i.strip())}</span>' for i in p["inclusions"].split(",") if i.strip())
+        pkg_cards += f"""
+        <div style="border:1px solid #E2E8F0;border-radius:12px;padding:18px;background:#fff;margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+            <div style="flex:1">
+              <div style="font-weight:800;font-size:16px;color:#1F2937">{e(p["title"])}</div>
+              <div style="font-size:12px;color:#6B7280;margin-top:3px">&#128205; {e(p["city"])} &bull; &#9202; {e(p["duration"])}</div>
+              {"" if not p["description"] else f'<div style="font-size:13px;color:#4B5563;margin-top:8px;line-height:1.6">{e(p["description"])}</div>'}
+              {"" if not incl else f'<div style="margin-top:10px">{incl}</div>'}
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:22px;font-weight:900;color:#0038A8;white-space:nowrap">{e(p["price"])}</div>
+              <form method="post" action="/guide/packages" style="margin-top:8px">
+                <input type="hidden" name="action" value="delete_package"/>
+                <input type="hidden" name="pkg_id" value="{e(p["id"])}"/>
+                <button class="g-btn" style="background:#FEE2E2;color:#DC2626;padding:6px 12px;font-size:12px" onclick="return confirm('Delete this package?')">&#128465; Delete</button>
+              </form>
+            </div>
+          </div>
+        </div>"""
+
+    body = f"""
+    <div style="margin-bottom:24px">
+      <div style="font-size:24px;font-weight:900;color:#1F2937">My Packages</div>
+      <div style="font-size:14px;color:#6B7280">Create and manage your tour packages</div>
+    </div>
+    {alert}
+    <div class="g-card">
+      <div class="g-card-hdr" style="background:#0038A8">&#43; Add New Package</div>
+      <div class="g-card-body">
+        <form method="post" action="/guide/packages" style="display:flex;flex-direction:column;gap:14px">
+          <input type="hidden" name="action" value="add_package"/>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div><label class="g-lbl">Package Title *</label><input class="g-inp" name="title" placeholder="e.g. Mayon Volcano Day Tour" required/></div>
+            <div><label class="g-lbl">Price *</label><input class="g-inp" name="price" placeholder="e.g. P1,500/person" required/></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div><label class="g-lbl">Duration</label>
+              <select class="g-inp" name="duration"><option>Half Day</option><option selected>Full Day</option><option>2 Days</option><option>3 Days</option><option>Custom</option></select>
+            </div>
+            <div><label class="g-lbl">City</label><select class="g-inp" name="city">{city_opts}</select></div>
+          </div>
+          <div><label class="g-lbl">Description</label><textarea class="g-inp" name="description" rows="2" placeholder="What's included in this tour package?" style="resize:none"></textarea></div>
+          <div><label class="g-lbl">Inclusions (comma separated)</label><input class="g-inp" name="inclusions" placeholder="e.g. Transportation, Lunch, Guide fee, Entrance fees"/></div>
+          <div><button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:11px 24px">Add Package</button></div>
+        </form>
+      </div>
+    </div>
+    <div style="font-weight:700;font-size:16px;color:#1F2937;margin-bottom:14px">{len(packages)} Package{"s" if len(packages)!=1 else ""}</div>
+    {pkg_cards or '<div class="g-card"><div class="g-card-body" style="text-align:center;padding:40px;color:#9CA3AF"><div style="font-size:48px;margin-bottom:12px">&#128196;</div><div style="font-weight:700">No packages yet</div></div></div>'}"""
+    return build_guide_shell("My Packages", body, "packages", guide)
+
+# ─────────────────────── BOOKINGS ───────────────────────
+def render_bookings(guide, filter_status="all", msg="", err=""):
+    gid = guide["id"]
+    all_bookings = guide_db.get_bookings(gid)
+    shown = all_bookings if filter_status == "all" else [b for b in all_bookings if b["status"] == filter_status]
+
+    alert = ""
+    if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px">&#10003; {msg}</div>'
+    if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px">&#9888; {err}</div>'
+
+    tabs = "".join(
+        f'<a href="/guide/bookings?filter={s}" style="padding:8px 18px;border-radius:20px;text-decoration:none;font-size:13px;font-weight:600;background:{"#0038A8" if filter_status==s else "#fff"};color:{"#fff" if filter_status==s else "#374151"};border:1px solid {"#0038A8" if filter_status==s else "#E2E8F0"}">{s.title()} {"("+str(len([b for b in all_bookings if b["status"]==s]))+")" if s!="all" else "("+str(len(all_bookings))+")"}</a>'
+        for s in ["all","pending","accepted","completed","rejected","cancelled","rescheduled"]
+    )
+
+    cards = ""
+    for b in shown:
+        sc = STATUS_COLORS.get(b["status"],"#6B7280")
+        sb = STATUS_BG.get(b["status"],"#F9FAFB")
+        bid = b["id"]
+        actions = ""
+        if b["status"] == "pending":
+            actions = f"""
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="accept_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><button class="g-btn" style="background:#059669;color:#fff;padding:8px 16px;font-size:13px">&#10003; Accept</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
+            </div>"""
+        elif b["status"] == "accepted":
+            actions = f"""
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center">
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="complete_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><button class="g-btn" style="background:#7C3AED;color:#fff;padding:8px 16px;font-size:13px">&#10003;&#10003; Mark as Completed</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}"><input type="hidden" name="action" value="cancel_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><button class="g-btn" style="background:#6B7280;color:#fff;padding:8px 16px;font-size:13px">Cancel</button></form>
+              <form method="post" action="/guide/bookings?filter={filter_status}" style="display:flex;align-items:center;gap:8px"><input type="hidden" name="action" value="reschedule_booking"/><input type="hidden" name="booking_id" value="{e(bid)}"/><input class="g-inp" type="date" name="new_date" required style="width:160px;padding:7px 10px"/><button class="g-btn" style="background:#2563EB;color:#fff;padding:8px 16px;font-size:13px">Reschedule</button></form>
+            </div>"""
+        cards += f"""
+        <div style="border:1px solid #E2E8F0;border-radius:12px;padding:18px;background:{sb};margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-weight:800;font-size:16px;color:#1F2937">{e(b["tourist_name"])}</div>
+              <div style="font-size:12px;color:#6B7280;margin-top:4px;display:flex;flex-wrap:wrap;gap:10px">
+                <span>&#128222; {e(b.get("tourist_phone","N/A"))}</span>
+                <span>&#9993; {e(b.get("tourist_email","N/A"))}</span>
+                <span>&#128197; {e(b["tour_date"])}</span>
+                <span>&#128101; {e(b["pax"])} pax</span>
+              </div>
+              <div style="font-size:13px;color:#4B5563;margin-top:4px">Package: <strong>{e(b["package_title"] or "Custom Tour")}</strong></div>
+              {"" if not b["notes"] else f'<div style="font-size:12px;color:#6B7280;margin-top:4px;font-style:italic;background:rgba(0,0,0,.03);padding:6px 10px;border-radius:6px">"{e(b["notes"])}"</div>'}
+              {"" if not b["guide_notes"] else f'<div style="font-size:12px;color:#2563EB;margin-top:4px">&#128221; {e(b["guide_notes"])}</div>'}
+            </div>
+            <span style="background:{sc}22;color:{sc};padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap">{e(b["status"]).upper()}</span>
+          </div>
+          {actions}
+        </div>"""
+
+    body = f"""
+    <div style="margin-bottom:24px">
+      <div style="font-size:24px;font-weight:900;color:#1F2937">Bookings</div>
+      <div style="font-size:14px;color:#6B7280">Manage all your tour bookings</div>
+    </div>
+    {alert}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">{tabs}</div>
+    {cards or '<div class="g-card"><div class="g-card-body" style="text-align:center;padding:40px;color:#9CA3AF"><div style="font-size:48px;margin-bottom:12px">&#128197;</div><div style="font-weight:700">No bookings found</div></div></div>'}"""
+    return build_guide_shell("Bookings", body, "bookings", guide)
+
+# ─────────────────────── AVAILABILITY ───────────────────────
+def render_availability(guide, msg="", err=""):
+    avail = guide.get("availability","Mon,Tue,Wed,Thu,Fri,Sat,Sun")
+    checked = [d.strip() for d in avail.split(",") if d.strip()]
+
+    alert = ""
+    if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px">&#10003; {msg}</div>'
+
+    checkboxes = "".join(
+        f'<label style="display:flex;align-items:center;gap:10px;padding:14px 18px;border:2px solid {"#0038A8" if d in checked else "#E2E8F0"};border-radius:10px;cursor:pointer;background:{"#F3E8FF" if d in checked else "#fff"};font-weight:{"700" if d in checked else "400"};color:{"#0038A8" if d in checked else "#4B5563"}">'
+        f'<input type="checkbox" name="days" value="{d}" {"checked" if d in checked else ""} style="width:18px;height:18px;accent-color:#0038A8"/> {d}</label>'
+        for d in DAYS
+    )
+
+    body = f"""
+    <div style="margin-bottom:24px">
+      <div style="font-size:24px;font-weight:900;color:#1F2937">Availability</div>
+      <div style="font-size:14px;color:#6B7280">Set the days you are available for tours</div>
+    </div>
+    {alert}
+    <div class="g-card" style="max-width:600px">
+      <div class="g-card-hdr" style="background:#0038A8">&#128336; Weekly Schedule</div>
+      <div class="g-card-body">
+        <form method="post" action="/guide/availability" style="display:flex;flex-direction:column;gap:16px">
+          <input type="hidden" name="action" value="update_availability"/>
+          <div style="font-size:13px;color:#6B7280;margin-bottom:8px">Select the days you are available:</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px">{checkboxes}</div>
+          <div>
+            <label class="g-lbl">Additional Notes (optional)</label>
+            <input class="g-inp" name="avail_note" value="{e(guide.get('avail_note',''))}" placeholder="e.g. Available on holidays, Off on rainy season..."/>
+          </div>
+          <div><button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:12px 28px">Save Availability</button></div>
+        </form>
+      </div>
+    </div>"""
+    return build_guide_shell("Availability", body, "availability", guide)
+
+# ─────────────────────── RATINGS ───────────────────────
+def render_ratings(guide):
+    gid = guide["id"]
+    ratings = guide_db.get_ratings(gid)
+    avg_rating, rating_count = guide_db.get_avg_rating(gid)
+
+    stars_bar = ""
+    for s in range(5, 0, -1):
+        cnt = len([r for r in ratings if r["rating"] == s])
+        pct = int(cnt / rating_count * 100) if rating_count else 0
+        stars_bar += f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><span style="font-size:13px;min-width:25px;color:#6B7280">{s}&#9733;</span><div style="flex:1;height:12px;background:#F3F4F6;border-radius:6px;overflow:hidden"><div style="height:100%;width:{pct}%;background:#F59E0B;border-radius:6px"></div></div><span style="font-size:12px;color:#6B7280;min-width:30px">{cnt}</span></div>'
+
+    cards = "".join(f"""
+    <div style="border:1px solid #E2E8F0;border-radius:12px;padding:16px;margin-bottom:12px;background:#fff">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div style="font-weight:700;color:#1F2937">{e(r["tourist_name"])}</div>
+        <div style="color:#F59E0B;font-size:16px">{"&#9733;"*r["rating"]}{"&#9734;"*(5-r["rating"])}</div>
+      </div>
+      {"" if not r["feedback"] else f'<div style="font-size:13px;color:#4B5563;line-height:1.6;font-style:italic">&ldquo;{e(r["feedback"])}&rdquo;</div>'}
+      <div style="font-size:11px;color:#9CA3AF;margin-top:8px">{e(str(r["created"])[:10])}</div>
+    </div>""" for r in ratings) or '<div style="text-align:center;padding:40px;color:#9CA3AF"><div style="font-size:48px;margin-bottom:12px">&#11088;</div><div style="font-weight:700">No reviews yet</div></div>'
+
+    body = f"""
+    <div style="margin-bottom:24px">
+      <div style="font-size:24px;font-weight:900;color:#1F2937">Ratings & Feedback</div>
+      <div style="font-size:14px;color:#6B7280">See what tourists say about your tours</div>
+    </div>
+    <div style="display:grid;grid-template-columns:300px 1fr;gap:20px;margin-bottom:24px">
+      <div class="g-card">
+        <div class="g-card-hdr" style="background:#0038A8">&#11088; Overall Rating</div>
+        <div class="g-card-body" style="text-align:center">
+          <div style="font-size:64px;font-weight:900;color:#D97706;line-height:1">{avg_rating}</div>
+          <div style="color:#F59E0B;font-size:24px;margin:8px 0">{"&#9733;"*int(avg_rating)}{"&#9734;"*(5-int(avg_rating))}</div>
+          <div style="font-size:14px;color:#6B7280">{rating_count} review{"s" if rating_count!=1 else ""}</div>
+        </div>
+      </div>
+      <div class="g-card">
+        <div class="g-card-hdr" style="background:#0038A8">Rating Breakdown</div>
+        <div class="g-card-body">{stars_bar}</div>
+      </div>
+    </div>
+    <div style="font-weight:700;font-size:16px;color:#1F2937;margin-bottom:16px">All Reviews</div>
+    {cards}"""
+    return build_guide_shell("Ratings & Feedback", body, "ratings", guide)
+
+# ─────────────────────── PROFILE ───────────────────────
+def render_profile(guide, msg="", err=""):
+    city_opts = "".join(f'<option {"selected" if c==guide.get("city","Manila") else ""}>{c}</option>' for c in CITIES)
+    alert = ""
+    if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px">&#10003; {msg}</div>'
+    if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px">&#9888; {err}</div>'
+    photo_url = guide.get("photo_url","")
+    initials  = ((guide.get("fname") or "G")[:1] + (guide.get("lname") or "?")[:1]).upper()
+    doc_url    = guide.get("doc_url","")
+    doc_status = guide.get("doc_status","none")
+    doc_notes  = guide.get("doc_ai_notes","") or ""
+    DOC_STATUS_COLOR = {"none":"#9CA3AF","pending":"#D97706","approved":"#059669","rejected":"#DC2626"}
+    DOC_STATUS_BG    = {"none":"#F9FAFB","pending":"#FFFBEB","approved":"#ECFDF5","rejected":"#FEF2F2"}
+    DOC_STATUS_LABEL = {"none":"Not uploaded","pending":"Under Review","approved":"&#10003; Verified","rejected":"&#9888; Rejected"}
+    dsc = DOC_STATUS_COLOR.get(doc_status,"#9CA3AF")
+    dsb = DOC_STATUS_BG.get(doc_status,"#F9FAFB")
+    dsl = DOC_STATUS_LABEL.get(doc_status,"Unknown")
+    doc_card = f"""
+    <div class="g-card" style="margin-bottom:20px">
+      <div class="g-card-hdr" style="background:#0038A8">&#128196; License / Permit Verification</div>
+      <div class="g-card-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+          <div>
+            <div style="font-weight:700;font-size:14px;color:#1F2937;margin-bottom:4px">Verification Status</div>
+            <span style="background:{dsb};color:{dsc};padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700">{dsl}</span>
+          </div>
+          {f'<a href="{e(doc_url)}" target="_blank" style="font-size:13px;color:#0038A8;font-weight:600">View uploaded doc</a>' if doc_url else ""}
+        </div>
+        {f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;margin-bottom:14px;font-size:13px;color:#4B5563"><strong>AI Review Notes:</strong> {e(doc_notes)}</div>' if doc_notes else ""}
+        <form method="post" action="/guide/profile/doc" enctype="multipart/form-data">
+          <div style="font-size:13px;color:#6B7280;margin-bottom:10px">
+            Upload your tour guide license, accreditation, or government-issued permit (JPG, PNG or PDF, max 5 MB).
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;border:1.5px dashed #CBD5E1;border-radius:8px;cursor:pointer;background:#F8FAFC;font-size:13px;color:#6B7280" onmouseover="this.style.borderColor='#0038A8'" onmouseout="this.style.borderColor='#CBD5E1'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <span id="doc-lbl">Choose file</span>
+              <input type="file" name="doc_file" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none" onchange="document.getElementById('doc-lbl').textContent=this.files[0]?.name||'Choose file'"/>
+            </label>
+            <button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:9px 18px">Upload for Review</button>
+          </div>
+        </form>
+      </div>
+    </div>"""
+    avatar = (f'<img src="{photo_url}" style="width:88px;height:88px;border-radius:50%;object-fit:cover;border:3px solid #E2E8F0;display:block;margin:0 auto 8px"/>'
+              if photo_url else
+              f'<div style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#CE1126,#0038A8);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#fff;margin:0 auto 8px">{initials}</div>')
+    tfa_enabled = guide.get("totp_enabled", 0)
+    tfa_card = f"""
+    <div class="g-card" style="margin-bottom:20px">
+      <div class="g-card-hdr" style="background:#0038A8">&#128737; Two-Factor Authentication</div>
+      <div class="g-card-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+        <div>
+          <div style="font-weight:700;font-size:14px;color:#1F2937;margin-bottom:4px">Google Authenticator</div>
+          <div style="font-size:13px;color:#6B7280">{"&#10003; Enabled — your account is protected" if tfa_enabled else "Not enabled — add an extra layer of security"}</div>
+        </div>
+        <a href="/guide/setup-2fa">
+          <button class="g-btn" style="background:{"#FEE2E2;color:#DC2626" if tfa_enabled else "#0038A8;color:#fff"};padding:9px 18px;font-size:13px">
+            {"Manage 2FA" if tfa_enabled else "&#128274; Enable 2FA"}
+          </button>
+        </a>
+      </div>
+    </div>"""
+
+    body = f"""
+    <div style="margin-bottom:24px">
+      <div style="font-size:24px;font-weight:900;color:#1F2937">My Profile</div>
+      <div style="font-size:14px;color:#6B7280">Update your public guide profile</div>
+    </div>
+    {alert}
+    {doc_card}
+    {tfa_card}
+    <div class="g-card" style="max-width:380px;margin-bottom:20px">
+      <div class="g-card-hdr" style="background:#0038A8">&#128247; Profile Photo</div>
+      <div class="g-card-body" style="text-align:center">
+        {avatar}
+        <div style="font-size:12px;color:#9CA3AF;margin-bottom:12px">{"Photo uploaded" if photo_url else "No photo yet — upload one below"}</div>
+        <form method="post" action="/guide/profile/photo" enctype="multipart/form-data">
+          <label style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px;border:2px dashed #CBD5E1;border-radius:10px;cursor:pointer;background:#F8FAFC;margin-bottom:10px" onmouseover="this.style.borderColor='#0038A8'" onmouseout="this.style.borderColor='#CBD5E1'">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span id="gp-lbl" style="font-size:13px;color:#6B7280">Click to choose photo</span>
+            <span style="font-size:11px;color:#9CA3AF">JPG, PNG or WEBP · Max 3 MB</span>
+            <input type="file" name="photo_file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="document.getElementById('gp-lbl').textContent=this.files[0]?.name||'Click to choose photo'"/>
+          </label>
+          <button class="g-btn" type="submit" style="background:#0038A8;color:#fff;width:100%;padding:10px">Upload Photo</button>
+        </form>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="g-card">
+        <div class="g-card-hdr" style="background:#0038A8">&#128100; Profile Information</div>
+        <div class="g-card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div>
+              <label class="g-lbl">First Name</label>
+              <div style="padding:9px 12px;background:#F3F4F6;border:1px solid #E2E8F0;border-radius:8px;font-size:14px;color:#6B7280;display:flex;align-items:center;gap:6px">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                {guide.get("fname","")}
+              </div>
+              <div style="font-size:10px;color:#9CA3AF;margin-top:2px">Cannot be changed</div>
+            </div>
+            <div>
+              <label class="g-lbl">Last Name</label>
+              <div style="padding:9px 12px;background:#F3F4F6;border:1px solid #E2E8F0;border-radius:8px;font-size:14px;color:#6B7280;display:flex;align-items:center;gap:6px">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                {guide.get("lname","")}
+              </div>
+              <div style="font-size:10px;color:#9CA3AF;margin-top:2px">Cannot be changed</div>
+            </div>
+          </div>
+          <form method="post" action="/guide/profile" style="display:flex;flex-direction:column;gap:14px">
+            <input type="hidden" name="action" value="update_profile"/>
+            <div><label class="g-lbl">Phone</label><input class="g-inp" name="phone" value="{e(guide.get("phone",""))}"/></div>
+            <div><label class="g-lbl">City</label><select class="g-inp" name="city">{city_opts}</select></div>
+            <div><label class="g-lbl">Languages</label><input class="g-inp" name="languages" value="{e(guide.get("languages","EN, FIL"))}" placeholder="e.g. EN, FIL, ES"/></div>
+            <div><label class="g-lbl">Speciality</label><input class="g-inp" name="speciality" value="{e(guide.get("speciality",""))}" placeholder="e.g. Nature Tours, Historical"/></div>
+            <div><label class="g-lbl">Daily Rate</label><input class="g-inp" name="rate" value="{e(guide.get("rate","P1,500/day"))}" placeholder="e.g. P1,500/day"/></div>
+            <div><label class="g-lbl">Bio / About You</label><textarea class="g-inp" name="bio" rows="4" placeholder="Tell tourists about yourself..." style="resize:none">{e(guide.get("bio",""))}</textarea></div>
+            <button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:12px">Save Profile</button>
+          </form>
+        </div>
+      </div>
+      <div class="g-card">
+        <div class="g-card-hdr" style="background:#0038A8">&#128274; Change Password</div>
+        <div class="g-card-body">
+          <form method="post" action="/guide/profile" style="display:flex;flex-direction:column;gap:14px">
+            <input type="hidden" name="action" value="change_password"/>
+            <div><label class="g-lbl">New Password</label><input class="g-inp" type="password" name="new_pw" placeholder="Min. 6 characters"/></div>
+            <div><label class="g-lbl">Confirm New Password</label><input class="g-inp" type="password" name="new_pw2" placeholder="Repeat new password"/></div>
+            <button class="g-btn" type="submit" style="background:#0038A8;color:#fff;padding:12px">Change Password</button>
+          </form>
+        </div>
+      </div>
+    </div>"""
+    return build_guide_shell("My Profile", body, "profile", guide)
