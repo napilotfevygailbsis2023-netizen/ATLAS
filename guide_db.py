@@ -444,4 +444,24 @@ def enable_guide_totp(guide_id, enabled: bool):
     cur.execute("UPDATE tour_guides SET totp_enabled=%s WHERE id=%s", (1 if enabled else 0, guide_id))
     conn.commit(); cur.close(); conn.close()
 
+
+def get_all_guides():
+    """Returns ALL tour_guides rows regardless of status (for admin Not Registered tab)."""
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT * FROM tour_guides ORDER BY created DESC")
+    rows = cur.fetchall(); cur.close(); conn.close()
+    return rows
+
+def set_doc_status(guide_id, status):
+    """Alias used by admin panel — sets doc_status only."""
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE tour_guides SET doc_status=%s WHERE id=%s", (status, guide_id))
+    conn.commit(); cur.close(); conn.close()
+
+def save_doc_ai_notes(guide_id, notes):
+    """Save AI review notes for a guide document."""
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE tour_guides SET doc_ai_notes=%s WHERE id=%s", (notes, guide_id))
+    conn.commit(); cur.close(); conn.close()
+
 init_guide_tables()

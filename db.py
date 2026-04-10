@@ -385,6 +385,56 @@ def store_pending_user(fname, lname, email, password):
     conn.commit(); cur.close(); conn.close()
     return code
 
+def store_signup_pending(email, password):
+    """Store email+hashed-password for the new signup flow. Returns 6-digit code."""
+    import random
+    code  = str(random.randint(100000, 999999))
+    email = email.strip().lower()
+    conn  = get_conn(); cur = _cursor(conn)
+    try:
+        cur.execute("DELETE FROM pending_users WHERE email=%s", (email,))
+    except: pass
+    cur.execute(
+        "INSERT INTO pending_users (fname,lname,email,password,code) VALUES (%s,%s,%s,%s,%s)",
+        ("", "", email, hash_pw(password), code)
+    )
+    conn.commit(); cur.close(); conn.close()
+    return code
+
+def activate_signup(email, code):
+    """Verify the code, create the user account, return (ok, token, message)."""
+    email = email.strip().lower()
+    conn  = get_conn(); cur = _cursor(conn)
+    try:
+        cur.execute("SELECT * FROM pending_users WHERE email=%s AND code=%s", (email, code))
+        row = cur.fetchone()
+        if not row:
+            cur.close(); conn.close()
+            return False, None, "Invalid or expired code. Please try again."
+        try:
+            cur.execute(
+                "INSERT INTO users (fname,lname,email,password,status) VALUES (%s,%s,%s,%s,'active')",
+                ("", "", email, row["password"])
+            )
+        except IntegrityError:
+            pass  # account already exists, just log them in
+        cur.execute("DELETE FROM pending_users WHERE email=%s", (email,))
+        conn.commit()
+        cur.execute("SELECT * FROM users WHERE email=%s", (email,))
+        user = cur.fetchone()
+        cur.close(); conn.close()
+        if not user:
+            return False, None, "Could not activate account. Please try again."
+        token = secrets.token_hex(32)
+        conn2 = get_conn(); cur2 = _cursor(conn2)
+        cur2.execute("INSERT INTO sessions (token,user_id) VALUES (%s,%s)", (token, user["id"]))
+        conn2.commit(); cur2.close(); conn2.close()
+        return True, token, "Account verified!"
+    except Exception as ex:
+        try: cur.close(); conn.close()
+        except: pass
+        return False, None, f"Verification error: {ex}"
+
 def activate_user(email, code):
     email = email.strip().lower()
     conn  = get_conn(); cur = _cursor(conn)
@@ -480,7 +530,43 @@ def update_flight_booking_status(booking_id, status):
         conn.commit(); cur.close(); conn.close()
     except: pass
 
-def google_login_or_register(email, fname, lname, photo_url=""):
+def update_photo_url(user_id, photo_url):
+    """Save a new photo URL for a user."""
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE users SET photo_url=%s WHERE id=%s", (photo_url, user_id))
+    conn.commit(); cur.close(); conn.close()
+
+def update_profile(user_id, email):
+    """Update a user's email address."""
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE users SET email=%s WHERE id=%s", (email.strip().lower(), user_id))
+    conn.commit(); cur.close(); conn.close()
+
+def change_password(user_id, old_pw, new_pw):
+    """Verify old password then set new one. Returns (ok, message)."""
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT password FROM users WHERE id=%s", (user_id,))
+    row = cur.fetchone(); cur.close(); conn.close()
+    if not row:
+        return False, "User not found."
+    if not check_pw(old_pw, row["password"]):
+        return False, "Current password is incorrect."
+    if len(new_pw) < 6:
+        return False, "New password must be at least 6 characters."
+    conn2 = get_conn(); cur2 = _cursor(conn2)
+    cur2.execute("UPDATE users SET password=%s WHERE id=%s", (hash_pw(new_pw), user_id))
+    conn2.commit(); cur2.close(); conn2.close()
+    return True, "Password updated successfully."
+
+def set_user_name_and_password(user_id, fname, lname, password):
+    """Set name + password for a Google-registered user completing sign-up."""
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE users SET fname=%s, lname=%s, password=%s WHERE id=%s",
+                (fname.strip(), lname.strip(), hash_pw(password), user_id))
+    conn.commit(); cur.close(); conn.close()
+
+
+def google_login_or_register(email: str, fname: str, lname: str, photo_url: str = ""):
     """Find or create a user from Google OAuth, then return a session token."""
     import secrets as _sec
     email = email.strip().lower()

@@ -6,98 +6,244 @@ def e(s): return html.escape(str(s) if s is not None else "")
 
 _STYLE = """
 *{box-sizing:border-box;margin:0;padding:0}
-body{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sans-serif;background:#F8FAFC}
-.split-left{width:55%;flex-shrink:0;background:linear-gradient(160deg,#003087 0%,#0038A8 60%,#001a5e 100%);position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 48px;overflow:hidden;min-height:100vh}
-.blob1{position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.07);top:-80px;left:-80px}
-.blob2{position:absolute;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,.05);bottom:-60px;right:-60px}
-.split-right{width:45%;flex-shrink:0;background:linear-gradient(160deg,#F0F4FF 0%,#fff 35%);display:flex;flex-direction:column;justify-content:center;padding:52px 48px;min-height:100vh;overflow-y:auto}
-.tab-row{display:flex;background:#F3F4F6;border-radius:12px;padding:4px;margin-bottom:32px}
-.tab{flex:1;padding:10px;text-align:center;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;color:#6B7280;transition:.2s}
-.tab.active{background:#fff;color:#1F2937;box-shadow:0 1px 4px rgba(0,0,0,.1)}
-.field{margin-bottom:16px}
-.field label{display:block;font-size:11.5px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
-.field input{width:100%;padding:12px 14px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;color:#0F172A;outline:none;background:#F8FAFC;transition:.15s;font-family:inherit}
-.field input:focus{border-color:#0038A8;background:#fff;box-shadow:0 0 0 3px rgba(0,56,168,.08)}
-.submit-btn{width:100%;padding:13px;background:#0038A8;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;font-family:inherit;transition:.15s}
-.submit-btn:hover{background:#0050D0}
-.back-link{position:fixed;top:20px;left:20px;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.2);color:#fff;text-decoration:none;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;z-index:999}
-@media(max-width:700px){.split-left{display:none}.split-right{width:100%}}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',sans-serif;background:#f0f4f8;padding:20px}
+.modal{background:#ffffff;border-radius:16px;padding:40px 40px 32px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.12)}
+.field{margin-bottom:14px;position:relative}
+.field input{width:100%;padding:18px 16px 6px;border:1.5px solid #d1d9e0;border-radius:100px;font-size:14px;color:#1a1a2e;outline:none;background:#f8fafc;transition:.15s;font-family:inherit}
+.field input:focus{border-color:#1e3a8a;background:#fff}
+.field input::placeholder{color:transparent}
+.field label{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:14px;color:#9ca3af;pointer-events:none;transition:.15s;background:transparent}
+.field input:focus ~ label,
+.field input:not(:placeholder-shown) ~ label{top:10px;transform:none;font-size:11px;color:#1e3a8a}
+.pill-btn{width:100%;padding:13px;border:1.5px solid #d1d9e0;border-radius:100px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;background:#fff;color:#1a1a2e;margin-bottom:10px}
+.pill-btn:hover{background:#f1f5f9;border-color:#b0bec5}
+.submit-btn{width:100%;padding:14px;background:#1a1a2e;color:#fff;border:none;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s;margin-top:6px}
+.submit-btn:hover{background:#2d2d4e}
+.submit-btn:disabled{background:#d1d9e0;color:#9ca3af;cursor:not-allowed}
+.divider{display:flex;align-items:center;gap:12px;margin:18px 0}
+.divider hr{flex:1;border:none;border-top:1px solid #e2e8f0}
+.divider span{font-size:12px;color:#9ca3af}
+.req{font-size:13px;color:#6b7280;display:flex;align-items:center;gap:8px;padding:4px 0}
+.req.ok{color:#1e3a8a}
+.email-chip{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border:1.5px solid #d1d9e0;border-radius:100px;background:#f8fafc;margin-bottom:14px}
+.email-chip span{font-size:14px;color:#374151}
+.email-chip a{font-size:13px;color:#1e3a8a;font-weight:600;text-decoration:none}
+.footer-links{margin-top:24px;font-size:12px;color:#9ca3af;text-align:center}
+.footer-links a{color:#9ca3af;text-decoration:underline;margin:0 8px}
 """
 
-def render(error="", success=""):
-    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:12px 16px;color:#991B1B;font-size:13px;margin-bottom:16px"><i class="fa-solid fa-triangle-exclamation"></i> {e(error)}</div>' if error else ""
-    suc = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:8px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:16px"><i class="fa-solid fa-check"></i> {e(success)}</div>' if success else ""
+_GOOGLE_SVG = '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>'
+
+def _page(title, body_html, wide=False):
+    max_w = "520px" if wide else "400px"
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Log In - ATLAS</title>
+<title>{title} - ATLAS</title>
 <link rel="stylesheet" href="/css/styles.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-<style>{_STYLE}</style>
+<style>{_STYLE}.modal{{max-width:{max_w}}}</style>
 </head>
 <body>
-<a href="/" class="back-link"><i class="fa-solid fa-arrow-left"></i> Tourist Site</a>
-<div class="split-left">
-  <div class="blob1"></div><div class="blob2"></div>
-  <div style="position:relative;z-index:2;text-align:center;color:#fff">
-    <div style="font-size:72px;margin-bottom:20px">&#127963;</div>
-    <div style="font-size:36px;font-weight:900;line-height:1.2;margin-bottom:14px">Explore.<br/>Discover.<br/>Adventure.</div>
-    <div style="font-size:15px;opacity:.8;line-height:1.8;margin-bottom:32px;max-width:300px">Your Luzon travel companion for flights, attractions, restaurants and guided tours.</div>
-    <div style="display:flex;flex-direction:column;gap:10px;font-size:14px;opacity:.9;text-align:left">
-      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:10px 16px;border-radius:10px">
-        <i class="fa-solid fa-plane" style="width:18px"></i> Real-time flight search
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:10px 16px;border-radius:10px">
-        <i class="fa-solid fa-location-dot" style="width:18px"></i> Tourist attraction guides
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:10px 16px;border-radius:10px">
-        <i class="fa-solid fa-users" style="width:18px"></i> Verified local tour guides
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:10px 16px;border-radius:10px">
-        <i class="fa-solid fa-cloud-sun" style="width:18px"></i> Live weather forecasts
-      </div>
-    </div>
+<div class="modal">
+  <div style="text-align:center;margin-bottom:28px">
+    <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:40px;height:40px;border-radius:50%;object-fit:cover;display:inline-block"/>
   </div>
-</div>
-<div class="split-right">
-  <div style="margin-bottom:24px">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-      <img src="/ATLAS_LOGO.jpg" alt="ATLAS" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0"/>
-      <span style="font-weight:800;font-size:18px;color:#0F172A">ATLAS</span>
-    </div>
-    <div style="font-size:13px;color:#94A3B8">Luzon Travel Companion</div>
-  </div>
-  <div style="font-size:20px;font-weight:800;color:#0F172A;margin-bottom:4px">Welcome back</div>
-  <div style="font-size:13px;color:#94A3B8;margin-bottom:22px">Sign in with your email or Google account</div>
-  {err}{suc}
-  <form method="post" action="/login.py">
-    <div class="field"><label>Email Address</label><input type="email" name="email" placeholder="you@email.com" required autocomplete="email"/></div>
-    <div class="field"><label>Password</label><input type="password" name="password" placeholder="Enter your password" required/></div>
-    <button class="submit-btn" type="submit"><i class="fa-solid fa-right-to-bracket"></i> Log In</button>
-  </form>
-  <div style="display:flex;align-items:center;gap:10px;margin:18px 0">
-    <div style="flex:1;height:1px;background:#E2E8F0"></div>
-    <span style="font-size:12px;color:#94A3B8;white-space:nowrap">or continue with</span>
-    <div style="flex:1;height:1px;background:#E2E8F0"></div>
-  </div>
-  <a href="/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff;font-size:14px;font-weight:600;color:#1F2937;text-decoration:none;transition:.15s" onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='#fff'">
-    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
-    Continue with Google
-  </a>
-  <div style="margin-top:18px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px 14px;font-size:12px;color:#1E40AF;line-height:1.6">
-    <i class="fa-solid fa-circle-info"></i>
-    <strong>New to ATLAS?</strong> Use <em>Continue with Google</em> above — your account is created automatically.
-    Already registered via email? Enter your email and password above.
-  </div>
+{body_html}
 </div>
 </body></html>"""
 
+def _err_box(msg):
+    if not msg: return ""
+    return f'<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;color:#dc2626;font-size:13px;margin-bottom:16px"><i class="fa-solid fa-triangle-exclamation"></i> {e(msg)}</div>'
 
-def render_2fa(email, error=""):
-    """Step 2: Enter 6-digit Google Authenticator code."""
+def _suc_box(msg):
+    if not msg: return ""
+    return f'<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px 16px;color:#16a34a;font-size:13px;margin-bottom:16px"><i class="fa-solid fa-check"></i> {e(msg)}</div>'
+
+
+# ── STEP 1: Email entry ───────────────────────────────────────────────────────
+def render(error="", success=""):
+    body = f"""
+  <div style="font-size:28px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px">Log in or sign up</div>
+  <div style="font-size:13px;color:#6b7280;text-align:center;margin-bottom:24px">Access flights, attractions, restaurants and more.</div>
+  {_err_box(error)}{_suc_box(success)}
+  <a href="/auth/google" class="pill-btn">
+    {_GOOGLE_SVG} Continue with Google
+  </a>
+  <button class="pill-btn" style="opacity:.4;cursor:not-allowed" disabled>
+    <i class="fa-brands fa-apple" style="font-size:18px"></i> Continue with Apple
+  </button>
+  <button class="pill-btn" style="opacity:.4;cursor:not-allowed" disabled>
+    <i class="fa-solid fa-phone" style="font-size:16px"></i> Continue with phone
+  </button>
+  <div class="divider"><hr/><span>OR</span><hr/></div>
+  <form method="post" action="/login/email">
+    <div class="field">
+      <input type="email" name="email" id="email-inp" placeholder="Email address" required autocomplete="email" autofocus/>
+      <label for="email-inp">Email address</label>
+    </div>
+    <button class="submit-btn" type="submit">Continue</button>
+  </form>
+  <div class="footer-links">
+    <a href="#">Terms of Use</a> | <a href="#">Privacy Policy</a>
+  </div>"""
+    return _page("Log In / Sign Up", body)
+
+
+# ── STEP 2a: Existing user — enter password ───────────────────────────────────
+def render_login_password(email, error=""):
     safe_email = e(email)
-    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:12px 16px;color:#991B1B;font-size:13px;margin-bottom:16px">&#9888; {e(error)}</div>' if error else ""
+    body = f"""
+  <div style="font-size:28px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px">Welcome back</div>
+  <div style="font-size:13px;color:#6b7280;text-align:center;margin-bottom:24px">Enter your password to continue</div>
+  {_err_box(error)}
+  <form method="post" action="/login.py">
+    <input type="hidden" name="email" value="{safe_email}"/>
+    <div class="email-chip">
+      <span>{safe_email}</span>
+      <a href="/login.py">Edit</a>
+    </div>
+    <div class="field">
+      <input type="password" name="password" id="pw-inp" placeholder="Password" required autofocus style="padding-right:48px"/>
+      <label for="pw-inp">Password</label>
+      <button type="button" tabindex="-1"
+        onclick="var i=document.getElementById('pw-inp');i.type=i.type==='password'?'text':'password';this.querySelector('i').className=i.type==='password'?'fa-regular fa-eye':'fa-regular fa-eye-slash'"
+        style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;padding:0">
+        <i class="fa-regular fa-eye"></i>
+      </button>
+    </div>
+    <button class="submit-btn" type="submit">Continue</button>
+  </form>
+  <div class="footer-links">
+    <a href="#">Terms of Use</a> | <a href="#">Privacy Policy</a>
+  </div>"""
+    return _page("Log In", body)
+
+
+# ── STEP 2b: New user — create password ──────────────────────────────────────
+def render_signup_password(email, error=""):
+    safe_email = e(email)
+    body = f"""
+  <div style="font-size:28px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px">Create a password</div>
+  <div style="font-size:13px;color:#6b7280;text-align:center;margin-bottom:24px">You'll use this to log in to ATLAS.</div>
+  {_err_box(error)}
+  <form method="post" action="/signup/password" id="pw-form">
+    <input type="hidden" name="email" value="{safe_email}"/>
+    <div class="email-chip">
+      <span>{safe_email}</span>
+      <a href="/login.py">Edit</a>
+    </div>
+    <div class="field">
+      <input type="password" name="password" id="pw-input" placeholder="Password"
+             required autofocus style="padding-right:48px" oninput="checkPw(this.value)"/>
+      <label for="pw-input">Password</label>
+      <button type="button" tabindex="-1"
+        onclick="var i=document.getElementById('pw-input');i.type=i.type==='password'?'text':'password';this.querySelector('i').className=i.type==='password'?'fa-regular fa-eye':'fa-regular fa-eye-slash'"
+        style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;padding:0">
+        <i class="fa-regular fa-eye"></i>
+      </button>
+    </div>
+    <div style="background:#f8fafc;border:1.5px solid #d1d9e0;border-radius:12px;padding:14px 18px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">Your password must contain:</div>
+      <div id="req-len" class="req"><i class="fa-solid fa-xmark" style="width:14px;color:#d1d9e0"></i> At least 12 characters</div>
+    </div>
+    <button class="submit-btn" type="submit" id="pw-btn" disabled>Continue</button>
+  </form>
+  <div class="footer-links">
+    <a href="#">Terms of Use</a> | <a href="#">Privacy Policy</a>
+  </div>
+<script>
+function checkPw(v) {{
+  var len = v.length >= 12;
+  var el = document.getElementById('req-len');
+  el.className = 'req' + (len ? ' ok' : '');
+  el.innerHTML = (len
+    ? '<i class="fa-solid fa-check" style="width:14px;color:#1e3a8a"></i> At least 12 characters'
+    : '<i class="fa-solid fa-xmark" style="width:14px;color:#d1d9e0"></i> At least 12 characters');
+  document.getElementById('pw-btn').disabled = !len;
+}}
+</script>"""
+    return _page("Create Password", body)
+
+
+# ── STEP 3: Check your inbox ──────────────────────────────────────────────────
+def render_verify_email(email, error=""):
+    safe_email = e(email)
+    body = f"""
+  <div style="font-size:28px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px">Check your inbox</div>
+  <div style="font-size:13px;color:#6b7280;text-align:center;line-height:1.7;margin-bottom:24px">
+    Enter the verification code we just sent to<br/>
+    <strong style="color:#1a1a2e">{safe_email}</strong>
+  </div>
+  {_err_box(error)}
+  <form method="post" action="/signup/verify">
+    <input type="hidden" name="email" value="{safe_email}"/>
+    <div class="field">
+      <input type="text" name="code" id="code-inp" placeholder="Code"
+             required autofocus maxlength="6" inputmode="numeric"
+             autocomplete="one-time-code"
+             style="letter-spacing:6px;font-size:20px;font-weight:600;text-align:center;padding:18px 16px 6px"/>
+      <label for="code-inp" style="left:50%;transform:translate(-50%,-50%);white-space:nowrap">Code</label>
+    </div>
+    <button class="submit-btn" type="submit">Continue</button>
+  </form>
+  <div style="margin-top:16px;text-align:center">
+    <form method="post" action="/signup/resend" style="display:inline">
+      <input type="hidden" name="email" value="{safe_email}"/>
+      <button type="submit"
+        style="background:none;border:none;color:#1a1a2e;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-decoration:underline">
+        Resend email
+      </button>
+    </form>
+  </div>
+  <div class="footer-links">
+    <a href="#">Terms of Use</a> | <a href="#">Privacy Policy</a>
+  </div>"""
+    return _page("Verify Email", body)
+
+
+# ── STEP 4: Complete registration (name + age) ────────────────────────────────
+def render_register_complete(email, google_name="", error=""):
+    safe_email = e(email)
+    safe_name  = e(google_name)
+    parts = safe_name.split()
+    fname = parts[0] if parts else ""
+    lname = " ".join(parts[1:]) if len(parts) > 1 else ""
+    body = f"""
+  <div style="font-size:28px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px">How old are you?</div>
+  <div style="font-size:13px;color:#6b7280;text-align:center;margin-bottom:24px;line-height:1.7">
+    This helps us personalise your experience and provide<br/>the right settings, in line with our
+    <a href="#" style="color:#1e3a8a;text-decoration:underline">Privacy Policy</a>.
+  </div>
+  {_err_box(error)}
+  <form method="post" action="/auth/google/complete">
+    <input type="hidden" name="email" value="{safe_email}"/>
+    <div class="field">
+      <input type="text" name="fullname" id="fullname-inp" placeholder="Full name"
+             value="{(fname + ' ' + lname).strip()}"
+             required maxlength="120" autocomplete="name"/>
+      <label for="fullname-inp">Full name</label>
+    </div>
+    <div class="field">
+      <input type="number" name="age" id="age-inp" placeholder="Age" min="13" max="120" required/>
+      <label for="age-inp">Age</label>
+    </div>
+    <div style="font-size:12px;color:#9ca3af;text-align:center;margin-bottom:16px;line-height:1.7">
+      By clicking "Finish creating account", you agree to our
+      <a href="#" style="color:#1e3a8a;text-decoration:underline">Terms</a> and have read our
+      <a href="#" style="color:#1e3a8a;text-decoration:underline">Privacy Policy</a>.
+    </div>
+    <button class="submit-btn" type="submit">Finish creating account</button>
+  </form>"""
+    return _page("Complete Registration", body)
+
+
+# ── 2FA entry screen ──────────────────────────────────────────────────────────
+def render_2fa(email, error=""):
+    safe_email = e(email)
+    err = _err_box(error)
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -105,73 +251,40 @@ def render_2fa(email, error=""):
 <title>Two-Factor Auth - ATLAS</title>
 <link rel="stylesheet" href="/css/styles.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
-<style>
-*{{box-sizing:border-box;margin:0;padding:0}}
-body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F8FAFC;font-family:'Segoe UI',sans-serif;padding:24px}}
-.box{{background:#fff;border-radius:16px;padding:40px 48px;max-width:480px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center}}
-.code-inputs{{display:flex;gap:10px;justify-content:center;margin:28px 0}}
-.code-input{{width:52px;height:60px;border:2px solid #E2E8F0;border-radius:10px;font-size:24px;font-weight:800;text-align:center;outline:none;color:#0F172A;font-family:monospace;transition:.15s}}
-.code-input:focus{{border-color:#0038A8;box-shadow:0 0 0 3px rgba(0,56,168,.1);background:#F0F7FF}}
-.submit-btn{{width:100%;padding:13px;background:#0038A8;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}}
-.submit-btn:hover{{background:#0050D0}}
-</style>
+<style>{_STYLE}</style>
 </head>
 <body>
-<div class="box">
-  <div style="width:64px;height:64px;background:#EFF6FF;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
-    <i class="fa-brands fa-google" style="font-size:28px;color:#0038A8"></i>
+<div class="modal" style="text-align:center">
+  <div style="width:56px;height:56px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;border:1.5px solid #d1d9e0">
+    <i class="fa-brands fa-google" style="font-size:24px;color:#6b7280"></i>
   </div>
-  <div style="font-size:22px;font-weight:800;color:#0F172A;margin-bottom:8px">Two-Factor Authentication</div>
-  <div style="font-size:14px;color:#475569;line-height:1.6;margin-bottom:4px">Open Google Authenticator and enter the 6-digit code for</div>
-  <div style="font-size:14px;font-weight:700;color:#0038A8;margin-bottom:16px">{safe_email}</div>
+  <div style="font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:8px">Two-Factor Authentication</div>
+  <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:4px">Open Google Authenticator and enter the 6-digit code for</div>
+  <div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:16px">{safe_email}</div>
   {err}
-  <form method="post" action="/login/2fa" id="tfa-form">
+  <form method="post" action="/login/2fa">
     <input type="hidden" name="email" value="{safe_email}"/>
-    <input type="hidden" name="code" id="tfa-code"/>
-    <div class="code-inputs">
-      <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="t0" autofocus/>
-      <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="t1"/>
-      <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="t2"/>
-      <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="t3"/>
-      <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="t4"/>
-      <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="t5"/>
+    <div class="field" style="text-align:left">
+      <input type="text" name="code" id="tfa-inp" placeholder="6-digit code"
+             required maxlength="6" inputmode="numeric" autofocus
+             autocomplete="one-time-code"
+             style="letter-spacing:6px;font-size:20px;font-weight:600;text-align:center;padding:18px 16px 6px"/>
+      <label for="tfa-inp" style="left:50%;transform:translate(-50%,-50%);white-space:nowrap">Code</label>
     </div>
-    <button class="submit-btn" type="submit"><i class="fa-solid fa-shield-halved"></i> Verify</button>
+    <button class="submit-btn" type="submit">Verify</button>
   </form>
-  <div style="margin-top:16px;font-size:13px;color:#94A3B8">
-    <a href="/login.py" style="color:#0038A8;font-weight:600">&#8592; Back to login</a>
+  <div style="margin-top:16px">
+    <a href="/login.py" style="font-size:13px;color:#6b7280">&#8592; Back to login</a>
+  </div>
+  <div class="footer-links">
+    <a href="#">Terms of Use</a> | <a href="#">Privacy Policy</a>
   </div>
 </div>
-<script>
-var inputs = document.querySelectorAll('.code-input');
-inputs.forEach(function(inp, idx) {{
-  inp.addEventListener('input', function() {{
-    this.value = this.value.replace(/[^0-9]/g,'').slice(-1);
-    if (this.value && idx < 5) inputs[idx+1].focus();
-  }});
-  inp.addEventListener('keydown', function(e) {{
-    if (e.key==='Backspace' && !this.value && idx > 0) inputs[idx-1].focus();
-  }});
-  inp.addEventListener('paste', function(e) {{
-    var pasted = (e.clipboardData||window.clipboardData).getData('text').replace(/\\D/g,'');
-    if (pasted.length >= 6) {{
-      for (var i=0;i<6;i++) inputs[i].value = pasted[i]||'';
-      inputs[5].focus(); e.preventDefault();
-    }}
-  }});
-}});
-document.getElementById('tfa-form').addEventListener('submit', function(e) {{
-  var code = Array.from(inputs).map(function(i){{return i.value;}}).join('');
-  if (code.length < 6) {{ e.preventDefault(); alert('Please enter all 6 digits.'); return; }}
-  document.getElementById('tfa-code').value = code;
-}});
-</script>
 </body></html>"""
 
 
 def render_2fa_setup(user, secret, qr_b64, error=""):
-    """Setup page: scan QR code then confirm with a code."""
-    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:12px 16px;color:#991B1B;font-size:13px;margin-bottom:16px">&#9888; {e(error)}</div>' if error else ""
+    err = _err_box(error)
     enabled = user.get("totp_enabled", 0)
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -182,92 +295,69 @@ def render_2fa_setup(user, secret, qr_b64, error=""):
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F8FAFC;font-family:'Segoe UI',sans-serif;padding:24px}}
-.box{{background:#fff;border-radius:16px;padding:40px 48px;max-width:520px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08)}}
-.code-inputs{{display:flex;gap:10px;justify-content:center;margin:20px 0}}
-.code-input{{width:48px;height:56px;border:2px solid #E2E8F0;border-radius:10px;font-size:22px;font-weight:800;text-align:center;outline:none;color:#0F172A;font-family:monospace;transition:.15s}}
-.code-input:focus{{border-color:#0038A8;box-shadow:0 0 0 3px rgba(0,56,168,.1);background:#F0F7FF}}
-.btn{{padding:12px 24px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}}
+body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-family:'Segoe UI',sans-serif;padding:24px}}
+.box{{background:#ffffff;border-radius:16px;padding:40px 48px;max-width:520px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.12)}}
+.field{{margin-bottom:14px;position:relative}}
+.field input{{width:100%;padding:18px 16px 6px;border:1.5px solid #d1d9e0;border-radius:100px;font-size:14px;color:#1a1a2e;outline:none;background:#f8fafc;transition:.15s;font-family:inherit}}
+.field input:focus{{border-color:#1e3a8a;background:#fff}}
+.field input::placeholder{{color:transparent}}
+.field label{{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:14px;color:#9ca3af;pointer-events:none;transition:.15s}}
+.field input:focus ~ label,.field input:not(:placeholder-shown) ~ label{{top:10px;transform:none;font-size:11px;color:#1e3a8a}}
+.btn{{padding:12px 24px;border:none;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}}
 </style>
 </head>
 <body>
 <div class="box">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
-    <div style="width:48px;height:48px;background:#EFF6FF;border-radius:50%;display:flex;align-items:center;justify-content:center">
-      <i class="fa-brands fa-google" style="font-size:22px;color:#0038A8"></i>
+    <div style="width:48px;height:48px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid #d1d9e0">
+      <i class="fa-brands fa-google" style="font-size:22px;color:#6b7280"></i>
     </div>
     <div>
-      <div style="font-size:20px;font-weight:800;color:#0F172A">Google Authenticator</div>
-      <div style="font-size:13px;color:#6B7280">Two-factor authentication setup</div>
+      <div style="font-size:20px;font-weight:700;color:#1a1a2e">Google Authenticator</div>
+      <div style="font-size:13px;color:#6b7280">Two-factor authentication setup</div>
     </div>
   </div>
-
-  {"" if not enabled else '<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:8px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-shield-halved"></i> 2FA is currently <strong>enabled</strong> on your account.</div>'}
-
+  {"" if not enabled else '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px 16px;color:#16a34a;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-shield-halved"></i> 2FA is currently <strong>enabled</strong> on your account.</div>'}
   {err}
-
   {"" if enabled else f'''
-  <div style="margin-bottom:20px">
-    <div style="font-weight:700;color:#1F2937;margin-bottom:8px">Step 1 — Scan this QR code</div>
-    <div style="font-size:13px;color:#6B7280;margin-bottom:14px">Open Google Authenticator on your phone and tap the + button, then scan this code.</div>
+  <div>
+    <div style="font-weight:600;color:#374151;margin-bottom:8px">Step 1 &mdash; Scan this QR code</div>
+    <div style="font-size:13px;color:#6b7280;margin-bottom:14px">Open Google Authenticator on your phone, tap +, then scan.</div>
     <div style="text-align:center;margin-bottom:14px">
-      <img src="data:image/png;base64,{qr_b64}" style="width:180px;height:180px;border:4px solid #E2E8F0;border-radius:12px"/>
+      <img src="data:image/png;base64,{qr_b64}" style="width:180px;height:180px;border:2px solid #d1d9e0;border-radius:12px"/>
     </div>
-    <div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px;text-align:center;margin-bottom:20px">
-      <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px">Or enter this key manually</div>
-      <div style="font-family:monospace;font-size:14px;font-weight:700;color:#0038A8;letter-spacing:2px">{e(secret)}</div>
+    <div style="background:#f8fafc;border:1px solid #d1d9e0;border-radius:10px;padding:12px;text-align:center;margin-bottom:20px">
+      <div style="font-size:11px;color:#9ca3af;margin-bottom:4px">Or enter this key manually</div>
+      <div style="font-family:monospace;font-size:14px;font-weight:700;color:#374151;letter-spacing:2px">{e(secret)}</div>
     </div>
-    <div style="font-weight:700;color:#1F2937;margin-bottom:8px">Step 2 — Enter the 6-digit code to confirm</div>
-    <form method="post" action="/setup-2fa" id="setup-form">
+    <div style="font-weight:600;color:#374151;margin-bottom:8px">Step 2 &mdash; Enter the 6-digit code to confirm</div>
+    <form method="post" action="/setup-2fa">
       <input type="hidden" name="action" value="enable"/>
-      <input type="hidden" name="code" id="setup-code"/>
-      <div class="code-inputs">
-        <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="s0" autofocus/>
-        <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="s1"/>
-        <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="s2"/>
-        <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="s3"/>
-        <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="s4"/>
-        <input type="text" class="code-input" maxlength="1" inputmode="numeric" id="s5"/>
+      <div class="field">
+        <input type="text" name="code" id="setup-inp" placeholder="Code"
+               maxlength="6" inputmode="numeric" autofocus
+               style="letter-spacing:6px;font-size:20px;font-weight:600;text-align:center;padding:18px 16px 6px"/>
+        <label for="setup-inp" style="left:50%;transform:translate(-50%,-50%);white-space:nowrap">Code</label>
       </div>
-      <button class="btn" type="submit" style="background:#0038A8;color:#fff;width:100%;padding:13px">
+      <button class="btn" type="submit" style="background:#1a1a2e;color:#fff;width:100%;padding:13px">
         <i class="fa-solid fa-check"></i> Enable Two-Factor Authentication
       </button>
     </form>
   </div>
   '''}
-
   {"" if not enabled else '''
   <form method="post" action="/setup-2fa">
     <input type="hidden" name="action" value="disable"/>
-    <button class="btn" type="submit" style="background:#FEE2E2;color:#DC2626;width:100%;padding:13px"
-      onclick="return confirm('Are you sure you want to disable 2FA? This will make your account less secure.')">
+    <button class="btn" type="submit" style="background:#fef2f2;color:#dc2626;width:100%;padding:13px;border:1.5px solid #fca5a5"
+      onclick="return confirm(\'Are you sure you want to disable 2FA?\')">
       <i class="fa-solid fa-shield-xmark"></i> Disable Two-Factor Authentication
     </button>
   </form>
   '''}
-
   <div style="margin-top:16px;text-align:center">
-    <a href="/profile.py" style="font-size:13px;color:#6B7280">&#8592; Back to Profile</a>
+    <a href="/profile.py" style="font-size:13px;color:#6b7280">&#8592; Back to Profile</a>
   </div>
 </div>
-<script>
-var inputs = document.querySelectorAll('.code-input');
-inputs.forEach(function(inp, idx) {{
-  inp.addEventListener('input', function() {{
-    this.value = this.value.replace(/[^0-9]/g,'').slice(-1);
-    if (this.value && idx < 5) inputs[idx+1].focus();
-  }});
-  inp.addEventListener('keydown', function(e) {{
-    if (e.key==='Backspace' && !this.value && idx > 0) inputs[idx-1].focus();
-  }});
-}});
-var sf = document.getElementById('setup-form');
-if (sf) sf.addEventListener('submit', function(e) {{
-  var code = Array.from(inputs).map(function(i){{return i.value;}}).join('');
-  if (code.length < 6) {{ e.preventDefault(); alert('Please enter all 6 digits.'); return; }}
-  document.getElementById('setup-code').value = code;
-}});
-</script>
 </body></html>"""
 
 
@@ -279,10 +369,9 @@ def handle_post(form):
         return None, render(error="Please fill in all fields."), None
     result, token, user = db.login_user(email, password)
     if result == "suspended":
-        return None, render(error="Your account has been suspended. Please contact support."), None
+        return None, render_login_password(email, error="Your account has been suspended. Please contact support."), None
     if not result:
-        return None, render(error="Invalid email or password."), None
-    # Check if 2FA is enabled
+        return None, render_login_password(email, error="Incorrect password. Please try again."), None
     if user.get("totp_enabled") and user.get("totp_secret"):
-        return None, render_2fa(email), email   # signal caller to show 2FA screen
+        return None, render_2fa(email), email
     return token, None, None

@@ -198,6 +198,26 @@ def render(user=None, msg="", err="", tab="profile"):
     initials = (fname[0] if fname else "?").upper()
     photo_url = user.get("photo_url","")
 
+    # ── PHOTO REQUIRED banner ──────────────────────────────────────────────
+    photo_missing = not photo_url
+    photo_banner = ""
+    if photo_missing:
+        photo_banner = """
+        <div style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);border:2px solid #F59E0B;
+                    border-radius:12px;padding:16px 20px;margin-bottom:20px;
+                    display:flex;align-items:flex-start;gap:14px">
+          <div style="font-size:28px;flex-shrink:0">📷</div>
+          <div>
+            <div style="font-weight:800;font-size:15px;color:#92400E;margin-bottom:4px">
+              Profile photo required
+            </div>
+            <div style="font-size:13px;color:#92400E;line-height:1.6">
+              A profile photo is <strong>mandatory</strong> to use ATLAS fully.
+              Please upload a photo below to unlock all features.
+            </div>
+          </div>
+        </div>"""
+
     msg_html = f'<div style="background:#D1FAE5;color:#065F46;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-weight:600">&#10003; {msg}</div>' if msg else ""
     err_html = f'<div style="background:#FEE2E2;color:#CE1126;padding:12px 16px;border-radius:8px;margin-bottom:16px;font-weight:600">&#9888; {err}</div>' if err else ""
 
@@ -314,30 +334,41 @@ def render(user=None, msg="", err="", tab="profile"):
         <div class="section-title">My Profile</div>
         <div class="section-sub">Manage your tourist account details</div>
       </div>
-      {msg_html}{err_html}
+      {photo_banner}{msg_html}{err_html}
 
       <!-- Profile Photo Card -->
-      <div class="card" style="margin-bottom:20px">
-        <div class="card-hdr" style="background:#0038A8">
+      <div class="card" style="margin-bottom:20px{';border:2px solid #F59E0B;box-shadow:0 0 0 4px #FEF3C755' if photo_missing else ''}">
+        <div class="card-hdr" style="background:{'#D97706' if photo_missing else '#0038A8'}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-          Profile Photo
+          Profile Photo {'<span style="background:#fff;color:#D97706;font-size:10px;font-weight:800;padding:2px 8px;border-radius:10px;margin-left:8px">REQUIRED</span>' if photo_missing else ''}
         </div>
         <div class="card-body" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
           <div style="flex-shrink:0">
-            {f'<img src="{photo_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #E2E8F0"/>' if photo_url else f'<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#0038A8,#0050d0);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#fff">{initials}</div>'}
+            {f'<img src="{photo_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #E2E8F0"/>' if photo_url else f'<div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#F59E0B,#D97706);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;color:#fff;border:3px dashed #FCD34D">{initials}</div>'}
           </div>
           <div style="flex:1;min-width:180px">
             <div style="font-size:20px;font-weight:800;color:#1F2937;margin-bottom:2px">{fname} {lname}</div>
             <div style="font-size:13px;color:#6B7280;margin-bottom:10px">&#9993; {email}</div>
-            <form method="post" action="/profile/photo" enctype="multipart/form-data" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px dashed #CBD5E1;border-radius:8px;cursor:pointer;background:#F8FAFC;font-size:13px;color:#6B7280" onmouseover="this.style.borderColor='#0038A8'" onmouseout="this.style.borderColor='#CBD5E1'">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            {'<div style="font-size:12px;color:#D97706;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-circle-exclamation"></i> No photo uploaded yet — required to use ATLAS</div>' if photo_missing else ''}
+            <form method="post" action="/profile/photo" enctype="multipart/form-data" id="photo-form" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <label style="display:flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px {'dashed #F59E0B;background:#FFFBEB' if photo_missing else 'dashed #CBD5E1;background:#F8FAFC'};border-radius:8px;cursor:pointer;font-size:13px;color:#6B7280" onmouseover="this.style.borderColor='#0038A8'" onmouseout="this.style.borderColor='{'#F59E0B' if photo_missing else '#CBD5E1'}'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="{'#D97706' if photo_missing else '#94A3B8'}" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 <span id="t-photo-lbl">Choose photo</span>
-                <input type="file" name="photo_file" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="document.getElementById('t-photo-lbl').textContent=this.files[0]?.name||'Choose photo'"/>
+                <input type="file" name="photo_file" accept="image/jpeg,image/png,image/webp"
+                       style="display:none" id="photo-input"
+                       onchange="handlePhotoSelect(this)"/>
               </label>
-              <button class="btn" type="submit" style="background:#0038A8;color:#fff;padding:8px 18px;font-size:13px;font-weight:700">Upload</button>
+              <button class="btn" type="submit" id="photo-upload-btn"
+                style="background:{'#D97706' if photo_missing else '#0038A8'};color:#fff;padding:8px 18px;font-size:13px;font-weight:700">
+                {'<i class="fa-solid fa-camera"></i> Upload Photo' if photo_missing else 'Upload'}
+              </button>
             </form>
             <div style="font-size:11px;color:#9CA3AF;margin-top:5px">JPG, PNG or WEBP · Max 3 MB</div>
+            <!-- Preview before upload -->
+            <div id="photo-preview-wrap" style="display:none;margin-top:10px;align-items:center;gap:10px">
+              <img id="photo-preview" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid #E2E8F0"/>
+              <div style="font-size:12px;color:#059669;font-weight:600"><i class="fa-solid fa-check"></i> Ready to upload</div>
+            </div>
           </div>
         </div>
       </div>
@@ -415,5 +446,53 @@ def render(user=None, msg="", err="", tab="profile"):
       {_recently_viewed_html(email)}
 
     </div>
-    {_guide_feedback_modal()}"""
+    {_guide_feedback_modal()}
+    <script>
+    function handlePhotoSelect(input) {{
+      var lbl = document.getElementById('t-photo-lbl');
+      var wrap = document.getElementById('photo-preview-wrap');
+      var prev = document.getElementById('photo-preview');
+      var btn  = document.getElementById('photo-upload-btn');
+      if (input.files && input.files[0]) {{
+        var f = input.files[0];
+        if (f.size > 3 * 1024 * 1024) {{
+          alert('File too large. Maximum size is 3 MB.');
+          input.value = '';
+          lbl.textContent = 'Choose photo';
+          wrap.style.display = 'none';
+          if (btn) btn.disabled = true;
+          return;
+        }}
+        lbl.textContent = f.name.length > 22 ? f.name.slice(0,20)+'...' : f.name;
+        if (btn) btn.disabled = false;
+        var reader = new FileReader();
+        reader.onload = function(ev) {{
+          prev.src = ev.target.result;
+          wrap.style.display = 'flex';
+        }};
+        reader.readAsDataURL(f);
+      }}
+    }}
+    // Disable upload button until a file is chosen
+    (function() {{
+      var btn = document.getElementById('photo-upload-btn');
+      var inp = document.getElementById('photo-input');
+      if (btn && inp) {{
+        btn.disabled = true;
+        inp.addEventListener('change', function() {{
+          btn.disabled = !inp.files || !inp.files[0];
+        }});
+      }}
+      // Validate on submit
+      var form = document.getElementById('photo-form');
+      if (form) {{
+        form.addEventListener('submit', function(e) {{
+          if (!inp || !inp.files || !inp.files[0]) {{
+            e.preventDefault();
+            alert('Please select a photo file first.');
+          }}
+        }});
+      }}
+    }})();
+    </script>"""
     return build_shell("My Profile", body, "profile", user=user)

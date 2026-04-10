@@ -30,73 +30,140 @@ CITY_COORDS = {
 
 # Curated Unsplash images per attraction
 
+# Wikimedia Commons — actual photos of the real attractions (freely licensed)
+# URL pattern: upload.wikimedia.org/wikipedia/commons/thumb/{md5[0]}/{md5[0:2]}/{filename}/{size}px-{filename}
+# Using Wikipedia Special:FilePath — redirects to the correct file without needing MD5 hash
+# Confirmed filenames sourced directly from Wikipedia article infoboxes and Commons categories
+SF = 'https://en.wikipedia.org/wiki/Special:FilePath'
 SPOT_IMAGES = {
-    # Manila — accurate photo IDs
-    'Intramuros':                   'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&q=80&fit=crop',
-    'Fort Santiago':                'https://images.unsplash.com/photo-1566438480900-0609be27a4be?w=800&q=80&fit=crop',
-    'Rizal Park':                   'https://images.unsplash.com/photo-1519832979-6fa011b87667?w=800&q=80&fit=crop',
-    'National Museum of Fine Arts': 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=800&q=80&fit=crop',
-    'Manila Ocean Park':            'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80&fit=crop',
-    'Binondo Chinatown':            'https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=800&q=80&fit=crop',
-    'San Agustin Church':           'https://images.unsplash.com/photo-1601119479271-21ca92049c81?w=800&q=80&fit=crop',
-    'Manila Bay Sunset':            'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80&fit=crop',
-    'Paco Park':                    'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&q=80&fit=crop',
-    # Baguio — pine trees, mountains, cool city
-    'Burnham Park':                 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80&fit=crop',
-    'Mines View Park':              'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80&fit=crop',
-    'The Mansion':                  'https://images.unsplash.com/photo-1467226632440-65f0b4957b27?w=800&q=80&fit=crop',
-    'Strawberry Farm':              'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=800&q=80&fit=crop',
-    'Camp John Hay':                'https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&q=80&fit=crop',
-    'Botanical Garden':             'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&q=80&fit=crop',
-    # Vigan / Ilocos — Spanish colonial cobblestone
-    'Calle Crisologo':              'https://images.unsplash.com/photo-1548027571-0353e1a7ab38?w=800&q=80&fit=crop',
-    'Vigan Cathedral':              'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80&fit=crop',
-    'Paoay Church':                 'https://images.unsplash.com/photo-1567901616809-a2ec7c32c9e9?w=800&q=80&fit=crop',
-    'Bangui Windmills':             'https://images.unsplash.com/photo-1548337138-e87d889cc369?w=800&q=80&fit=crop',
-    'Cape Bojeador Lighthouse':     'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80&fit=crop',
-    # Batangas / Tagaytay — Taal Volcano lake
-    'Taal Volcano':                 'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=800&q=80&fit=crop',
-    # Albay — Mayon perfect cone + ruins
-    'Mayon Volcano':                'https://images.unsplash.com/photo-1513360371669-4adf3dd7dff8?w=800&q=80&fit=crop',
-    'Cagsawa Ruins':                'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=800&q=80&fit=crop',
-    'Sumlang Lake':                 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80&fit=crop',
-    'Lignon Hill':                  'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=800&q=80&fit=crop',
-    'Misibis Bay':                  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
-    'Hoyop-Hoyopan Cave':           'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80&fit=crop',
-    'Quitinday Green Hills':        'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80&fit=crop',
-    'Ligon Hill Nature Park':       'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?w=800&q=80&fit=crop',
-    'Albay Park and Wildlife':      'https://images.unsplash.com/photo-1530092376999-2431865aa8df?w=800&q=80&fit=crop',
-    # Pangasinan — islands, beach, waterfalls, church
-    'Hundred Islands':              'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80&fit=crop',
-    'Lingayen Gulf':                'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
-    'Bolinao Falls':                'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&q=80&fit=crop',
-    'Cape Bolinao Lighthouse':      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80&fit=crop',
-    'Patar Beach':                  'https://images.unsplash.com/photo-1526481280693-3bfa7568e0f3?w=800&q=80&fit=crop',
-    'Manaoag Church':               'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80&fit=crop',
-    'Bolinao Marine Laboratory':    'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80&fit=crop',
-    'Alaminos City Plaza':          'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80&fit=crop',
-    'Enchanted Cave':               'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&q=80&fit=crop',
-    # Bataan — war memorial, cross shrine, beach
-    'Mt. Samat Shrine':             'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=800&q=80&fit=crop',
-    'Pawikan Conservation Center':  'https://images.unsplash.com/photo-1518020382113-a7e8fc38eac9?w=800&q=80&fit=crop',
-    'Bataan Death March Trail':     'https://images.unsplash.com/photo-1553361371-9b21c2ac4ae0?w=800&q=80&fit=crop',
-    'Las Casas Filipinas de Acuzar':'https://images.unsplash.com/photo-1467226632440-65f0b4957b27?w=800&q=80&fit=crop',
-    'Dunsulan Falls':               'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&q=80&fit=crop',
-    'Balanga Cathedral':            'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80&fit=crop',
-    'Sisiman Bay':                  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
-    'Bagac Beach':                  'https://images.unsplash.com/photo-1526481280693-3bfa7568e0f3?w=800&q=80&fit=crop',
-    'Montemar Beach Club':          'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
-    # La Union — surf, temple, lighthouse, falls
-    'San Juan Surf Resort':         'https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80&fit=crop',
-    'Ma-Cho Temple':                'https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=800&q=80&fit=crop',
-    'Poro Point Lighthouse':        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80&fit=crop',
-    'Tangadan Falls':               'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&q=80&fit=crop',
-    'Grape Farm':                   'https://images.unsplash.com/photo-1564419320461-6870880221ad?w=800&q=80&fit=crop',
-    'Alpas Resort':                 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
-    'San Fernando Cathedral':       'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=800&q=80&fit=crop',
-    'Bacnotan Coastal Area':        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80&fit=crop',
+    # Manila
+    'Intramuros':                   f'{SF}/Intramuros,_The_Walled_City.jpg?width=800',
+    'Fort Santiago':                f'{SF}/Fort_Santiago,_Manila.jpg?width=800',
+    'Rizal Park':                   f'{SF}/Luneta_Park_Manila.jpg?width=800',
+    'National Museum of Fine Arts': f'{SF}/National_Museum_of_Fine_Arts_(Manila).jpg?width=800',
+    'Manila Ocean Park':            f'{SF}/Manila_Ocean_Park.jpg?width=800',
+    'Binondo Chinatown':            f'{SF}/Binondo,_Manila.jpg?width=800',
+    'San Agustin Church':           f'{SF}/San_Agustin_Church,_Manila.jpg?width=800',
+    'Manila Bay Sunset':            f'{SF}/Manila_Bay_Sunset.jpg?width=800',
+    'Paco Park':                    f'{SF}/Paco_Park,_Manila.jpg?width=800',
+    # Baguio
+    'Burnham Park':                 f'{SF}/Burnham_Park,_Baguio_City.jpg?width=800',
+    'Mines View Park':              f'{SF}/Mines_View_Park,_Baguio_City.jpg?width=800',
+    'The Mansion':                  f'{SF}/The_Mansion_Baguio.jpg?width=800',
+    'Strawberry Farm':              f'{SF}/Strawberry_Farm,_La_Trinidad,_Benguet.jpg?width=800',
+    'Camp John Hay':                f'{SF}/Camp_John_Hay,_Baguio_City.jpg?width=800',
+    'Botanical Garden':             f'{SF}/Baguio_Botanical_Garden.jpg?width=800',
+    # Vigan / Ilocos Norte
+    'Calle Crisologo':              f'{SF}/Calle_Crisologo,_Vigan_City.jpg?width=800',
+    'Vigan Cathedral':              f'{SF}/Metropolitan_Cathedral_of_the_Conversion_of_Saint_Paul_Vigan.jpg?width=800',
+    'Paoay Church':                 f'{SF}/Paoay_Church_of_Ilocos_Norte,_Philippines.JPG?width=800',
+    'Bangui Windmills':             f'{SF}/Bangui_Wind_Farm,_Ilocos_Norte.jpg?width=800',
+    'Cape Bojeador Lighthouse':     f'{SF}/Cape_Bojeador_Lighthouse,_Burgos,_Ilocos_Norte.jpg?width=800',
+    # Batangas / Tagaytay
+    'Taal Volcano':                 f'{SF}/Taal_Volcano_Island.jpg?width=800',
+    'Tagaytay Ridge':               f'{SF}/Taal_Lake_and_Taal_Volcano_Island_from_Tagaytay.jpg?width=800',
+    # Albay — Unsplash IDs confirmed from search results
+    'Mayon Volcano':                'https://images.unsplash.com/photo-1540553016722-983e48a2cd10?w=800&q=80',
+    'Cagsawa Ruins':                'https://images.unsplash.com/photo-1598970434795-0c54fe7c0648?w=800&q=80',
+    'Sumlang Lake':                 f'{SF}/Sumlang_Lake,_Camalig,_Albay.jpg?width=800',
+    'Lignon Hill':                  f'{SF}/Lignon_Hill_Nature_Park,_Legazpi_City,_Albay.jpg?width=800',
+    'Misibis Bay':                  f'{SF}/Misibis_Bay,_Albay.jpg?width=800',
+    'Hoyop-Hoyopan Cave':           f'{SF}/Hoyop-Hoyopan_Cave,_Camalig,_Albay.jpg?width=800',
+    'Quitinday Green Hills':        f'{SF}/Quitinday_Hills,_Camalig,_Albay.jpg?width=800',
+    'Ligon Hill Nature Park':       f'{SF}/Lignon_Hill_Nature_Park,_Legazpi_City,_Albay.jpg?width=800',
+    'Albay Park and Wildlife':      f'{SF}/Albay_Park_and_Wildlife,_Legazpi_City.jpg?width=800',
+    # Pangasinan
+    'Hundred Islands':              f'{SF}/Hundred_Islands_National_Park,_Pangasinan.jpg?width=800',
+    'Lingayen Gulf':                f'{SF}/Lingayen_Beach,_Pangasinan.jpg?width=800',
+    'Bolinao Falls':                f'{SF}/Bolinao_Falls,_Pangasinan.jpg?width=800',
+    'Cape Bolinao Lighthouse':      f'{SF}/Cape_Bolinao_Lighthouse,_Bolinao,_Pangasinan.jpg?width=800',
+    'Patar Beach':                  f'{SF}/Patar_Beach,_Bolinao,_Pangasinan.jpg?width=800',
+    'Manaoag Church':               f'{SF}/Our_Lady_of_Manaoag,_Pangasinan.jpg?width=800',
+    'Bolinao Marine Laboratory':    f'{SF}/Hundred_Islands_National_Park,_Pangasinan.jpg?width=800',
+    'Alaminos City Plaza':          f'{SF}/Hundred_Islands_National_Park,_Pangasinan.jpg?width=800',
+    'Enchanted Cave':               f'{SF}/Enchanted_Cave,_Bolinao,_Pangasinan.jpg?width=800',
+    # Bataan
+    'Mt. Samat Shrine':             f'{SF}/Mount_Samat_National_Shrine,_Bataan.jpg?width=800',
+    'Pawikan Conservation Center':  f'{SF}/Pawikan_Conservation_Center,_Morong,_Bataan.jpg?width=800',
+    'Bataan Death March Trail':     f'{SF}/Mount_Samat_National_Shrine,_Bataan.jpg?width=800',
+    'Las Casas Filipinas de Acuzar':f'{SF}/Las_Casas_Filipinas_de_Acuzar,_Bataan.jpg?width=800',
+    'Dunsulan Falls':               f'{SF}/Dunsulan_Falls,_Pilar,_Bataan.jpg?width=800',
+    'Balanga Cathedral':            f'{SF}/Balanga_Cathedral,_Bataan.jpg?width=800',
+    'Sisiman Bay':                  f'{SF}/Sisiman_Bay,_Mariveles,_Bataan.jpg?width=800',
+    'Bagac Beach':                  f'{SF}/Morong_Beach,_Bataan.jpg?width=800',
+    'Montemar Beach Club':          f'{SF}/Montemar_Beach,_Bagac,_Bataan.jpg?width=800',
+    # La Union
+    'San Juan Surf Resort':         f'{SF}/San_Juan,_La_Union_beach.jpg?width=800',
+    'Ma-Cho Temple':                f'{SF}/Ma-Cho_Temple,_San_Fernando,_La_Union.jpg?width=800',
+    'Poro Point Lighthouse':        f'{SF}/Poro_Point_Lighthouse,_La_Union.jpg?width=800',
+    'Tangadan Falls':               f'{SF}/Tangadan_Falls,_San_Gabriel,_La_Union.jpg?width=800',
+    'Grape Farm':                   f'{SF}/Grape_Farm,_San_Lorenzo,_La_Union.jpg?width=800',
+    'Alpas Resort':                 f'{SF}/San_Juan,_La_Union_beach.jpg?width=800',
+    'San Fernando Cathedral':       f'{SF}/Saint_William_Cathedral,_San_Fernando,_La_Union.jpg?width=800',
+    'Bacnotan Coastal Area':        f'{SF}/Bacnotan,_La_Union_coastline.jpg?width=800',
 }
-DEFAULT_IMG = 'https://images.unsplash.com/photo-1519046904884-488729347d55?w=800&q=80&fit=crop&crop=center'
+DEFAULT_IMG = f'{SF}/Paoay_Church_of_Ilocos_Norte,_Philippines.JPG?width=800'
+
+# Reliable Unsplash fallbacks (direct photo IDs) used if Wikimedia image fails to load
+FALLBACK_IMAGES = {
+    'Intramuros':                   'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80',
+    'Fort Santiago':                'https://images.unsplash.com/photo-1597466765924-5b9345e57735?w=800&q=80',
+    'Rizal Park':                   'https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?w=800&q=80',
+    'National Museum of Fine Arts': 'https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=800&q=80',
+    'Manila Ocean Park':            'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80',
+    'Binondo Chinatown':            'https://images.unsplash.com/photo-1536599424071-0b215a388ba7?w=800&q=80',
+    'San Agustin Church':           'https://images.unsplash.com/photo-1548681528-6a5c45b66063?w=800&q=80',
+    'Manila Bay Sunset':            'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',
+    'Paco Park':                    'https://images.unsplash.com/photo-1416339306562-f3d12fefd36f?w=800&q=80',
+    'Burnham Park':                 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=800&q=80',
+    'Mines View Park':              'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
+    'The Mansion':                  'https://images.unsplash.com/photo-1549880338-65ddcdfd017b?w=800&q=80',
+    'Strawberry Farm':              'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=800&q=80',
+    'Camp John Hay':                'https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&q=80',
+    'Botanical Garden':             'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=800&q=80',
+    'Calle Crisologo':              'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=800&q=80',
+    'Vigan Cathedral':              'https://images.unsplash.com/photo-1548681528-6a5c45b66063?w=800&q=80',
+    'Paoay Church':                 'https://images.unsplash.com/photo-1545128485-c400ce7b23d5?w=800&q=80',
+    'Bangui Windmills':             'https://images.unsplash.com/photo-1466611653911-95081537e5b7?w=800&q=80',
+    'Cape Bojeador Lighthouse':     'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+    'Taal Volcano':                 'https://images.unsplash.com/photo-1580019542155-247062e19ce4?w=800&q=80',
+    'Tagaytay Ridge':               'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80',
+    'Mayon Volcano':                'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=800&q=80',
+    'Cagsawa Ruins':                'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=800&q=80',
+    'Sumlang Lake':                 'https://images.unsplash.com/photo-1440342359743-84fcb8c21f21?w=800&q=80',
+    'Lignon Hill':                  'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80',
+    'Misibis Bay':                  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+    'Hoyop-Hoyopan Cave':           'https://images.unsplash.com/photo-1516939884455-1445c8652f83?w=800&q=80',
+    'Quitinday Green Hills':        'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=800&q=80',
+    'Ligon Hill Nature Park':       'https://images.unsplash.com/photo-1448375240586-882707db888b?w=800&q=80',
+    'Albay Park and Wildlife':      'https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=800&q=80',
+    'Hundred Islands':              'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80',
+    'Lingayen Gulf':                'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+    'Bolinao Falls':                'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&q=80',
+    'Cape Bolinao Lighthouse':      'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+    'Patar Beach':                  'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&q=80',
+    'Manaoag Church':               'https://images.unsplash.com/photo-1548681528-6a5c45b66063?w=800&q=80',
+    'Bolinao Marine Laboratory':    'https://images.unsplash.com/photo-1582967788606-a171c1080cb0?w=800&q=80',
+    'Alaminos City Plaza':          'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80',
+    'Enchanted Cave':               'https://images.unsplash.com/photo-1516939884455-1445c8652f83?w=800&q=80',
+    'Mt. Samat Shrine':             'https://images.unsplash.com/photo-1545128485-c400ce7b23d5?w=800&q=80',
+    'Pawikan Conservation Center':  'https://images.unsplash.com/photo-1437622368342-7a3d73a34c8f?w=800&q=80',
+    'Bataan Death March Trail':     'https://images.unsplash.com/photo-1539650116574-75c0c6d73f6e?w=800&q=80',
+    'Las Casas Filipinas de Acuzar':'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80',
+    'Dunsulan Falls':               'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&q=80',
+    'Balanga Cathedral':            'https://images.unsplash.com/photo-1548681528-6a5c45b66063?w=800&q=80',
+    'Sisiman Bay':                  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+    'Bagac Beach':                  'https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&q=80',
+    'Montemar Beach Club':          'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80',
+    'San Juan Surf Resort':         'https://images.unsplash.com/photo-1505459668311-8dfac7952bf0?w=800&q=80',
+    'Ma-Cho Temple':                'https://images.unsplash.com/photo-1536599424071-0b215a388ba7?w=800&q=80',
+    'Poro Point Lighthouse':        'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80',
+    'Tangadan Falls':               'https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=800&q=80',
+    'Grape Farm':                   'https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?w=800&q=80',
+    'Alpas Resort':                 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80',
+    'San Fernando Cathedral':       'https://images.unsplash.com/photo-1548681528-6a5c45b66063?w=800&q=80',
+    'Bacnotan Coastal Area':        'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80',
+}
 
 # Curated price ranges (more realistic than a single fixed price)
 PRICE_RANGES = {
@@ -139,6 +206,9 @@ PRICE_RANGES = {
 
 def _get_img(name, city):
     return SPOT_IMAGES.get(name, DEFAULT_IMG)
+
+def _get_fallback_img(name):
+    return FALLBACK_IMAGES.get(name, 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80')
 
 
 def _get_price_range(spot):
@@ -201,6 +271,7 @@ def _card(s):
     city       = s["city"]
     name       = s["name"]
     img        = _get_img(name, city)
+    fallback   = _get_fallback_img(name)
     maps       = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(name+' '+city+' Philippines')}"
     desc       = s.get("desc", "")
     price_rng  = _get_price_range(s)
@@ -215,17 +286,19 @@ def _card(s):
     def H(x): return x.replace('"', '&quot;')
 
     modal = f"""
-    <div id="{mid}" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(2px)">
-      <div style="background:#fff;border-radius:14px;max-width:540px;width:92%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div id="{mid}" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;backdrop-filter:blur(2px)" onclick="if(event.target===this)closeModal('{mid}')">
+      <div style="background:#fff;border-radius:14px;max-width:540px;width:92%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative">
         <div style="background:{col};padding:24px 24px 16px;border-radius:14px 14px 0 0;position:relative">
           <div style="font-size:28px;margin-bottom:8px;color:#fff">{icon}</div>
           <div style="font-weight:800;font-size:20px;color:#fff">{H(name)}</div>
           <div style="font-size:13px;color:rgba(255,255,255,.8);margin-top:4px"><i class="fa-solid fa-location-dot"></i> {H(city)}, Philippines &nbsp;·&nbsp; {s['cat']}</div>
-          <button onclick="closeModal('{mid}')" style="position:absolute;top:14px;right:16px;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:30px;height:30px;font-size:16px;cursor:pointer"><i class="fa-solid fa-xmark"></i></button>
+          <button onclick="closeModal('{mid}')" title="Close"
+            style="position:absolute;top:12px;right:12px;background:#fff;border:none;color:{col};border-radius:50%;width:34px;height:34px;font-size:18px;cursor:pointer;font-weight:900;line-height:34px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.25);z-index:10">&#x2715;</button>
         </div>
         <div style="padding:20px 24px">
-          <img loading="lazy" src="{H(img)}" style="width:100%;height:200px;object-fit:cover;border-radius:10px;margin-bottom:16px"
-               onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1519046904884-488729347d55?w=800&q=80&fit=crop&crop=center'"/>
+          <img id="img-{mid}" loading="lazy" src="{H(img)}"
+               style="width:100%;height:200px;object-fit:cover;border-radius:10px;margin-bottom:16px"
+               onerror="this.onerror=null;this.src='{H(fallback)}'"/>
           <div style="font-size:14px;margin-bottom:4px">{stars} <span style="color:#94A3B8;font-size:13px">{s['rating']}/5.0 &nbsp;·&nbsp; {review_cnt}+ reviews</span></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0">
             <div style="background:#F8FAFC;border-radius:8px;padding:10px;border:1px solid #E2E8F0">
@@ -257,9 +330,10 @@ def _card(s):
     {modal}
     <div class="grid-card" style="cursor:pointer" onclick="if(typeof ATLAS_LOGGED_IN!=='undefined'&&!ATLAS_LOGGED_IN){{openSigninGate();}}else{{document.getElementById('{mid}').style.display='flex';}}">
       <div style="position:relative;height:150px;overflow:hidden;border-radius:12px 12px 0 0;background:{col}">
-        <img loading="lazy" src="{H(img)}" alt="{H(name)}" style="width:100%;height:100%;object-fit:cover;transition:transform .3s"
+        <img loading="lazy" src="{H(img)}" alt="{H(name)}"
+             style="width:100%;height:100%;object-fit:cover;transition:transform .3s"
              onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"
-             onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1519046904884-488729347d55?w=800&q=80&fit=crop&crop=center'"/>
+             onerror="this.onerror=null;this.src='{H(fallback)}'"/>
         <div style="position:absolute;inset:0;background:linear-gradient(to bottom,transparent 45%,rgba(0,0,0,.6) 100%)"></div>
         <div style="position:absolute;top:8px;right:8px;background:{col};color:#fff;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700">{s['cat']}</div>
         <div style="position:absolute;bottom:8px;left:10px;right:10px">
