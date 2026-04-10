@@ -15,7 +15,7 @@ def build_guide_shell(title, body, section="", guide=None, csrf_token=""):
     ]
 
     if guide:
-        initials = guide["fname"][0].upper() + guide["lname"][0].upper()
+        initials = (guide["fname"][:1] or "G").upper() + (guide["lname"][:1] or "?").upper()
         sidebar = f"""
         <aside style="width:230px;min-height:100vh;background:#0038A8;display:flex;flex-direction:column;padding:0;position:fixed;top:0;left:0;z-index:100">
           <div style="padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.1)">

@@ -56,7 +56,7 @@ def build_shell(page_title, body_content, active="", user=None, csrf_token=""):
         # Only show Log In button (no Sign Up) in navbar
         auth_html = f"""
         <div class="nav-auth">
-          <a href="/login.py" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#0038A8;border-radius:8px;color:#fff;font-weight:700;font-size:13px;text-decoration:none">{_LOGIN_I} Log In</a>
+          <button onclick="openSigninGate()" style="display:inline-flex;align-items:center;gap:6px;padding:8px 18px;background:#0038A8;border-radius:8px;color:#fff;font-weight:700;font-size:13px;border:none;cursor:pointer;font-family:inherit">{_LOGIN_I} Log In</button>
         </div>"""
 
     return f"""<!DOCTYPE html>
@@ -88,7 +88,7 @@ def build_shell(page_title, body_content, active="", user=None, csrf_token=""):
           <a href="/itinerary.py"   class="drop-item" style="display:flex;align-items:center;gap:8px" onclick="{'return true' if user else 'openSigninGate();return false'};">{_CAL} Itinerary</a>
         </div>
       </div>
-      <a href="#about" class="nav-link">About Us</a>
+      <a href="/about.py" class="nav-link {na('about')}">About Us</a>
     </div>
     {auth_html}
   </div>
@@ -105,22 +105,57 @@ def build_shell(page_title, body_content, active="", user=None, csrf_token=""):
 </div>
 
 <!-- Sign-in Gate Modal -->
-<div id="signin-gate" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(4px)">
-  <div style="background:#fff;border-radius:20px;padding:44px 40px;max-width:420px;width:92%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.18);position:relative">
+<div id="signin-gate" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background:rgba(0,0,0,.50);backdrop-filter:blur(4px)">
+  <div style="background:#fff;border-radius:20px;padding:36px 36px 32px;max-width:400px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,.2);position:relative">
     <button onclick="closeSigninGate()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;color:#9CA3AF;cursor:pointer;line-height:1">&times;</button>
-    <div style="width:64px;height:64px;background:#EFF6FF;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0038A8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <img src="/ATLAS_LOGO.jpg" style="width:28px;height:28px;border-radius:50%;object-fit:cover"/>
+      <span style="font-weight:800;font-size:16px;color:#0F172A">ATLAS</span>
     </div>
-    <div style="font-size:22px;font-weight:900;color:#0F172A;margin-bottom:10px">Sign In to Continue</div>
-    <div style="font-size:14px;color:#6B7280;line-height:1.6;margin-bottom:28px">Log in or create a free account to explore flights, attractions, restaurants, tour guides and more.</div>
-    <div style="display:flex;gap:12px">
-      <a href="/login.py" style="flex:1;text-decoration:none">
-        <button style="width:100%;padding:12px;border:2px solid #0038A8;background:#fff;color:#0038A8;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Log In</button>
-      </a>
-      <a href="/register.py" style="flex:1;text-decoration:none">
-        <button style="width:100%;padding:12px;border:none;background:#0038A8;color:#fff;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer">Register</button>
-      </a>
+    <div style="font-size:20px;font-weight:900;color:#0F172A;margin-bottom:4px">Sign In to Continue</div>
+    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">Access flights, attractions, restaurants, guides and more.</div>
+
+    <div style="margin-bottom:16px;background:#FEF9C3;border:1px solid #FDE047;border-radius:8px;padding:10px 13px;font-size:13px;color:#854D0E;line-height:1.6;display:flex;align-items:flex-start;gap:8px">
+      <span style="font-size:16px;flex-shrink:0">&#128274;</span>
+      <span>You need to <strong>log in</strong> to access this feature. Please sign in below to continue.</span>
     </div>
+
+    <!-- Email/Password form -->
+    <div style="margin-bottom:12px">
+      <label style="display:block;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Email Address</label>
+      <input id="gate-email" type="email" placeholder="you@email.com" autocomplete="email"
+        style="width:100%;padding:11px 13px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;color:#0F172A;outline:none;background:#F8FAFC;font-family:inherit;box-sizing:border-box"
+        onfocus="this.style.borderColor='#0038A8'" onblur="this.style.borderColor='#E2E8F0'"/>
+    </div>
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Password</label>
+      <input id="gate-password" type="password" placeholder="Enter your password"
+        style="width:100%;padding:11px 13px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;color:#0F172A;outline:none;background:#F8FAFC;font-family:inherit;box-sizing:border-box"
+        onfocus="this.style.borderColor='#0038A8'" onblur="this.style.borderColor='#E2E8F0'"
+        onkeydown="if(event.key==='Enter')submitGateLogin()"/>
+    </div>
+    <div id="gate-error" style="display:none;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:10px 13px;color:#991B1B;font-size:13px;margin-bottom:12px"></div>
+    <button onclick="submitGateLogin()"
+      style="width:100%;padding:12px;background:#0038A8;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px;font-family:inherit">
+      &#x2192; Log In
+    </button>
+
+    <!-- Divider -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <div style="flex:1;height:1px;background:#E2E8F0"></div>
+      <span style="font-size:12px;color:#94A3B8;white-space:nowrap">or continue with</span>
+      <div style="flex:1;height:1px;background:#E2E8F0"></div>
+    </div>
+
+    <!-- Google button -->
+    <a href="/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff;font-size:14px;font-weight:600;color:#1F2937;text-decoration:none;box-sizing:border-box"
+       onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='#fff'">
+      <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+      Continue with Google
+    </a>
+
   </div>
 </div>
 {body_content}
@@ -216,8 +251,21 @@ def build_shell(page_title, body_content, active="", user=None, csrf_token=""):
 <script>
 var ATLAS_LOGGED_IN = {'true' if user else 'false'};
 var ATLAS_CSRF = '{csrf_token}';
-function openSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='flex';document.body.style.overflow='hidden';}}}}
-function closeSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='none';document.body.style.overflow='';}}}}
+function openSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='flex';document.body.style.overflow='hidden';setTimeout(function(){{var el=document.getElementById('gate-email');if(el)el.focus();}},100);}}}}
+function closeSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='none';document.body.style.overflow='';document.getElementById('gate-email').value='';document.getElementById('gate-password').value='';var err=document.getElementById('gate-error');err.style.display='none';err.textContent='';}}}}
+function submitGateLogin(){{
+  var email=document.getElementById('gate-email').value.trim();
+  var pw=document.getElementById('gate-password').value;
+  var err=document.getElementById('gate-error');
+  if(!email||!pw){{err.style.display='block';err.textContent='Please enter your email and password.';return;}}
+  err.style.display='none';
+  var form=document.createElement('form');
+  form.method='post';form.action='/login.py';
+  var fe=document.createElement('input');fe.type='hidden';fe.name='email';fe.value=email;form.appendChild(fe);
+  var fp=document.createElement('input');fp.type='hidden';fp.name='password';fp.value=pw;form.appendChild(fp);
+  if(typeof ATLAS_CSRF!=='undefined'){{var fc=document.createElement('input');fc.type='hidden';fc.name='csrf_token';fc.value=ATLAS_CSRF;form.appendChild(fc);}}
+  document.body.appendChild(form);form.submit();
+}}
 document.addEventListener('keydown',function(e){{if(e.key==='Escape')closeSigninGate();}});
 function toggleDrop(){{document.getElementById('cat-drop').classList.toggle('open');}}
 document.addEventListener('click',function(e){{var d=document.getElementById('cat-drop');if(d&&!d.contains(e.target))d.classList.remove('open');var g=document.getElementById('signin-gate');if(g&&e.target===g)closeSigninGate();}});

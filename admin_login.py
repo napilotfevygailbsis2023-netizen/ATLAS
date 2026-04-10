@@ -96,8 +96,8 @@ def handle_post(form):
     username = form.get("username","").strip()
     password = form.get("password","").strip()
     if not username or not password:
-        return None, render("Please fill in all fields.")
+        return {"error": "Please fill in all fields."}
     token = admin_db.admin_login(username, password)
     if token:
-        return token, None
-    return None, render("Invalid username or password.")
+        return {"token": token}
+    return {"error": "Invalid username or password."}
