@@ -146,7 +146,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         if path == "/api/transport/lookup":
-            import json as _json, urllib.request as _ur, urllib.parse as _up
+            import json as _json, urllib.request as _ur, urllib.parse as _up, math as _math
             origin = params.get("origin", "").strip()
             dest   = params.get("dest",   "").strip()
             ors_key = os.environ.get("ORS_API_KEY", "")
@@ -158,38 +158,146 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 handler.send_header("Content-Length", str(len(b)))
                 handler.send_header("Access-Control-Allow-Origin", "*")
                 handler.end_headers()
-                handler.wfile.write(b)
+                try:
+                    handler.wfile.write(b)
+                except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError):
+                    pass  # Browser cancelled the request — harmless
 
             if not origin or not dest:
                 _json_resp(self, {"ok": False, "error": "origin and dest required"}); return
-            if not ors_key:
-                _json_resp(self, {"ok": False, "error": "ORS_API_KEY not set"}); return
 
             def _geocode(place):
-                """Convert place name to [lon, lat] using Nominatim (free, no key needed)."""
-                q = place if "Philippines" in place else place + ", Philippines"
-                url = "https://nominatim.openstreetmap.org/search?" + _up.urlencode({
-                    "q": q,
-                    "format": "json",
-                    "countrycodes": "ph",
-                    "limit": 1,
-                })
-                req = _ur.Request(url, headers={
-                    "Accept": "application/json",
-                    "User-Agent": "ATLAS-Transport/1.0",
-                })
-                with _ur.urlopen(req, timeout=6) as r:
-                    data = _json.loads(r.read())
-                if not data:
-                    return None
-                return [float(data[0]["lon"]), float(data[0]["lat"])]  # [lon, lat]
-
-            def _fetch_route(profile="driving-car"):
+                """Convert place name to [lon, lat]. Uses a local cache of PH cities first,
+                then falls back to Nominatim so we don't burn rate-limit slots."""
+                # Built-in coords for common Luzon cities — instant, no HTTP needed
+                PH_COORDS = {
+                    "manila":                       [120.9842, 14.5995],
+                    "quezon city":                  [121.0437, 14.6760],
+                    "baguio":                       [120.5960, 16.4023],
+                    "baguio city":                  [120.5960, 16.4023],
+                    "laoag":                        [120.5939, 18.1977],
+                    "laoag city":                   [120.5939, 18.1977],
+                    "vigan":                        [120.3869, 17.5747],
+                    "vigan city":                   [120.3869, 17.5747],
+                    "san fernando":                 [120.3169, 16.6159],
+                    "san fernando, la union":       [120.3169, 16.6159],
+                    "san fernando, pampanga":       [120.6894, 15.0285],
+                    "dagupan":                      [120.3333, 16.0433],
+                    "dagupan city":                 [120.3333, 16.0433],
+                    "alaminos":                     [119.9814, 16.1554],
+                    "alaminos, pangasinan":         [119.9814, 16.1554],
+                    "alaminos city":                [119.9814, 16.1554],
+                    "urdaneta":                     [120.5714, 15.9757],
+                    "urdaneta city":                [120.5714, 15.9757],
+                    "lingayen":                     [120.2333, 16.0167],
+                    "olongapo":                     [120.2823, 14.8292],
+                    "olongapo city":                [120.2823, 14.8292],
+                    "subic":                        [120.2300, 14.8800],
+                    "subic bay":                    [120.2300, 14.8800],
+                    "angeles":                      [120.5900, 15.1430],
+                    "angeles city":                 [120.5900, 15.1430],
+                    "tarlac":                       [120.5960, 15.4755],
+                    "tarlac city":                  [120.5960, 15.4755],
+                    "tuguegarao":                   [121.7270, 17.6132],
+                    "tuguegarao city":              [121.7270, 17.6132],
+                    "cauayan":                      [121.7726, 16.9307],
+                    "cauayan city":                 [121.7726, 16.9307],
+                    "ilagan":                       [121.8883, 17.1488],
+                    "ilagan city":                  [121.8883, 17.1488],
+                    "santiago":                     [121.6494, 16.6882],
+                    "santiago city":                [121.6494, 16.6882],
+                    "cabanatuan":                   [120.9685, 15.4862],
+                    "cabanatuan city":              [120.9685, 15.4862],
+                    "palayan":                      [121.0833, 15.5500],
+                    "palayan city":                 [121.0833, 15.5500],
+                    "baler":                        [121.5619, 15.7580],
+                    "baler, aurora":                [121.5619, 15.7580],
+                    "bayombong":                    [121.1497, 16.4829],
+                    "bayombong, nueva vizcaya":     [121.1497, 16.4829],
+                    "sagada":                       [120.9000, 17.0833],
+                    "banaue":                       [121.0597, 16.9186],
+                    "tabuk":                        [121.4447, 17.4189],
+                    "tabuk, kalinga":               [121.4447, 17.4189],
+                    "malolos":                      [120.8136, 14.8527],
+                    "malolos city":                 [120.8136, 14.8527],
+                    "meycauayan":                   [120.9600, 14.7368],
+                    "meycauayan city":              [120.9600, 14.7368],
+                    "marilao":                      [120.9476, 14.7583],
+                    "balanga":                      [120.5373, 14.6761],
+                    "balanga city":                 [120.5373, 14.6761],
+                    "batangas":                     [121.0583, 13.7565],
+                    "batangas city":                [121.0583, 13.7565],
+                    "lucena":                       [121.6171, 13.9373],
+                    "lucena city":                  [121.6171, 13.9373],
+                    "lipa":                         [121.1636, 13.9411],
+                    "lipa city":                    [121.1636, 13.9411],
+                    "tanauan":                      [121.1319, 14.0862],
+                    "tanauan city":                 [121.1319, 14.0862],
+                    "antipolo":                     [121.1761, 14.5862],
+                    "antipolo city":                [121.1761, 14.5862],
+                    "calamba":                      [121.1653, 14.2116],
+                    "calamba, laguna":              [121.1653, 14.2116],
+                    "calamba city":                 [121.1653, 14.2116],
+                    "santa cruz":                   [121.4167, 14.2833],
+                    "santa cruz, laguna":           [121.4167, 14.2833],
+                    "san pablo":                    [121.3253, 14.0689],
+                    "san pablo city":               [121.3253, 14.0689],
+                    "santa rosa":                   [121.1113, 14.3121],
+                    "santa rosa city":              [121.1113, 14.3121],
+                    "binan":                        [121.0819, 14.3412],
+                    "binan city":                   [121.0819, 14.3412],
+                    "naga":                         [123.1936, 13.6192],
+                    "naga city":                    [123.1936, 13.6192],
+                    "legazpi":                      [123.7438, 13.1391],
+                    "legazpi city":                 [123.7438, 13.1391],
+                    "sorsogon":                     [123.9933, 12.9722],
+                    "sorsogon city":                [123.9933, 12.9722],
+                    "irosin":                       [124.0336, 12.7046],
+                    "irosin, sorsogon":             [124.0336, 12.7046],
+                    "masbate":                      [123.6214, 12.3701],
+                    "masbate city":                 [123.6214, 12.3701],
+                    "daet":                         [122.9831, 14.1122],
+                    "daet, camarines norte":        [122.9831, 14.1122],
+                    "tagaytay":                     [120.9621, 14.0956],
+                    "tagaytay city":                [120.9621, 14.0956],
+                    "puerto galera":                [120.9536, 13.5025],
+                }
+                key = place.strip().lower()
+                if key in PH_COORDS:
+                    return PH_COORDS[key]
+                # Fallback: Nominatim (rate-limited — only reached for unknown cities)
                 try:
-                    orig_coords = _geocode(origin)
-                    dest_coords = _geocode(dest)
-                    if not orig_coords or not dest_coords:
+                    import time as _time
+                    q = place if "Philippines" in place else place + ", Philippines"
+                    url = "https://nominatim.openstreetmap.org/search?" + _up.urlencode({
+                        "q": q, "format": "json", "countrycodes": "ph", "limit": 1,
+                    })
+                    req = _ur.Request(url, headers={
+                        "Accept": "application/json",
+                        "User-Agent": "ATLAS-Transport/1.0 (travel-app)",
+                    })
+                    with _ur.urlopen(req, timeout=8) as r:
+                        data = _json.loads(r.read())
+                    if not data:
                         return None
+                    return [float(data[0]["lon"]), float(data[0]["lat"])]
+                except Exception:
+                    return None
+
+            def _haversine_km(lon1, lat1, lon2, lat2):
+                """Straight-line distance in km between two coordinates."""
+                R = 6371.0
+                dlat = _math.radians(lat2 - lat1)
+                dlon = _math.radians(lon2 - lon1)
+                a = (_math.sin(dlat/2)**2
+                     + _math.cos(_math.radians(lat1))
+                     * _math.cos(_math.radians(lat2))
+                     * _math.sin(dlon/2)**2)
+                return R * 2 * _math.atan2(_math.sqrt(a), _math.sqrt(1 - a))
+
+            def _fetch_route_ors(orig_coords, dest_coords, profile="driving-car"):
+                """Try ORS for a real road-distance route (requires ORS_API_KEY)."""
+                try:
                     body = _json.dumps({
                         "coordinates": [orig_coords, dest_coords],
                         "instructions": False,
@@ -205,26 +313,51 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                     routes = data.get("routes", [])
                     if not routes:
                         return None
-                    seg = routes[0]["segments"][0]
-                    dist_km  = round(routes[0]["summary"]["distance"] / 1000, 1)
-                    dur_min  = int(routes[0]["summary"]["duration"] / 60)
-                    dur_text = f"{dur_min // 60}h {dur_min % 60}m" if dur_min >= 60 else f"{dur_min} min"
-                    dist_text = f"{dist_km} km"
-                    # Estimate fare: ₱13 base + ₱1.80/km (PH jeepney/bus rough rate)
-                    fare_est = round(13 + dist_km * 1.80)
-                    ttype = "Bus"
-                    if profile == "driving-hgv":
-                        ttype = "Van"
+                    dist_km = round(routes[0]["summary"]["distance"] / 1000, 1)
+                    dur_min = int(routes[0]["summary"]["duration"] / 60)
+                    return dist_km, dur_min
+                except Exception:
+                    return None
+
+            def _fetch_route():
+                try:
+                    orig_coords = _geocode(origin)
+                    dest_coords = _geocode(dest)
+                    if not orig_coords or not dest_coords:
+                        return None
+
+                    dist_km, dur_min, source = None, None, "est."
+
+                    # Try ORS first if API key is available
+                    if ors_key:
+                        ors_result = _fetch_route_ors(orig_coords, dest_coords)
+                        if ors_result:
+                            dist_km, dur_min = ors_result
+                            source = "road"
+
+                    # Free fallback: Haversine straight-line x 1.35 road-factor
+                    if dist_km is None:
+                        straight = _haversine_km(orig_coords[0], orig_coords[1],
+                                                  dest_coords[0], dest_coords[1])
+                        dist_km = round(straight * 1.35, 1)   # ~35% road-detour factor
+                        dur_min = int((dist_km / 60) * 60)    # avg 60 km/h on PH highways
+                        source = "est."
+
+                    dur_text  = (f"{dur_min // 60}h {dur_min % 60}m"
+                                 if dur_min >= 60 else f"{dur_min} min")
+                    dist_text = f"{dist_km} km ({source})"
+                    # PH bus/jeepney fare: PHP 13 base + PHP 1.80/km
+                    fare_est  = round(13 + dist_km * 1.80)
                     return {
                         "duration": dur_text,
                         "distance": dist_text,
-                        "fare": f"₱{fare_est} (est.)",
-                        "type": ttype,
+                        "fare":     f"PHP {fare_est}",
+                        "type":     "Bus",
                     }
-                except:
+                except Exception:
                     return None
 
-            result = _fetch_route("driving-car")
+            result = _fetch_route()
             if result:
                 _json_resp(self, {
                     "ok":             True,
@@ -236,7 +369,7 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                     "suggested_type": result["type"],
                 })
             else:
-                _json_resp(self, {"ok": False, "error": "No route found between those locations"})
+                _json_resp(self, {"ok": False, "error": "Could not locate one or both places"})
             return
 
         if path == "/css/styles.css":
@@ -493,8 +626,8 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 "restaurants": lambda: admin_panel.restaurants_page(admin, page=int(params.get("page",1))),
                 "guides":      lambda: admin_panel.guides_page(admin, page=int(params.get("page",1)), tab=tab, msg=params.get("msg","")),
                 "transport":   lambda: admin_panel.transport_page(admin, page=int(params.get("page",1)), tab=params.get("tab","add"), csrf=_csrf_token(tok)),
-                "flights":     lambda: admin_panel.flights_page(admin),
-                "profile":     lambda: admin_panel.profile_page(admin),
+                "flights":     lambda: admin_panel.flights_page(admin, dom_page=int(params.get("dom_page",1)), intl_page=int(params.get("intl_page",1))),
+                "profile":     lambda: admin_panel.profile_page(admin, msg=params.get("msg",""), err=params.get("err",""), csrf=_csrf_token(tok)),
             }.get(_sec, lambda: admin_panel.dashboard(admin))()
             if tok and "<head>" in html_out:
                 html_out = html_out.replace("<head>", f'<head><script>var ATLAS_CSRF="{_csrf_token(tok)}";</script>', 1)
@@ -525,26 +658,24 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             send_html(self, login_page.render_verify_email(email,
                 error=params.get("error",""))); return
 
+        if path == "/login/2fa":
+            email = params.get("email","").strip().lower()
+            if not email:
+                redirect(self, "/login.py"); return
+            send_html(self, login_page.render_2fa(email,
+                error=params.get("error",""))); return
+
         if path == "/setup-2fa":
             if not user:
                 redirect(self, "/login.py"); return
-            try:
-                import pyotp, qrcode, io, base64 as _b64
-                secret = user.get("totp_secret","")
-                if not secret:
-                    secret = pyotp.random_base32()
-                    _conn2 = db.get_conn(); _cur2 = _conn2.cursor()
-                    _cur2.execute("UPDATE users SET totp_secret=%s WHERE id=%s", (secret, user["id"]))
-                    _conn2.commit(); _cur2.close(); _conn2.close()
-                    user = db.get_user_by_token(token)
-                uri = pyotp.totp.TOTP(secret).provisioning_uri(
-                    name=user.get("email",""), issuer_name="ATLAS")
-                img = qrcode.make(uri)
-                buf = io.BytesIO(); img.save(buf, format="PNG")
-                qr_b64 = _b64.b64encode(buf.getvalue()).decode()
-                send_html(self, login_page.render_2fa_setup(user, secret, qr_b64)); return
-            except ImportError:
-                send_html(self, login_page.render_2fa_setup(user, "", "")); return
+            send_html(self, login_page.render_2fa_setup(user)); return
+        if path == "/guide/setup-2fa":
+            g_tok = get_token(cookie, "atlas_guide")
+            guide = guide_db.get_guide_by_token(g_tok)
+            if not guide:
+                redirect(self, "/guide"); return
+            send_html(self, guide_portal.render_2fa_setup(guide)); return
+
         if path == "/guide/check-email":
             import json as _json
             email = params.get("email","").strip().lower()
@@ -570,6 +701,30 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/guide/verify":
             email = params.get("email","")
             send_html(self, guide_portal.render_verify_guide(email)); return
+        if path == "/guide/2fa":
+            email = params.get("email","").strip().lower()
+            if not email:
+                redirect(self, "/guide"); return
+            send_html(self, guide_portal.render_guide_2fa(email,
+                error=params.get("error",""))); return
+        if path == "/login/2fa/resend":
+            import urllib.parse as _up
+            email = params.get("email","").strip().lower()
+            usr_r = db.get_user_by_email(email)
+            if usr_r and usr_r.get("totp_enabled"):
+                otp_r = db.create_user_otp(usr_r["id"])
+                from email_sender import send_otp_email
+                send_otp_email(email, otp_r)
+            redirect(self, "/login/2fa?email=" + _up.quote(email)); return
+        if path == "/guide/2fa/resend":
+            import urllib.parse as _up
+            email = params.get("email","").strip().lower()
+            g_r = guide_db.get_guide_by_email(email)
+            if g_r and g_r.get("totp_enabled"):
+                otp_r = guide_db.create_guide_otp(g_r["id"])
+                from email_sender import send_otp_email
+                send_otp_email(email, otp_r)
+            redirect(self, "/guide/2fa?email=" + _up.quote(email)); return
         if path.startswith("/guide/"):
             g_tok = get_token(cookie, "atlas_guide")
             guide = guide_db.get_guide_by_token(g_tok)
@@ -577,10 +732,10 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 redirect(self, "/guide"); return
             section = path.replace("/guide/","").replace("/guide","") or "dashboard"
             html_out = {
-                "dashboard":    lambda: guide_portal.render_dashboard(guide),
-                "packages":     lambda: guide_portal.render_packages(guide),
-                "bookings":     lambda: guide_portal.render_bookings(guide, params.get("status","all")),
-                "availability": lambda: guide_portal.render_availability(guide),
+                "dashboard":    lambda: guide_portal.render_dashboard(guide, msg=urllib.parse.unquote_plus(params.get("msg",""))),
+                "packages":     lambda: guide_portal.render_packages(guide, msg=urllib.parse.unquote_plus(params.get("msg","")), err=urllib.parse.unquote_plus(params.get("err",""))),
+                "bookings":     lambda: guide_portal.render_bookings(guide, params.get("filter", params.get("status","all")), msg=urllib.parse.unquote_plus(params.get("msg",""))),
+                "availability": lambda: guide_portal.render_availability(guide, msg=urllib.parse.unquote_plus(params.get("msg",""))),
                 "ratings":      lambda: guide_portal.render_ratings(guide),
                 "profile":      lambda: guide_portal.render_profile(guide),
             }.get(section, lambda: guide_portal.render_dashboard(guide))()
@@ -624,8 +779,9 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             _sess_tok = get_token(cookie, "atlas_token") or ""
         _csrf_exempt = {"/login.py", "/login/email", "/login/2fa",
                         "/signup/password", "/signup/verify", "/signup/resend",
-                        "/verify", "/admin/login", "/guide/login",
-                        "/profile/photo", "/auth/google/complete", "/setup-2fa"}
+                        "/verify", "/admin/login", "/guide/login", "/guide/2fa",
+                        "/profile/photo", "/admin/profile/photo", "/auth/google/complete", "/setup-2fa",
+                        "/guide/profile/doc", "/guide/profile/photo", "/guide/setup-2fa"}
 
         if path not in _csrf_exempt and not _csrf_ok(form, _sess_tok):
             self.send_error(403, "Invalid or missing CSRF token"); return
@@ -643,9 +799,13 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             if not result:
                 redirect(self, "/login/password?email=" + _up.quote(email) +
                          "&error=Incorrect+password.+Please+try+again."); return
-            # 2FA check
-            if usr.get("totp_enabled") and usr.get("totp_secret"):
-                send_html(self, login_page.render_2fa(email)); return
+            # 2FA check — email OTP
+            if usr.get("totp_enabled"):
+                import urllib.parse as _up2
+                otp_code = db.create_user_otp(usr["id"])
+                from email_sender import send_otp_email
+                send_otp_email(usr["email"], otp_code)
+                redirect(self, "/login/2fa?email=" + _up2.quote(usr["email"])); return
             redirect(self, "/", f"atlas_token={tok}; Path=/; Max-Age=86400")
 
         # ── New signup flow POST routes ───────────────────────────────────────
@@ -704,6 +864,23 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 send_verification_email(email, fname_guess, new_code)
             redirect(self, "/signup/verify?email=" + _up.quote(email)); return
 
+        # ── Tourist email OTP verification ──
+        elif path == "/login/2fa":
+            import urllib.parse as _up
+            email = form.get("email","").strip().lower()
+            code  = form.get("code","").strip()
+            usr2  = db.get_user_by_email(email)
+            if not usr2 or not db.verify_user_otp(usr2["id"], code):
+                redirect(self, "/login/2fa?email=" + _up.quote(email) +
+                         "&error=Invalid+or+expired+code.+Please+try+again."); return
+            # Issue session
+            tok2 = secrets.token_hex(32)
+            import mysql.connector as _mc2
+            _conn2a = db.get_conn(); _cur2a = _conn2a.cursor()
+            _cur2a.execute("INSERT INTO sessions (token,user_id) VALUES (%s,%s)", (tok2, usr2["id"]))
+            _conn2a.commit(); _cur2a.close(); _conn2a.close()
+            redirect(self, "/", f"atlas_token={tok2}; Path=/; Max-Age=86400"); return
+
         # ── Admin POST ──
         elif path == "/admin/login":
             result = admin_login.handle_post(form)
@@ -714,12 +891,38 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
 
         # ── Guide POST ──
         elif path == "/guide/login":
+            import urllib.parse as _up
             result = guide_portal.handle_login(form) if hasattr(guide_portal, 'handle_login') else {}
             if result.get("token"):
+                guide_obj = guide_db.get_guide_by_token(result["token"])
+                if guide_obj and guide_obj.get("totp_enabled"):
+                    # 2FA on — invalidate the temp session, send OTP instead
+                    guide_db.logout_guide(result["token"])
+                    otp_code = guide_db.create_guide_otp(guide_obj["id"])
+                    from email_sender import send_otp_email
+                    send_otp_email(guide_obj["email"], otp_code)
+                    redirect(self, "/guide/2fa?email=" + _up.quote(guide_obj["email"])); return
                 dest = "/guide/dashboard?welcome=1" if result.get("new") else "/guide/dashboard"
                 redirect(self, dest, f"atlas_guide={result['token']}; Path=/; Max-Age=86400")
             else:
                 send_html(self, guide_portal.render_login(error=result.get("error","")))
+
+        elif path == "/guide/2fa":
+            import urllib.parse as _up
+            email = form.get("email","").strip().lower()
+            code  = form.get("code","").strip()
+            g_obj = guide_db.get_guide_by_email(email)
+            if not g_obj or not guide_db.verify_guide_otp(g_obj["id"], code):
+                redirect(self, "/guide/2fa?email=" + _up.quote(email) +
+                         "&error=Invalid+or+expired+code.+Please+try+again."); return
+            # Issue fresh guide session
+            g_tok2 = secrets.token_hex(32)
+            _gc = guide_db.get_conn(); _gcu = _gc.cursor()
+            _gcu.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (%s,%s)",
+                         (g_tok2, g_obj["id"]))
+            _gc.commit(); _gcu.close(); _gc.close()
+            redirect(self, "/guide/dashboard",
+                     f"atlas_guide={g_tok2}; Path=/; Max-Age=86400"); return
 
         elif path.startswith("/guide/"):
             g_tok = get_token(cookie, "atlas_guide")
@@ -728,12 +931,93 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 redirect(self, "/guide"); return
             section = path.replace("/guide/","")
             if section == "dashboard":
-                send_html(self, guide_portal.render_dashboard(guide))
+                action     = form.get("action", "")
+                booking_id = int(form.get("booking_id", 0) or 0)
+                if action and booking_id:
+                    status_map = {
+                        "accept_booking": "accepted",
+                        "reject_booking": "rejected",
+                    }
+                    if action in status_map:
+                        guide_db.update_booking_status(booking_id, guide["id"], status_map[action])
+                        label = "accepted" if action == "accept_booking" else "rejected"
+                        redirect(self, f"/guide/dashboard?msg=Booking+{label}"); return
+                send_html(self, guide_portal.render_dashboard(guide, msg=form.get("msg","").replace("+"," ")))
             elif section == "packages":
+                action = form.get("action", "")
+                if action == "add_package":
+                    title = form.get("title", "").strip()
+                    price = form.get("price", "").strip()
+                    if title and price:
+                        guide_db.add_package(guide["id"], {
+                            "title":       title,
+                            "price":       price,
+                            "duration":    form.get("duration", "Full Day").strip(),
+                            "city":        form.get("city", "Manila").strip(),
+                            "description": form.get("description", "").strip(),
+                            "inclusions":  form.get("inclusions", "").strip(),
+                        })
+                        redirect(self, "/guide/packages?msg=Package+added+successfully"); return
+                    else:
+                        send_html(self, guide_portal.render_packages(guide, err="Title and price are required.")); return
+                elif action == "delete_package":
+                    pkg_id = int(form.get("pkg_id", 0) or 0)
+                    if pkg_id:
+                        guide_db.delete_package(pkg_id, guide["id"])
+                    redirect(self, "/guide/packages?msg=Package+deleted"); return
                 send_html(self, guide_portal.render_packages(guide))
             elif section == "bookings":
-                send_html(self, guide_portal.render_bookings(guide))
+                parsed_post = urllib.parse.urlparse(self.path)
+                post_params = dict(urllib.parse.parse_qsl(parsed_post.query))
+                filter_status = post_params.get("filter", "all")
+                action     = form.get("action", "")
+                booking_id = int(form.get("booking_id", 0) or 0)
+                if action and booking_id:
+                    status_map = {
+                        "accept_booking":   "accepted",
+                        "reject_booking":   "rejected",
+                        "complete_booking": "completed",
+                        "cancel_booking":   "cancelled",
+                    }
+                    if action == "reschedule_booking":
+                        new_date = form.get("new_date", "").strip()
+                        if new_date:
+                            guide_db.reschedule_booking(booking_id, guide["id"], new_date)
+                        redirect(self, f"/guide/bookings?filter={filter_status}&msg=Booking+rescheduled"); return
+                    elif action in status_map:
+                        guide_db.update_booking_status(booking_id, guide["id"], status_map[action])
+                        msg_map = {
+                            "accept_booking":   "Booking+accepted",
+                            "reject_booking":   "Booking+rejected",
+                            "complete_booking": "Booking+marked+as+completed",
+                            "cancel_booking":   "Booking+cancelled",
+                        }
+                        redirect(self, f"/guide/bookings?filter={filter_status}&msg={msg_map[action]}"); return
+                send_html(self, guide_portal.render_bookings(guide, filter_status))
             elif section == "availability":
+                action = form.get("action", "")
+                if action == "update_availability":
+                    days = urllib.parse.parse_qs(body).get("days", [])
+                    avail_str = ", ".join(days) if days else ""
+                    avail_note = form.get("avail_note", "").strip()
+                    guide_db.update_guide_profile(guide["id"], {
+                        "phone":        guide.get("phone", ""),
+                        "city":         guide.get("city", "Manila"),
+                        "languages":    guide.get("languages", "EN, FIL"),
+                        "speciality":   guide.get("speciality", ""),
+                        "bio":          guide.get("bio", ""),
+                        "rate":         guide.get("rate", "P1,500/day"),
+                        "availability": avail_str,
+                    })
+                    import mysql.connector as _mc
+                    try:
+                        _conn = guide_db.get_conn(); _cur = _conn.cursor()
+                        _cur.execute("UPDATE tour_guides SET avail_note=%s WHERE id=%s", (avail_note, guide["id"]))
+                        _conn.commit(); _cur.close(); _conn.close()
+                    except Exception:
+                        pass
+                    guide = guide_db.get_guide_by_token(g_tok)
+                    send_html(self, guide_portal.render_availability(guide, msg="Availability updated successfully!")); return
                 send_html(self, guide_portal.render_availability(guide))
             elif section == "profile":
                 action = form.get("action","")
@@ -759,8 +1043,95 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                     else:
                         guide_db.change_guide_password(guide["id"], new_pw)
                         send_html(self, guide_portal.render_profile(guide, msg="Password changed successfully!"))
-                else:
-                    send_html(self, guide_portal.render_profile(guide))
+            elif section == "profile/doc":
+                import uuid as _uuid, re as _re
+                if "multipart/form-data" not in content_type:
+                    redirect(self, "/guide/profile?err=bad+request"); return
+                boundary_match = _re.search(r'boundary=[""]?([^""\s;]+)[""]?', content_type)
+                if not boundary_match:
+                    redirect(self, "/guide/profile?err=Missing+multipart+boundary"); return
+                boundary = boundary_match.group(1).encode("latin-1")
+                delimiter = b"--" + boundary
+                parts = raw_body.split(delimiter)
+                filename = file_bytes = None
+                for part in parts:
+                    if not part.strip(b"\r\n") or part.strip(b"\r\n") == b"--": continue
+                    if part.startswith(b"\r\n"): part = part[2:]
+                    elif part.startswith(b"\n"): part = part[1:]
+                    sep = b"\r\n\r\n" if b"\r\n\r\n" in part else b"\n\n"
+                    if sep not in part: continue
+                    hdr, _, pb = part.partition(sep)
+                    ht = hdr.decode("latin-1", errors="replace")
+                    if 'name="doc_file"' not in ht and "name='doc_file'" not in ht: continue
+                    fm = _re.search(r'filename=["\']([^"\']+)["\']', ht, _re.IGNORECASE)
+                    if not fm: continue
+                    filename = fm.group(1)
+                    if pb.endswith(b"\r\n"): pb = pb[:-2]
+                    elif pb.endswith(b"\n"): pb = pb[:-1]
+                    file_bytes = pb; break
+                if not filename or not file_bytes:
+                    redirect(self, "/guide/profile?err=No+file+received"); return
+                ext = os.path.splitext(filename)[-1].lower().lstrip(".")
+                if ext not in {"jpg","jpeg","png","webp","pdf"}:
+                    redirect(self, "/guide/profile?err=Only+JPG%2C+PNG%2C+WEBP+or+PDF+allowed"); return
+                if len(file_bytes) > 5*1024*1024:
+                    redirect(self, "/guide/profile?err=File+too+large+%28max+5+MB%29"); return
+                if len(file_bytes) == 0:
+                    redirect(self, "/guide/profile?err=Empty+file"); return
+                udir = os.path.join(BASE, "uploads"); os.makedirs(udir, exist_ok=True)
+                sname = f"guide_doc_{guide['id']}_{_uuid.uuid4().hex[:8]}.{ext}"
+                with open(os.path.join(udir, sname), "wb") as fh: fh.write(file_bytes)
+                guide_db.save_guide_doc(guide["id"], f"/uploads/{sname}")
+                redirect(self, "/guide/profile?msg=Document+uploaded+and+submitted+for+review"); return
+            elif section == "profile/photo":
+                import uuid as _uuid, re as _re
+                if "multipart/form-data" not in content_type:
+                    redirect(self, "/guide/profile?err=bad+request"); return
+                boundary_match = _re.search(r'boundary=[""]?([^""\s;]+)[""]?', content_type)
+                if not boundary_match:
+                    redirect(self, "/guide/profile?err=Missing+multipart+boundary"); return
+                boundary = boundary_match.group(1).encode("latin-1")
+                delimiter = b"--" + boundary
+                parts = raw_body.split(delimiter)
+                filename = file_bytes = None
+                for part in parts:
+                    if not part.strip(b"\r\n") or part.strip(b"\r\n") == b"--": continue
+                    if part.startswith(b"\r\n"): part = part[2:]
+                    elif part.startswith(b"\n"): part = part[1:]
+                    sep = b"\r\n\r\n" if b"\r\n\r\n" in part else b"\n\n"
+                    if sep not in part: continue
+                    hdr, _, pb = part.partition(sep)
+                    ht = hdr.decode("latin-1", errors="replace")
+                    if 'name="photo_file"' not in ht and "name='photo_file'" not in ht: continue
+                    fm = _re.search(r'filename=["\']([^"\']+)["\']', ht, _re.IGNORECASE)
+                    if not fm: continue
+                    filename = fm.group(1)
+                    if pb.endswith(b"\r\n"): pb = pb[:-2]
+                    elif pb.endswith(b"\n"): pb = pb[:-1]
+                    file_bytes = pb; break
+                if not filename or not file_bytes:
+                    redirect(self, "/guide/profile?err=No+file+received"); return
+                ext = os.path.splitext(filename)[-1].lower().lstrip(".")
+                if ext not in {"jpg","jpeg","png","webp"}:
+                    redirect(self, "/guide/profile?err=Only+JPG%2C+PNG+or+WEBP+allowed"); return
+                if len(file_bytes) > 3*1024*1024:
+                    redirect(self, "/guide/profile?err=File+too+large+%28max+3+MB%29"); return
+                if len(file_bytes) == 0:
+                    redirect(self, "/guide/profile?err=Empty+file"); return
+                udir = os.path.join(BASE, "uploads"); os.makedirs(udir, exist_ok=True)
+                sname = f"guide_{guide['id']}_{_uuid.uuid4().hex[:8]}.{ext}"
+                with open(os.path.join(udir, sname), "wb") as fh: fh.write(file_bytes)
+                guide_db.update_guide_photo(guide["id"], f"/uploads/{sname}")
+                redirect(self, "/guide/profile?msg=Photo+updated+successfully"); return
+            elif section == "setup-2fa":
+                action = form.get("action","")
+                if action == "enable":
+                    guide_db.enable_guide_2fa(guide["id"], True)
+                    redirect(self, "/guide/profile?msg=Two-factor+authentication+enabled"); return
+                elif action == "disable":
+                    guide_db.enable_guide_2fa(guide["id"], False)
+                    redirect(self, "/guide/profile?msg=Two-factor+authentication+disabled"); return
+                redirect(self, "/guide/setup-2fa"); return
             else:
                 self.send_error(404)
 
@@ -854,13 +1225,81 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 redirect(self, "/admin/transport?tab=list&msg=Route+updated")
                 return
 
-            self.send_error(404)
+            if path == "/admin/profile/update":
+                action = form.get("action", "change_password")
+                if action == "update_info":
+                    fullname = form.get("fullname", "").strip()
+                    email    = form.get("email", "").strip().lower()
+                    if not fullname:
+                        send_html(self, admin_panel.profile_page(admin, err="Full name cannot be empty.", csrf=_csrf_token(tok)))
+                        return
+                    if not email or "@" not in email:
+                        send_html(self, admin_panel.profile_page(admin, err="Please enter a valid email address.", csrf=_csrf_token(tok)))
+                        return
+                    admin_db.update_admin_profile(admin["id"], fullname, email)
+                    admin = admin_db.get_admin_by_token(tok)
+                    send_html(self, admin_panel.profile_page(admin, msg="Profile updated successfully!", csrf=_csrf_token(tok)))
+                else:  # change_password
+                    new_password     = form.get("new_password",     "").strip()
+                    confirm_password = form.get("confirm_password", "").strip()
+                    if not new_password:
+                        send_html(self, admin_panel.profile_page(admin, err="Please enter a new password.", csrf=_csrf_token(tok)))
+                        return
+                    if len(new_password) < 8:
+                        send_html(self, admin_panel.profile_page(admin, err="Password must be at least 8 characters.", csrf=_csrf_token(tok)))
+                        return
+                    if new_password != confirm_password:
+                        send_html(self, admin_panel.profile_page(admin, err="Passwords do not match.", csrf=_csrf_token(tok)))
+                        return
+                    admin_db.update_admin_profile(admin["id"], admin.get("fullname",""), admin.get("email",""), new_password)
+                    send_html(self, admin_panel.profile_page(admin, msg="Password changed successfully!", csrf=_csrf_token(tok)))
+                return
+
+            if path == "/admin/profile/photo":
+                import uuid as _uuid2, re as _re3
+                if "multipart/form-data" not in content_type:
+                    redirect(self, "/admin/profile"); return
+                boundary = ""
+                for part in content_type.split(";"):
+                    part = part.strip()
+                    if part.startswith("boundary="):
+                        boundary = part[9:].strip('"')
+                        break
+                if not boundary:
+                    redirect(self, "/admin/profile"); return
+                filename = ""; file_bytes = b""
+                sep = ("--" + boundary).encode("latin-1")
+                parts = raw_body.split(sep)
+                for p in parts:
+                    if b'name="photo"' not in p: continue
+                    header_end = p.find(b"\r\n\r\n")
+                    if header_end == -1: continue
+                    header_block = p[:header_end].decode("latin-1","replace")
+                    fn_match = __import__("re").search(r'filename="([^"]+)"', header_block)
+                    if fn_match: filename = fn_match.group(1)
+                    body_part = p[header_end+4:]
+                    if body_part.endswith(b"\r\n"): body_part = body_part[:-2]
+                    file_bytes = body_part; break
+                if not filename or not file_bytes:
+                    redirect(self, "/admin/profile?err=No+file+received"); return
+                ext = os.path.splitext(filename)[-1].lower().lstrip(".")
+                if ext not in {"jpg","jpeg","png","webp"}:
+                    redirect(self, "/admin/profile?err=Only+JPG%2C+PNG+or+WEBP+allowed"); return
+                if len(file_bytes) > 3*1024*1024:
+                    redirect(self, "/admin/profile?err=File+too+large+%28max+3+MB%29"); return
+                uploads_dir = os.path.join(BASE, "uploads")
+                os.makedirs(uploads_dir, exist_ok=True)
+                safe_name = f"admin_{admin['id']}_{_uuid2.uuid4().hex[:8]}.{ext}"
+                with open(os.path.join(uploads_dir, safe_name), "wb") as fh: fh.write(file_bytes)
+                photo_url = f"/uploads/{safe_name}"
+                admin_db.update_admin_profile(admin["id"], admin.get("fullname",""), admin.get("email",""), photo_url=photo_url)
+                redirect(self, "/admin/profile"); return
 
         elif path == "/profile/photo":
             # ── Upload profile photo (Python 3.14-compatible, no cgi module) ──
             if not user:
                 redirect(self, "/login.py"); return
-            import os, uuid as _uuid, re as _re
+            import uuid as _uuid, re as _re
 
             if "multipart/form-data" not in content_type:
                 redirect(self, "/profile.py?err=bad+request"); return
@@ -992,69 +1431,17 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             if not user:
                 redirect(self, "/login.py"); return
             action = form.get("action","")
-            try:
-                import pyotp
-                if action == "enable":
-                    code   = form.get("code","").strip()
-                    secret = user.get("totp_secret","")
-                    if not secret:
-                        redirect(self, "/setup-2fa"); return
-                    totp = pyotp.TOTP(secret)
-                    if totp.verify(code, valid_window=1):
-                        _conn3 = db.get_conn(); _cur3 = _conn3.cursor()
-                        _cur3.execute("UPDATE users SET totp_enabled=1 WHERE id=%s", (user["id"],))
-                        _conn3.commit(); _cur3.close(); _conn3.close()
-                        redirect(self, "/profile.py?msg=Two-factor+authentication+enabled"); return
-                    else:
-                        import qrcode, io, base64 as _b64
-                        secret = user.get("totp_secret","")
-                        uri = pyotp.totp.TOTP(secret).provisioning_uri(
-                            name=user.get("email",""), issuer_name="ATLAS")
-                        img = qrcode.make(uri)
-                        buf = io.BytesIO(); img.save(buf, format="PNG")
-                        qr_b64 = _b64.b64encode(buf.getvalue()).decode()
-                        user = db.get_user_by_token(token)
-                        send_html(self, login_page.render_2fa_setup(
-                            user, secret, qr_b64, error="Invalid code. Please try again.")); return
-                elif action == "disable":
-                    _conn4 = db.get_conn(); _cur4 = _conn4.cursor()
-                    _cur4.execute("UPDATE users SET totp_enabled=0,totp_secret=NULL WHERE id=%s", (user["id"],))
-                    _conn4.commit(); _cur4.close(); _conn4.close()
-                    redirect(self, "/profile.py?msg=Two-factor+authentication+disabled"); return
-            except ImportError:
-                redirect(self, "/profile.py?err=2FA+library+not+installed"); return
+            if action == "enable":
+                _conn3 = db.get_conn(); _cur3 = _conn3.cursor()
+                _cur3.execute("UPDATE users SET totp_enabled=1 WHERE id=%s", (user["id"],))
+                _conn3.commit(); _cur3.close(); _conn3.close()
+                redirect(self, "/profile.py?msg=Two-factor+authentication+enabled"); return
+            elif action == "disable":
+                _conn4 = db.get_conn(); _cur4 = _conn4.cursor()
+                _cur4.execute("UPDATE users SET totp_enabled=0 WHERE id=%s", (user["id"],))
+                _conn4.commit(); _cur4.close(); _conn4.close()
+                redirect(self, "/profile.py?msg=Two-factor+authentication+disabled"); return
             redirect(self, "/setup-2fa")
-            # ── New Google user completes registration (sets name + password) ──
-            g_email = form.get("email", "").strip().lower()
-            fname   = form.get("fname", "").strip()
-            lname   = form.get("lname", "").strip()
-            pw      = form.get("password",  "").strip()
-            pw2     = form.get("password2", "").strip()
-
-            if not g_email or not fname or not pw:
-                send_html(self, login_page.render_register_complete(
-                    g_email, error="Please fill in all fields.")); return
-            if pw != pw2:
-                send_html(self, login_page.render_register_complete(
-                    g_email, error="Passwords do not match.")); return
-            if len(pw) < 8:
-                send_html(self, login_page.render_register_complete(
-                    g_email, error="Password must be at least 8 characters.")); return
-
-            target_user = db.get_user_by_email(g_email)
-            if not target_user:
-                send_html(self, login_page.render_register_complete(
-                    g_email, error="Account not found. Please sign in with Google again.")); return
-
-            db.set_user_name_and_password(target_user["id"], fname, lname, pw)
-            # Issue a fresh session token
-            new_token = secrets.token_hex(32)
-            import mysql.connector as _mc
-            _conn = db.get_conn(); _cur = _conn.cursor()
-            _cur.execute("INSERT INTO sessions (token,user_id) VALUES (%s,%s)", (new_token, target_user["id"]))
-            _conn.commit(); _cur.close(); _conn.close()
-            redirect(self, "/profile.py",
-                     f"atlas_token={new_token}; Path=/; Max-Age=86400"); return
 
 
 

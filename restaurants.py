@@ -102,13 +102,51 @@ def fetch_from_foursquare(city, keyword):
     except:
         return []
 
+def fetch_city_restaurants(city):
+    """Fetch all restaurants for a city from Foursquare (no keyword needed)."""
+    try:
+        lat, lng = CITY_COORDS.get(city, ("14.5995", "120.9842"))
+        url = (f"https://api.foursquare.com/v3/places/search"
+               f"?ll={lat},{lng}&radius=8000&limit=15&categories={FOOD_CATS}")
+        req = urllib.request.Request(url, headers={"Authorization": FSQ_KEY, "Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=6) as r:
+            d = json.loads(r.read())
+        results = []
+        for p in d.get("results", []):
+            cats    = p.get("categories", [{}])
+            cuisine = cats[0].get("name", "Restaurant") if cats else "Restaurant"
+            name    = p.get("name", "Unknown")
+            results.append({
+                "name": name, "city": city, "type": cuisine,
+                "price": "Check restaurant",
+                "rating": round(p.get("rating", 8.0) / 2, 1) if p.get("rating") else 4.0,
+                "desc": f"{name} serves {cuisine.lower()} cuisine in {city}.",
+                "img": REST_IMAGES.get(name, DEFAULT_IMG),
+            })
+        return results
+    except Exception:
+        return []
+
 def get_restaurants(city="All", keyword=""):
     if keyword:
         search_city = city if city != "All" else "Manila"
         fsq = fetch_from_foursquare(search_city, keyword)
-        return fsq if fsq else [r for r in STATIC_RESTS if keyword.lower() in r["name"].lower()]
-    if city == "All": return STATIC_RESTS
-    return [r for r in STATIC_RESTS if r.get("city") == city]
+        if fsq:
+            return fsq
+        return [r for r in STATIC_RESTS if keyword.lower() in r["name"].lower()]
+    if city == "All":
+        # Fetch from Foursquare for all cities
+        all_rests = []
+        seen = set()
+        for c in CITY_COORDS:
+            for r in fetch_city_restaurants(c):
+                if r["name"].lower() not in seen:
+                    seen.add(r["name"].lower())
+                    all_rests.append(r)
+        return all_rests if all_rests else STATIC_RESTS
+    # Single city — try Foursquare first
+    fsq = fetch_city_restaurants(city)
+    return fsq if fsq else [r for r in STATIC_RESTS if r.get("city") == city]
 
 def _card(r, i):
     col   = TYPE_COLORS[i % len(TYPE_COLORS)]
@@ -181,7 +219,7 @@ def render(filter_city="All", keyword="", filter_type="All", user=None):
     cards     = "".join(_card(r,i) for i,r in enumerate(filtered))
     empty     = ('<div class="guide-empty"><div style="font-size:40px;margin-bottom:10px">&#127869;</div>'
                  '<div style="font-weight:700;font-size:16px">No restaurants found</div></div>' if not filtered else "")
-    src_note  = "Live Foursquare search results" if keyword else "Curated Luzon restaurants"
+    src_note  = "Live Foursquare search results" if keyword else "Live Foursquare data · Search by keyword to discover more"
     loc_note  = "across all cities" if filter_city=="All" else f"in {filter_city}"
 
     body = f"""

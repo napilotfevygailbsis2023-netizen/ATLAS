@@ -55,6 +55,7 @@ def icon(name):
 def shell(title, body, active, admin):
     aname  = admin.get("fullname","Admin") if admin else "Admin"
     ainit  = (aname[0] if aname else "A").upper()
+    aphoto = (admin.get("photo_url","") or "") if admin else ""
     today  = datetime.now().strftime("%A, %B %d, %Y")
 
     nav_html = ""
@@ -85,7 +86,7 @@ body{{font-family:'Segoe UI',sans-serif;background:#F1F5F9;color:#1E293B;min-hei
 .s-bottom{{margin-top:auto;border-top:1px solid rgba(255,255,255,.1);padding:8px}}
 .main{{flex:1;display:flex;flex-direction:column;overflow-x:hidden;min-width:0}}
 .content{{padding:28px;flex:1}}
-.stat-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;margin-bottom:24px}}
+.stat-grid{{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}}
 .stat-card{{border-radius:14px;padding:22px;color:#fff;position:relative;overflow:hidden}}
 .stat-card-bg{{position:absolute;inset:0;opacity:.15;font-size:80px;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;pointer-events:none}}
 .card{{background:#fff;border:1px solid #E2E8F0;border-radius:14px;overflow:hidden;margin-bottom:20px}}
@@ -132,6 +133,7 @@ input[type=file]{{width:100%;padding:8px;border:1.5px dashed #CBD5E1;border-radi
 .img-thumb{{width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #E2E8F0}}
 .filter-bar{{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px;background:#F8FAFC;border-bottom:1px solid #F1F5F9}}
 .filter-bar select,.filter-bar input{{margin-bottom:0;width:auto;padding:7px 10px;font-size:12px}}
+.route-name.expanded{{white-space:normal!important;overflow:visible!important;text-overflow:unset!important}}
 a.snl{{display:flex;align-items:center;gap:10px;padding:11px 20px;text-decoration:none;font-size:13px;color:#F87171;border-radius:8px;margin:1px 8px}}
 a.snl:hover{{background:rgba(255,255,255,.08)}}
 a.snv{{display:flex;align-items:center;gap:10px;padding:11px 20px;text-decoration:none;font-size:13px;color:{SIDEBAR_TEXT};border-radius:8px;margin:1px 8px}}
@@ -148,7 +150,7 @@ a.snv:hover{{background:rgba(255,255,255,.08)}}
   <!-- Admin card under logo -->
   <a href="/admin/profile" style="text-decoration:none">
     <div class="s-admin-card">
-      <div class="s-av">{ainit}</div>
+      <div class="s-av" style="overflow:hidden;padding:0">{"<img src='" + aphoto + "' style='width:36px;height:36px;border-radius:50%;object-fit:cover'/>" if aphoto else ainit}</div>
       <div>
         <div class="s-aname">{aname}</div>
         <div class="s-arole">Admin</div>
@@ -172,6 +174,16 @@ function switchTab(group, tab) {{
   document.querySelectorAll('[data-group="'+group+'"] .tab-pane').forEach(p => p.classList.remove('active'));
   document.querySelector('[data-group="'+group+'"] [data-tab="'+tab+'"]').classList.add('active');
   document.getElementById(group+'-'+tab).classList.add('active');
+  if (group === 'transport' && tab === 'add') {{
+    setTimeout(function() {{
+      var anyStale = false;
+      document.querySelectorAll('#rec-cards-list [data-origin]').forEach(function(c) {{
+        var b = c.querySelector('.rc-badge');
+        if (b && (b.textContent.trim() === 'Loading\u2026' || b.textContent.trim() === '')) anyStale = true;
+      }});
+      if (anyStale && typeof loadAllCards === 'function') loadAllCards();
+    }}, 80);
+  }}
 }}
 function filterTable(inputId, tableId) {{
   var q = document.getElementById(inputId).value.toLowerCase();
@@ -197,7 +209,9 @@ function exportTableCSV(tableId, filename) {{
   var rows = [];
   document.querySelectorAll('#'+tableId+' tr').forEach(function(tr) {{
     var cells = [];
-    tr.querySelectorAll('th,td').forEach(function(td) {{
+    var all = tr.querySelectorAll('th,td');
+    all.forEach(function(td, i) {{
+      if (i === all.length - 1) return; // skip Actions column
       cells.push('"'+td.innerText.replace(/"/g,'""')+'"');
     }});
     rows.push(cells.join(','));
@@ -211,9 +225,15 @@ function exportTableCSV(tableId, filename) {{
 function exportTablePDF(tableId, title) {{
   var win = window.open('','_blank');
   var tbl = document.getElementById(tableId);
+  // Clone table and remove last column (Actions)
+  var clone = tbl.cloneNode(true);
+  clone.querySelectorAll('tr').forEach(function(tr) {{
+    var cells = tr.querySelectorAll('th,td');
+    if (cells.length > 0) cells[cells.length-1].remove();
+  }});
   win.document.write('<html><head><title>'+title+'</title><style>body{{font-family:sans-serif;padding:20px}}h2{{margin-bottom:12px;color:#0038A8}}table{{width:100%;border-collapse:collapse;font-size:12px}}th{{background:#0038A8;color:#fff;padding:8px;text-align:left}}td{{padding:7px 8px;border-bottom:1px solid #eee}}</style></head><body>');
   win.document.write('<h2>'+title+'</h2>');
-  win.document.write(tbl.outerHTML);
+  win.document.write(clone.outerHTML);
   win.document.write('<script>window.onload=function(){{window.print();window.close();}}<\\/script></body></html>');
   win.document.close();
 }}
@@ -276,21 +296,58 @@ def dashboard(admin):
     db_trans   = admin_db.get_transport()
     reg_guides = guide_db.get_public_guides()
 
+    # Count ALL attractions (API + admin-added) across all cities, deduplicated
+    try:
+        from attractions import get_spots as _get_spots
+        _ALL_CITIES = ["Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay","Albay","Pangasinan","Bataan"]
+        _seen_spots = set()
+        for _city in _ALL_CITIES:
+            for _s in _get_spots(_city):
+                _seen_spots.add(_s["name"].strip().lower())
+        total_attractions = len(_seen_spots)
+    except Exception:
+        total_attractions = len(db_spots)
+
+    # Count ALL restaurants (API + admin-added) across all cities, deduplicated
+    try:
+        from restaurants import get_restaurants as _get_rests
+        _seen_rests = set()
+        for _city in _ALL_CITIES:
+            for _r in _get_rests(_city):
+                _seen_rests.add(_r["name"].strip().lower())
+        total_restaurants = len(_seen_rests)
+    except Exception:
+        total_restaurants = len(db_rests)
+
+    # Count ALL flights from live Aviationstack API
+    try:
+        _live_mnl = _fetch_aviationstack("MNL", limit=100)
+        _live_crk = _fetch_aviationstack("CRK", limit=50)
+        _live_total = len(set(
+            (f.get("flight") or {}).get("iata","") or str(i)
+            for i, f in enumerate(_live_mnl + _live_crk)
+        ))
+        total_flights = _live_total
+        _flight_sub   = "live from Aviationstack API"
+    except Exception:
+        total_flights = 0
+        _flight_sub   = "API unavailable"
+
     cards = [
-        ("#1D4ED8","#DBEAFE","users",     "Tourists",       s["total_tourists"],              f'{s["active_tourists"]} active · {s["suspended"]} suspended'),
-        ("#D97706","#FEF3C7","map-pin",   "Attractions",    len(db_spots),                    "admin-added spots"),
-        ("#BE185D","#FCE7F3","coffee",    "Restaurants",    len(db_rests),                    "admin-added"),
-        ("#7C3AED","#EDE9FE","user-check","Tour Guides",    len(db_guides)+len(reg_guides),   f'{len(reg_guides)} registered'),
-        ("#0369A1","#E0F2FE","truck",     "Transport",      len(db_trans),                    "admin-added routes"),
-        ("#065F46","#DCFCE7","navigation","Flights",        s.get("total_flights",0),         "admin-added"),
+        ("#1D4ED8","#DBEAFE","users",     "Tourists",       s["total_tourists"],    f'{s["active_tourists"]} active · {s["suspended"]} suspended'),
+        ("#D97706","#FEF3C7","map-pin",   "Attractions",    total_attractions,      f'{len(db_spots)} admin-added · rest from data'),
+        ("#BE185D","#FCE7F3","coffee",    "Restaurants",    total_restaurants,      f'{len(db_rests)} admin-added · rest from data'),
+        ("#065F46","#DCFCE7","navigation","Flights",        total_flights,          _flight_sub),
+        ("#7C3AED","#EDE9FE","user-check","Tour Guides",    len(db_guides)+len(reg_guides), f'{len(reg_guides)} registered'),
+        ("#0369A1","#E0F2FE","truck",     "Transport",      len(db_trans),          "admin-added routes"),
     ]
     sc = ""
     for color, bg, ico, lbl, val, sub in cards:
-        sc += f'''<div class="stat-card" style="background:{bg};border:1px solid {color}22">
-          <div style="font-size:12px;font-weight:700;color:{color};margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">{lbl}</div>
-          <div style="font-size:32px;font-weight:900;color:{color};margin-bottom:4px">{val}</div>
-          <div style="font-size:11px;color:{color}99">{sub}</div>
-          <div style="position:absolute;bottom:8px;right:12px;opacity:.15">{icon(ico)}</div>
+        sc += f'''<div class="stat-card" style="background:{bg};border:1px solid {color}22;min-height:120px">
+          <div style="font-size:12px;font-weight:700;color:{color};margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">{lbl}</div>
+          <div style="font-size:38px;font-weight:900;color:{color};margin-bottom:6px">{val}</div>
+          <div style="font-size:12px;color:{color}99">{sub}</div>
+          <div style="position:absolute;bottom:10px;right:14px;opacity:.15;transform:scale(2);transform-origin:bottom right">{icon(ico)}</div>
         </div>'''
 
     recent = admin_db.get_recent_tourists(6)
@@ -665,7 +722,8 @@ def guides_page(admin, msg="", err="", page=1, tab="registered"):
             html = '<div style="background:' + flagBg + ';border-radius:8px;padding:12px 16px;margin-bottom:16px;color:' + flagColor + ';font-size:14px"><strong>' + flagTxt + '</strong></div>';
             html += "<div style='display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px'>";
             [["Name",data.name],["License No.",data.license_number],["Expiry",data.expiry],["Type",data.doc_type]].forEach(function(f) {{
-              html += "<div style='background:#F8FAFC;border-radius:8px;padding:10px;border:1px solid #E2E8F0'><div style='font-size:11px;color:#94A3B8;text-transform:uppercase;margin-bottom:4px'>" + f[0] + "</div><div style='font-weight:700;font-size:13px;color:#1F2937'>" + (f[1] || "<em style='color:#D1D5DB'>Not found</em>") + "</div></div>";
+              html += "<div style='background:#F8FAFC;border-radius:8px;padding:10px;border:1px solid #E2E8F0'><div style='font-size:11px;color:#94A3B8;text-transform:uppercase;margin-bottom:4px'>" + f[0] + "</div><div style='font-weight:700;font-size:13px;
+              color:#1F2937'>" + (f[1] || "<em style='color:#D1D5DB'>Not found</em>") + "</div></div>";
             }});
             html += "</div>";
             if (data.notes) html += "<div style='font-size:13px;color:#4B5563;background:#F1F5F9;border-radius:8px;padding:12px;line-height:1.6'><strong>Notes:</strong> " + data.notes + "</div>";
@@ -720,9 +778,17 @@ def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
             )
             status_badge = '<span style="background:#DCFCE7;color:#16A34A;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Active</span>'
         fare_raw = str(t.get("fare",""))
+        route_name = t["route"]
+        route_cell = (
+            f'<td style="font-weight:600;color:#1E293B;max-width:180px">'
+            f'<span title="{route_name}" onclick="this.classList.toggle(\'expanded\')" '
+            f'style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer" '
+            f'class="route-name">{route_name}</span>'
+            f'</td>'
+        )
         return (
             f'<tr data-fare="{fare_raw}">'
-            f'<td style="font-weight:600;color:#1E293B">{t["route"]}</td>'
+            f'{route_cell}'
             f'<td><span class=bb>{t["type"]}</span></td>'
             f'<td>{t["origin"]}</td>'
             f'<td>{t["dest"]}</td>'
@@ -816,52 +882,53 @@ def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
     ]
     remaining = len(filtered_routes)
 
-    def _rec_card(origin, dest, stype):
-        cid = "rc-" + (origin + dest).replace(" ", "").replace(",", "")
-        return (
-            f'<div id="{cid}" data-origin="{origin}" data-dest="{dest}" data-type="{stype}"'
-            f' style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px">'
-            f'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
-            f'<div style="font-weight:700;font-size:12px;color:#1E293B">{origin} → {dest}</div>'
-            f'<span class="rc-badge" style="background:#F3F4F6;color:#9CA3AF;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;white-space:nowrap">Loading…</span>'
-            f'</div>'
-            f'<div class="rc-meta" style="font-size:11px;color:#6B7280">Type: <strong>{stype}</strong></div>'
-            f'<div class="rc-fare" style="font-size:11px;color:#CE1126;font-weight:700">—</div>'
-            f'<button onclick="prefillFromCard(this)"'
-            f' style="background:#0038A8;color:#fff;border:none;border-radius:6px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;width:100%">'
-            f'↙ Pre-fill Form</button>'
-            f'</div>'
-        )
+    if filtered_routes:
+        def _slotted_card(origin, dest, stype, i):
+            cid = "rc-" + (origin + dest).replace(" ", "").replace(",", "")
+            hidden = "display:none;" if i >= 5 else ""
+            return (
+                f'<div id="{cid}" data-slot="{i}" data-origin="{origin}" data-dest="{dest}" data-type="{stype}"'
+                f' style="{hidden}background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;display:{"none" if i >= 5 else "flex"};flex-direction:column;gap:6px">'
+                f'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
+                f'<div style="font-weight:700;font-size:12px;color:#1E293B">{origin} → {dest}</div>'
+                f'<span class="rc-badge" style="background:#F3F4F6;color:#9CA3AF;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;white-space:nowrap">Loading…</span>'
+                f'</div>'
+                f'<div class="rc-meta" style="font-size:11px;color:#6B7280">Type: <strong>{stype}</strong></div>'
+                f'<div class="rc-fare" style="font-size:11px;color:#CE1126;font-weight:700">—</div>'
+                f'<button onclick="prefillFromCard(this)"'
+                f' style="background:#0038A8;color:#fff;border:none;border-radius:6px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:5px">'
+                f'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Pre-fill Form</button>'
+                f'</div>'
+            )
+        cards_html = "".join(_slotted_card(o, d, t, i) for i, (o, d, t) in enumerate(filtered_routes))
+        rec_content = f'<div id="rec-cards-list" style="display:flex;flex-direction:column;gap:8px;max-height:420px;overflow-y:auto;padding-right:4px">{cards_html}</div>'
+    else:
+        rec_content = '<div style="text-align:center;padding:30px;color:#6B7280;font-size:13px">🎉 All suggested routes have been added!</div>'
 
-    if ORS_KEY:
-        if filtered_routes:
-            cards_html = "".join(_rec_card(o, d, t) for o, d, t in filtered_routes)
-            rec_content = f'<div id="rec-cards-list" style="display:flex;flex-direction:column;gap:8px;max-height:480px;overflow-y:auto;padding-right:4px">{cards_html}</div>'
-        else:
-            rec_content = '<div style="text-align:center;padding:30px;color:#6B7280;font-size:13px">🎉 All suggested routes have been added!</div>'
+    live_badge = (
+        '<span style="background:#EFF6FF;color:#1D4ED8;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700">Live</span>'
+        if ORS_KEY else
+        '<span style="background:#FEF3C7;color:#D97706;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700">Est.</span>'
+    )
 
-        rec_panel = f'''
+    rec_panel = f'''
         <div style="border:1px solid #E2E8F0;border-radius:10px;padding:16px;background:#FAFAFA">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
             <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-size:13px;font-weight:800;color:#1E293B">🗺️ Suggested Routes</span>
-              <span style="background:#EFF6FF;color:#1D4ED8;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700">ORS Live</span>
+              <span style="font-size:13px;font-weight:800;color:#1E293B;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg> Suggested Routes</span>
+              {live_badge}
             </div>
             <button onclick="refreshRecCards()" id="refresh-btn"
-              style="background:#F1F5F9;border:1px solid #E2E8F0;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;color:#475569;cursor:pointer">
-              🔄 Refresh
+              style="background:#F1F5F9;border:1px solid #E2E8F0;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;color:#475569;cursor:pointer;display:inline-flex;align-items:center;gap:5px">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Refresh
             </button>
           </div>
-          <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">{remaining} of {len(POPULAR_ROUTES)} routes not yet added</div>
-          <div style="font-size:11px;color:#6B7280;margin-bottom:12px">Click <strong>↙ Pre-fill Form</strong> to auto-fill the fields. Already-added routes are hidden.</div>
+          <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;padding:5px 10px;margin-bottom:10px">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="rec-search" placeholder="Search suggestions..." oninput="filterRecCards()" style="border:none;background:none;outline:none;font-size:12px;width:100%;color:#374151;padding:0;margin-bottom:0;width:auto;flex:1"/>
+          </div>
+          <div style="font-size:11px;color:#6B7280;margin-bottom:10px">Click <strong>✓ Pre-fill Form</strong> to auto-fill. Already-added routes are hidden.</div>
           {rec_content}
-        </div>'''
-    else:
-        rec_panel = '''
-        <div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:14px;font-size:12px;color:#92400E">
-          <strong>⚠️ ORS API Key not set.</strong><br/>
-          Add <code>ORS_API_KEY=your_key</code> to your <strong>.env</strong> to enable route suggestions.<br/>
-          <a href="https://openrouteservice.org/dev/#/signup" target="_blank" style="color:#0038A8">Get a free key →</a>
         </div>'''
 
     # ── Combined Add + Recommend pane ────────────────────────────────────────
@@ -872,7 +939,7 @@ def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
         <div>
           <div style="font-size:14px;font-weight:800;color:#1E293B;margin-bottom:14px">+ Add New Route</div>
           <div id="prefill-notice" style="display:none;background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:9px 13px;font-size:12px;color:#065F46;margin-bottom:12px;font-weight:600">
-            ✓ Pre-filled from ORS — review and adjust before saving.
+            ✓ Pre-filled from suggestion — review and adjust before saving.
           </div>
           <form method="post" action="/admin/transport/add">
             <input type="hidden" name="csrf_token" value="{csrf}"/>
@@ -881,9 +948,9 @@ def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
               <div><label>Type</label><select id="f-type" name="type"><option>Bus</option><option>Van</option><option>Train</option><option>Ferry</option><option>Jeepney</option></select></div>
               <div><label>Origin *</label><input id="f-origin" name="origin" placeholder="Manila" required/></div>
               <div><label>Destination *</label><input id="f-dest" name="dest" placeholder="Baguio City" required/></div>
-              <div><label>Fare</label><input id="f-fare" name="fare" placeholder="PHP 450"/></div>
+              <div style="grid-column:span 1"><label>Fare</label><div style="display:flex;align-items:stretch;border:1.5px solid #CBD5E1;border-radius:8px;overflow:hidden;background:#fff"><span style="display:flex;align-items:center;justify-content:center;padding:0 12px;background:#F1F5F9;color:#0038A8;font-weight:900;font-size:15px;border-right:1.5px solid #CBD5E1;flex-shrink:0;user-select:none">₱</span><input id="f-fare" name="fare" placeholder="450" inputmode="numeric" style="border:none;outline:none;flex:1;padding:9px 10px;font-size:13px;background:transparent;line-height:normal;margin-bottom:0;width:auto" oninput="this.value=this.value.replace(/[^0-9]/g,'')" onkeydown="if(!/[0-9]|Backspace|Delete|ArrowLeft|ArrowRight|Tab|Enter/.test(event.key))event.preventDefault()"/></div></div>
             </div>
-            <button class="btn bprimary" type="submit" style="padding:10px 24px;font-size:13px">+ Add Route</button>
+            <button class="btn bprimary" type="submit" style="padding:10px 24px;font-size:13px;margin-top:18px">+ Add Route</button>
           </form>
         </div>
 
@@ -948,7 +1015,25 @@ def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
               <div><label>Type</label><select id="ef-type" name="type"><option>Bus</option><option>Van</option><option>Train</option><option>Ferry</option><option>Jeepney</option></select></div>
               <div><label>Origin *</label><input id="ef-origin" name="origin" required/></div>
               <div><label>Destination *</label><input id="ef-dest" name="dest" required/></div>
-              <div><label>Fare</label><input id="ef-fare" name="fare"/></div>
+              <div>
+                <label>Fare</label>
+                <div style="display:flex;align-items:stretch;border:1.5px solid #CBD5E1;
+                            border-radius:8px;overflow:hidden;background:#fff">
+                  <span style="display:flex;align-items:center;justify-content:center;
+                               padding:0 12px;background:#F1F5F9;color:#0038A8;
+                               font-weight:900;font-size:15px;
+                               border-right:1.5px solid #CBD5E1;
+                               flex-shrink:0;user-select:none">₱</span>
+                  <input id="ef-fare" name="fare" placeholder="450"
+                         inputmode="numeric"
+                         style="border:none;outline:none;flex:1;padding:9px 10px;
+                                font-size:13px;background:transparent;line-height:normal;
+                                margin-bottom:0;width:auto"
+                         oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                         onkeydown="if(!/[0-9]|Backspace|Delete|ArrowLeft|ArrowRight|Tab|Enter/.test(event.key))
+                                    event.preventDefault()"/>
+                </div>
+              </div>
             </div>
             <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
               <button type="button" onclick="document.getElementById('edit-transport-modal').style.display='none'" style="padding:9px 18px;background:#F3F4F6;color:#374151;border:none;border-radius:8px;font-weight:600;cursor:pointer">Cancel</button>
@@ -978,13 +1063,25 @@ def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
       document.getElementById("f-route").value  = origin + " to " + dest;
       document.getElementById("f-origin").value = origin;
       document.getElementById("f-dest").value   = dest;
-      document.getElementById("f-fare").value   = (fare && fare !== "—") ? fare : "";
+      document.getElementById("f-fare").value   = (fare && fare !== "—") ? fare.replace(/[^0-9]/g, "") : "";
       var sel = document.getElementById("f-type");
       for (var i = 0; i < sel.options.length; i++) {{
         if (sel.options[i].text === type) {{ sel.selectedIndex = i; break; }}
       }}
       document.getElementById("prefill-notice").style.display = "block";
       window.scrollTo({{top: 0, behavior: "smooth"}});
+      var searching = (document.getElementById("rec-search").value || "").trim() !== "";
+      if (!searching) {{
+        card.style.display = "none";
+        var all = Array.from(document.querySelectorAll("#rec-cards-list [data-origin]"));
+        var nextHidden = all.find(function(c) {{
+          return c.style.display === "none" && c !== card;
+        }});
+        if (nextHidden) {{
+          nextHidden.style.display = "flex";
+          loadOneCard(nextHidden);
+        }}
+      }}
     }}
     function loadOneCard(card) {{
       var origin = card.dataset.origin;
@@ -992,14 +1089,17 @@ def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
       var badge  = card.querySelector(".rc-badge");
       var meta   = card.querySelector(".rc-meta");
       var fareEl = card.querySelector(".rc-fare");
+      badge.textContent = "Loading\u2026";
+      badge.style.background = "#F3F4F6";
+      badge.style.color = "#9CA3AF";
       fetch("/api/transport/lookup?origin=" + encodeURIComponent(origin) + "&dest=" + encodeURIComponent(dest))
         .then(function(r) {{ return r.json(); }})
         .then(function(data) {{
           if (data.ok) {{
-            badge.textContent = "● Live";
+            badge.textContent = "\u25cf Live";
             badge.style.background = "#D1FAE5";
             badge.style.color = "#065F46";
-            meta.innerHTML = "Type: <strong>" + card.dataset.type + "</strong> &nbsp;·&nbsp; " + data.duration + " &nbsp;·&nbsp; " + data.distance;
+            meta.innerHTML = "Type: <strong>" + card.dataset.type + "</strong> &nbsp;\u00b7&nbsp; " + data.duration + " &nbsp;\u00b7&nbsp; " + data.distance;
             fareEl.textContent = data.fare || "Check operator";
           }} else {{
             badge.textContent = "No data";
@@ -1014,33 +1114,54 @@ def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
         }});
     }}
     function loadAllCards() {{
-      var cards = document.querySelectorAll("#rec-cards-list [data-origin]");
       var delay = 0;
-      cards.forEach(function(card) {{
-        var badge = card.querySelector(".rc-badge");
-        badge.textContent = "Loading…";
-        badge.style.background = "#F3F4F6";
-        badge.style.color = "#9CA3AF";
-        card.querySelector(".rc-meta").innerHTML = "Type: <strong>" + card.dataset.type + "</strong>";
-        card.querySelector(".rc-fare").textContent = "—";
-        setTimeout(function() {{ loadOneCard(card); }}, delay);
-        delay += 250;
+      document.querySelectorAll("#rec-cards-list [data-origin]").forEach(function(card) {{
+        if (card.style.display === "none") return;
+        var d = delay;
+        setTimeout(function() {{ loadOneCard(card); }}, d);
+        delay += 600;
       }});
     }}
     function refreshRecCards() {{
       var btn = document.getElementById("refresh-btn");
-      if (btn) {{ btn.textContent = "⏳ Refreshing…"; btn.disabled = true; }}
+      if (btn) {{ btn.disabled = true; }}
       loadAllCards();
-      setTimeout(function() {{
-        if (btn) {{ btn.textContent = "🔄 Refresh"; btn.disabled = false; }}
-      }}, 5000);
+      setTimeout(function() {{ if (btn) btn.disabled = false; }}, 5000);
     }}
-    document.addEventListener("DOMContentLoaded", loadAllCards);
+    function filterRecCards() {{
+      var q = (document.getElementById("rec-search").value || "").toLowerCase().trim();
+      var all = Array.from(document.querySelectorAll("#rec-cards-list [data-origin]"));
+      if (q) {{
+        all.forEach(function(card) {{
+          var text = (card.dataset.origin + " " + card.dataset.dest + " " + card.dataset.type).toLowerCase();
+          card.style.display = text.includes(q) ? "flex" : "none";
+        }});
+      }} else {{
+        var shown = 0;
+        all.forEach(function(card) {{
+          card.style.display = shown < 5 ? "flex" : "none";
+          shown++;
+        }});
+      }}
+    }}
+    document.addEventListener("DOMContentLoaded", function() {{
+      setTimeout(loadAllCards, 200);
+      var addForm = document.querySelector('form[action="/admin/transport/add"]');
+      if (addForm) addForm.addEventListener("submit", function() {{
+        var v = document.getElementById("f-fare").value.trim();
+        if (v) document.getElementById("f-fare").value = "PHP " + v;
+      }});
+      var editForm = document.getElementById("edit-transport-form");
+      if (editForm) editForm.addEventListener("submit", function() {{
+        var v = document.getElementById("ef-fare").value.trim();
+        if (v) document.getElementById("ef-fare").value = "PHP " + v;
+      }});
+    }});
     function openEditModal(id, route, type, origin, dest, fare) {{
       document.getElementById("ef-route").value  = route;
       document.getElementById("ef-origin").value = origin;
       document.getElementById("ef-dest").value   = dest;
-      document.getElementById("ef-fare").value   = fare;
+      document.getElementById("ef-fare").value   = (fare || "").replace(/[^0-9]/g, "");
       var sel = document.getElementById("ef-type");
       for (var i=0; i<sel.options.length; i++) {{
         if (sel.options[i].value === type) {{ sel.selectedIndex = i; break; }}
@@ -1075,120 +1196,326 @@ def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
     return shell("Transportation", body, "transport", admin)
 
 # ── FLIGHTS ──
-def flights_page(admin, msg="", err=""):
-    # Domestic: Luzon-relevant routes from MNL and CRK
-    DOMESTIC_ROUTES = [
-        {"airline":"Philippine Airlines","from":"Manila (MNL)","to":"Laoag, Ilocos Norte (LAO)","dep":"06:00","arr":"07:10","dur":"1h 10m","price":"PHP 2,500","status":"Scheduled"},
-        {"airline":"Philippine Airlines","from":"Manila (MNL)","to":"Legazpi, Albay (LGP)","dep":"07:30","arr":"08:40","dur":"1h 10m","price":"PHP 2,200","status":"Scheduled"},
-        {"airline":"Cebu Pacific","from":"Manila (MNL)","to":"Baguio (BAG)","dep":"08:00","arr":"08:50","dur":"50m","price":"PHP 1,800","status":"Scheduled"},
-        {"airline":"Cebu Pacific","from":"Manila (MNL)","to":"Vigan, Ilocos Sur (VIG)","dep":"09:15","arr":"10:20","dur":"1h 05m","price":"PHP 2,000","status":"Scheduled"},
-        {"airline":"AirAsia","from":"Manila (MNL)","to":"Tuguegarao, Cagayan (TUG)","dep":"10:00","arr":"11:10","dur":"1h 10m","price":"PHP 1,900","status":"Scheduled"},
-        {"airline":"PAL Express","from":"Pampanga/Clark (CRK)","to":"Laoag, Ilocos Norte (LAO)","dep":"11:30","arr":"12:35","dur":"1h 05m","price":"PHP 2,300","status":"Scheduled"},
-        {"airline":"Cebu Pacific","from":"Pampanga/Clark (CRK)","to":"Legazpi, Albay (LGP)","dep":"13:00","arr":"14:10","dur":"1h 10m","price":"PHP 2,100","status":"Scheduled"},
-        {"airline":"Philippine Airlines","from":"Laoag, Ilocos Norte (LAO)","to":"Manila (MNL)","dep":"15:00","arr":"16:10","dur":"1h 10m","price":"PHP 2,500","status":"Scheduled"},
-        {"airline":"Cebu Pacific","from":"Legazpi, Albay (LGP)","to":"Manila (MNL)","dep":"16:30","arr":"17:40","dur":"1h 10m","price":"PHP 2,200","status":"Scheduled"},
-        {"airline":"AirAsia","from":"Tuguegarao, Cagayan (TUG)","to":"Manila (MNL)","dep":"18:00","arr":"19:10","dur":"1h 10m","price":"PHP 1,900","status":"Scheduled"},
-    ]
-    # International: only MNL/CRK ↔ international
-    INTL_ROUTES = [
-        {"airline":"Philippine Airlines","from":"Manila (MNL)","to":"Tokyo Narita (NRT), Japan","dep":"08:00","arr":"13:30","dur":"4h 30m","price":"PHP 18,000","status":"Scheduled"},
-        {"airline":"Philippine Airlines","from":"Manila (MNL)","to":"Singapore Changi (SIN)","dep":"09:30","arr":"12:00","dur":"3h 30m","price":"PHP 12,000","status":"Scheduled"},
-        {"airline":"Cebu Pacific","from":"Manila (MNL)","to":"Dubai International (DXB), UAE","dep":"22:00","arr":"03:30+1","dur":"9h 30m","price":"PHP 22,000","status":"Scheduled"},
-        {"airline":"AirAsia","from":"Manila (MNL)","to":"Kuala Lumpur (KUL), Malaysia","dep":"07:00","arr":"10:30","dur":"3h 30m","price":"PHP 9,500","status":"Scheduled"},
-        {"airline":"Cebu Pacific","from":"Manila (MNL)","to":"Seoul Incheon (ICN), South Korea","dep":"10:00","arr":"15:00","dur":"4h","price":"PHP 15,000","status":"Scheduled"},
-        {"airline":"Philippine Airlines","from":"Manila (MNL)","to":"Los Angeles (LAX), USA","dep":"23:30","arr":"20:00","dur":"15h 30m","price":"PHP 65,000","status":"Scheduled"},
-        {"airline":"PAL Express","from":"Pampanga/Clark (CRK)","to":"Hong Kong (HKG)","dep":"08:30","arr":"11:00","dur":"2h 30m","price":"PHP 10,000","status":"Scheduled"},
-        {"airline":"AirAsia","from":"Pampanga/Clark (CRK)","to":"Kuala Lumpur (KUL), Malaysia","dep":"11:00","arr":"14:30","dur":"3h 30m","price":"PHP 8,500","status":"Scheduled"},
-        {"airline":"Philippine Airlines","from":"Tokyo Narita (NRT), Japan","to":"Manila (MNL)","dep":"15:00","arr":"19:00","dur":"4h","price":"PHP 18,000","status":"Scheduled"},
-        {"airline":"Cebu Pacific","from":"Singapore Changi (SIN)","to":"Manila (MNL)","dep":"13:30","arr":"16:00","dur":"3h 30m","price":"PHP 12,000","status":"Scheduled"},
-    ]
-    AIRLINES = ["All","Philippine Airlines","Cebu Pacific","AirAsia","PAL Express"]
-    sc_map = {"Scheduled":"#2563EB","On Time":"#16A34A","Delayed":"#D97706","Cancelled":"#DC2626"}
+# Philippine IATA codes that are domestic Luzon destinations
+_PH_DOMESTIC_IATA = {"MNL","CRK","LAO","LGP","BAG","VIG","TUG","CYU","MBO","WNP","SJI"}
 
-    def flight_row(f):
-        status  = f.get("status","Scheduled")
-        sc      = sc_map.get(status,"#2563EB")
-        badge   = f'<span style="background:{sc}22;color:{sc};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">{status}</span>'
-        return f'<tr><td style="font-weight:600;color:#1E293B">{f["airline"]}</td><td>{f["from"]}</td><td>{f["to"]}</td><td>{f["dep"]}</td><td>{f["arr"]}</td><td>{f["dur"]}</td><td style="color:#16A34A;font-weight:600">{f["price"]}</td><td>{badge}</td></tr>'
+def _fetch_aviationstack(dep_iata, limit=100):
+    """Fetch live flights from Aviationstack API for a given departure airport."""
+    import urllib.request, urllib.parse, json as _json, os as _os
+    key = _os.environ.get("AVIATION_API_KEY", "eff886bb35240c10f8071ebbcbd235c5")
+    params = urllib.parse.urlencode({
+        "access_key": key,
+        "dep_iata":   dep_iata,
+        "limit":      limit,
+    })
+    url = f"http://api.aviationstack.com/v1/flights?{params}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ATLAS/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = _json.loads(r.read())
+        return data.get("data", [])
+    except Exception:
+        return []
 
-    dom_rows  = "".join(flight_row(f) for f in DOMESTIC_ROUTES)
-    intl_rows = "".join(flight_row(f) for f in INTL_ROUTES)
-    airline_opts = "".join(f'<option value="{a if a!="All" else ""}">{a}</option>' for a in AIRLINES)
-    status_opts  = '<option value="">All Status</option><option value="Scheduled">Scheduled</option><option value="On Time">On Time</option><option value="Delayed">Delayed</option><option value="Cancelled">Cancelled</option>'
+def _parse_flight(f):
+    """Normalise one Aviationstack flight object into a display dict."""
+    airline   = (f.get("airline") or {}).get("name", "Unknown")
+    dep       = f.get("departure") or {}
+    arr       = f.get("arrival")   or {}
+    dep_apt   = dep.get("airport", dep.get("iata","?"))
+    dep_iata  = dep.get("iata", "")
+    arr_apt   = arr.get("airport", arr.get("iata","?"))
+    arr_iata  = arr.get("iata", "")
+
+    # Prefer actual time → scheduled time
+    dep_time  = dep.get("actual") or dep.get("estimated") or dep.get("scheduled") or ""
+    arr_time  = arr.get("actual") or arr.get("estimated") or arr.get("scheduled") or ""
+    dep_time  = dep_time[11:16] if len(dep_time) > 10 else dep_time[:5]
+    arr_time  = arr_time[11:16] if len(arr_time) > 10 else arr_time[:5]
+
+    # Flight status mapping
+    raw_status = (f.get("flight_status") or "scheduled").lower()
+    status_map = {
+        "scheduled": "Scheduled", "active": "On Time",
+        "landed":    "Landed",    "cancelled": "Cancelled",
+        "incident":  "Incident",  "diverted": "Diverted",
+        "delayed":   "Delayed",
+    }
+    status = status_map.get(raw_status, raw_status.title())
+
+    fn = (f.get("flight") or {}).get("iata", "")
+    from_label = f"{dep_apt} ({dep_iata})" if dep_iata else dep_apt
+    to_label   = f"{arr_apt} ({arr_iata})" if arr_iata else arr_apt
+
+    return {
+        "flight":  fn,
+        "airline": airline,
+        "from":    from_label,
+        "from_iata": dep_iata,
+        "to":      to_label,
+        "to_iata": arr_iata,
+        "dep":     dep_time or "–",
+        "arr":     arr_time or "–",
+        "status":  status,
+    }
+
+def flights_page(admin, msg="", err="", dom_page=1, intl_page=1):
+    from datetime import datetime as _dt
+    now_str = _dt.now().strftime("%B %d, %Y %I:%M %p")
+    PER = 15
+
+    # ── Fetch live data from Aviationstack ──
+    api_error = ""
+    raw_mnl = []
+    raw_crk = []
+    try:
+        raw_mnl = _fetch_aviationstack("MNL", limit=100)
+        raw_crk = _fetch_aviationstack("CRK", limit=50)
+    except Exception as e:
+        api_error = str(e)
+
+    all_raw = raw_mnl + raw_crk
+    api_ok  = bool(all_raw)
+
+    # Deduplicate by flight number
+    seen_fn   = set()
+    domestic  = []
+    intl      = []
+
+    for f in all_raw:
+        parsed = _parse_flight(f)
+        fn = parsed["flight"] or f"{parsed['airline'][:4]}{parsed['dep']}"
+        if fn in seen_fn:
+            continue
+        seen_fn.add(fn)
+        arr_iata = parsed.get("to_iata", "")
+        if arr_iata in _PH_DOMESTIC_IATA:
+            domestic.append(parsed)
+        else:
+            intl.append(parsed)
+
+    # Sort by departure time
+    domestic.sort(key=lambda x: x["dep"])
+    intl.sort(key=lambda x: x["dep"])
+
+    sc_map = {
+        "Scheduled":"#2563EB","On Time":"#16A34A","Landed":"#0369A1",
+        "Delayed":"#D97706","Cancelled":"#DC2626","Diverted":"#7C3AED","Incident":"#DC2626",
+    }
+
+    def flight_row_live(f):
+        status = f.get("status","Scheduled")
+        sc     = sc_map.get(status, "#2563EB")
+        badge  = f'<span style="background:{sc}22;color:{sc};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">{status}</span>'
+        fn     = f.get("flight","")
+        fn_badge = f'<span style="background:#F1F5F9;color:#475569;padding:2px 7px;border-radius:6px;font-size:11px;font-weight:700;margin-right:4px">{fn}</span>' if fn else ""
+        return (f'<tr>'
+                f'<td>{fn_badge}<span style="font-weight:600;color:#1E293B">{f["airline"]}</span></td>'
+                f'<td>{f["from"]}</td><td>{f["to"]}</td>'
+                f'<td>{f["dep"]}</td><td>{f["arr"]}</td>'
+                f'<td>–</td><td style="color:#94A3B8;font-size:11px">Live</td>'
+                f'<td>{badge}</td></tr>')
+
+    # Build paginated row lists
+    dom_row_list  = [flight_row_live(f) for f in domestic]
+    intl_row_list = [flight_row_live(f) for f in intl]
+
+    dom_rows_html,  dom_pager,  dom_total,  _ = _paginate(dom_row_list,  dom_page,  PER, "/admin/flights", "&tab=domestic")
+    intl_rows_html, intl_pager, intl_total, _ = _paginate(intl_row_list, intl_page, PER, "/admin/flights", "&tab=intl")
+
+    # Replace page param key so each tab has its own page param
+    dom_pager  = dom_pager.replace("?page=",  "?dom_page=").replace("&page=",  "&dom_page=")
+    intl_pager = intl_pager.replace("?page=", "?intl_page=").replace("&page=", "&intl_page=")
+
+    if not dom_rows_html:
+        dom_rows_html = '<tr><td colspan="8" style="text-align:center;color:#94A3B8;padding:20px">No live domestic flights at this time</td></tr>'
+    if not intl_rows_html:
+        intl_rows_html = '<tr><td colspan="8" style="text-align:center;color:#94A3B8;padding:20px">No live international flights at this time</td></tr>'
+
+    status_opts = '<option value="">All Status</option><option>Scheduled</option><option>On Time</option><option>Delayed</option><option>Cancelled</option><option>Landed</option><option>Diverted</option>'
 
     def flight_filter(tbl_id):
         return f'''<div class="filter-bar">
-          <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;padding:7px 12px;flex:1;max-width:220px">
-            <input placeholder="Search airline or route..." oninput="applyFilters(\'{tbl_id}\',[{{col:0,value:this.value}},{{col:1,value:this.value}},{{col:2,value:this.value}}])" style="border:none;background:none;outline:none;font-size:13px;width:100%;margin:0"/>
+          <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;padding:7px 12px;flex:1;max-width:260px">
+            <input placeholder="Search airline, flight no., route..." oninput="filterFlights('{tbl_id}', this.value)" style="border:none;background:none;outline:none;font-size:13px;width:100%;margin:0"/>
           </div>
-          <select onchange="applyFilters(\'{tbl_id}\',[{{col:0,value:this.value}}])" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{airline_opts}</select>
-          <select onchange="applyFilters(\'{tbl_id}\',[{{col:7,value:this.value}}])" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{status_opts}</select>
+          <select onchange="filterFlightStatus('{tbl_id}', this.value)" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{status_opts}</select>
         </div>'''
 
+    # Status banner
+    if api_ok:
+        fetched_at = f'<div style="background:#ECFDF5;border:1px solid #6EE7B7;border-radius:10px;padding:10px 16px;font-size:13px;color:#065F46;margin-bottom:16px;display:flex;align-items:center;gap:8px">&#128994; <strong>Live data</strong> from Aviationstack &mdash; {dom_total} domestic · {intl_total} international flights &mdash; fetched at {now_str}</div>'
+    else:
+        fetched_at = f'<div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:10px;padding:10px 16px;font-size:13px;color:#92400E;margin-bottom:16px;display:flex;align-items:center;gap:8px">&#128993; <strong>API unavailable</strong> &mdash; Could not reach Aviationstack. Check your API key or network. {("Error: " + api_error) if api_error else ""}</div>'
+
+    # Which tab is active (persists across pagination clicks)
     tab_btns = (
-        f'<button class="tab-btn active" data-tab="domestic" onclick="switchTab(\'flights\',\'domestic\')">Domestic ({len(DOMESTIC_ROUTES)})</button>'
-        f'<button class="tab-btn" data-tab="intl" onclick="switchTab(\'flights\',\'intl\')">International ({len(INTL_ROUTES)})</button>'
+        f'<button class="tab-btn active" data-tab="domestic" onclick="switchTab(\'flights\',\'domestic\')">&#9992; Domestic ({dom_total})</button>'
+        f'<button class="tab-btn" data-tab="intl" onclick="switchTab(\'flights\',\'intl\')">&#127757; International ({intl_total})</button>'
     )
 
     body = f'''
     <div style="font-size:22px;font-weight:900;margin-bottom:4px">Flights</div>
-    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{len(DOMESTIC_ROUTES)} domestic · {len(INTL_ROUTES)} international Luzon routes</div>
+    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">Live flight data from Aviationstack &mdash; MNL &amp; CRK departures</div>
     {_alert(msg,err)}
-    <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:12px 16px;font-size:13px;color:#1D4ED8;margin-bottom:16px">
-      &#128203; Domestic: Luzon airports (MNL, CRK) to/from Luzon destinations. International: MNL/CRK to/from major international airports.
-    </div>
+    {fetched_at}
     <div class="card"><div style="padding:0 20px" data-group="flights">
       <div class="tabs">{tab_btns}</div>
+
       <div id="flights-domestic" class="tab-pane active">
         {flight_filter("tbl-dom")}
-        <div style="padding:0 16px 8px;display:flex;justify-content:flex-end">{_export_btns("tbl-dom","ATLAS_Domestic_Flights")}</div>
-        <table id="tbl-dom"><thead><tr><th>Airline</th><th>From</th><th>To</th><th>Departs</th><th>Arrives</th><th>Duration</th><th>Price</th><th>Status</th></tr></thead>
-        <tbody>{dom_rows}</tbody></table>
+        <div style="padding:0 16px 8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:#94A3B8;padding-left:4px">Showing page {dom_page} &mdash; {dom_total} total</span>
+          {_export_btns("tbl-dom","ATLAS_Domestic_Flights")}
+        </div>
+        <table id="tbl-dom">
+          <thead><tr><th>Airline / Flight</th><th>From</th><th>To</th><th>Departs</th><th>Arrives</th><th>Duration</th><th>Price</th><th>Status</th></tr></thead>
+          <tbody>{dom_rows_html}</tbody>
+        </table>
+        {dom_pager}
       </div>
+
       <div id="flights-intl" class="tab-pane">
         {flight_filter("tbl-intl")}
-        <div style="padding:0 16px 8px;display:flex;justify-content:flex-end">{_export_btns("tbl-intl","ATLAS_International_Flights")}</div>
-        <table id="tbl-intl"><thead><tr><th>Airline</th><th>From</th><th>To</th><th>Departs</th><th>Arrives</th><th>Duration</th><th>Price</th><th>Status</th></tr></thead>
-        <tbody>{intl_rows}</tbody></table>
+        <div style="padding:0 16px 8px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:#94A3B8;padding-left:4px">Showing page {intl_page} &mdash; {intl_total} total</span>
+          {_export_btns("tbl-intl","ATLAS_International_Flights")}
+        </div>
+        <table id="tbl-intl">
+          <thead><tr><th>Airline / Flight</th><th>From</th><th>To</th><th>Departs</th><th>Arrives</th><th>Duration</th><th>Price</th><th>Status</th></tr></thead>
+          <tbody>{intl_rows_html}</tbody>
+        </table>
+        {intl_pager}
       </div>
-    </div></div>'''
+
+    </div></div>
+    <script>
+    function filterFlights(tblId, q) {{
+      q = q.toLowerCase();
+      document.querySelectorAll('#'+tblId+' tbody tr').forEach(function(tr) {{
+        tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+      }});
+    }}
+    function filterFlightStatus(tblId, val) {{
+      val = val.toLowerCase();
+      document.querySelectorAll('#'+tblId+' tbody tr').forEach(function(tr) {{
+        tr.style.display = (!val || tr.textContent.toLowerCase().includes(val)) ? '' : 'none';
+      }});
+    }}
+    // Auto-open correct tab if paginating intl
+    (function() {{
+      var p = new URLSearchParams(window.location.search);
+      if (p.has('intl_page') && !p.has('dom_page')) {{
+        switchTab('flights','intl');
+      }}
+    }})();
+    // Auto-refresh live data every 5 minutes
+    setTimeout(function(){{ window.location.reload(); }}, 300000);
+    </script>'''
     return shell("Flights", body, "flights", admin)
 
-def profile_page(admin, msg="", err=""):
-    ainit   = (admin.get("fullname","A") or "A")[0].upper()
-    aname   = admin.get("fullname","ATLAS Administrator")
-    aemail  = admin.get("email","admin@atlas.ph")
-    created = (admin.get("created","") or "")[:10]
+def profile_page(admin, msg="", err="", csrf=""):
+    _created_raw = admin.get("created","") or ""
+    created = _created_raw.strftime("%Y-%m-%d") if hasattr(_created_raw, "strftime") else str(_created_raw)[:10]
+    aname   = admin.get("fullname","ATLAS Administrator") or "ATLAS Administrator"
+    aemail  = admin.get("email","admin@atlas.ph") or "admin@atlas.ph"
+    aphoto  = admin.get("photo_url","") or ""
+    ainit   = (aname[0] if aname else "A").upper()
+    csrf_input = f'<input type="hidden" name="csrf_token" value="{csrf}"/>' if csrf else ""
+
+    if aphoto:
+        avatar_html = f'<img src="{aphoto}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid #E2E8F0;margin:0 auto 16px;display:block" onerror="this.style.display=\'none\'"/>'
+    else:
+        avatar_html = f'<div style="width:80px;height:80px;background:linear-gradient(135deg,#0038A8,#CE1126);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:32px;margin:0 auto 16px">{ainit}</div>'
 
     body = f'''
     <div style="font-size:22px;font-weight:900;margin-bottom:4px">Admin Profile</div>
-    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">Your account information</div>
+    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">Manage your account information</div>
     {_alert(msg,err)}
     <div style="display:grid;grid-template-columns:280px 1fr;gap:20px;align-items:start">
+
+      <!-- LEFT: Avatar card -->
       <div class="card"><div class="card-body" style="text-align:center;padding:32px 20px">
-        <div style="width:80px;height:80px;background:linear-gradient(135deg,#0038A8,#CE1126);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:32px;margin:0 auto 16px">{ainit}</div>
+        {avatar_html}
         <div style="font-size:18px;font-weight:800;margin-bottom:4px">{aname}</div>
         <div style="font-size:13px;color:#94A3B8;margin-bottom:10px">{aemail}</div>
-        <span class=bb>Admin</span>
+        <span class="bb">Admin</span>
         <div style="height:1px;background:#F1F5F9;margin:18px 0"></div>
         <div style="text-align:left;display:flex;flex-direction:column;gap:10px">
           <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#94A3B8;font-weight:600">Role</span><span style="font-weight:700">Admin</span></div>
           <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#94A3B8;font-weight:600">Member since</span><span style="font-weight:700">{created}</span></div>
           <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:#94A3B8;font-weight:600">System</span><span style="font-weight:700">ATLAS v1.0</span></div>
         </div>
+        <div style="height:1px;background:#F1F5F9;margin:18px 0"></div>
+        <!-- Profile photo upload -->
+        <form method="post" action="/admin/profile/photo" enctype="multipart/form-data">
+          {csrf_input}
+          <label style="text-align:left;margin-bottom:8px">Profile Photo</label>
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" id="admin-photo-inp" onchange="previewAdminPhoto(this)" style="margin-bottom:8px"/>
+          <div id="admin-photo-preview" style="display:none;margin-bottom:10px">
+            <img id="admin-preview-img" style="width:52px;height:52px;border-radius:50%;object-fit:cover;border:2px solid #E2E8F0"/>
+            <div style="font-size:12px;color:#059669;font-weight:600;margin-top:4px">&#10003; Ready to upload</div>
+          </div>
+          <button class="btn bprimary" type="submit" id="admin-photo-btn" disabled style="width:100%;padding:9px;font-size:13px;justify-content:center">Upload Photo</button>
+        </form>
       </div></div>
-      <div class="card">
-        <div class="card-hdr"><h3>Change Password</h3></div>
-        <div class="card-body">
-          <div style="background:#FEF9C3;border:1px solid #FDE047;border-radius:8px;padding:10px 14px;font-size:13px;color:#854D0E;margin-bottom:16px">&#9432; Only password changes are allowed for security.</div>
-          <form method="post" action="/admin/profile/update">
-            <div class="fg2">
-              <div><label>New Password</label><input name="new_password" type="password" placeholder="Min. 8 characters"/></div>
-              <div><label>Confirm Password</label><input name="confirm_password" type="password" placeholder="Repeat password"/></div>
-            </div>
-            <button class="btn bprimary" type="submit" style="padding:10px 24px;font-size:13px">Change Password</button>
-          </form>
+
+      <!-- RIGHT: Edit forms -->
+      <div style="display:flex;flex-direction:column;gap:20px">
+
+        <!-- Edit Name & Email -->
+        <div class="card">
+          <div class="card-hdr"><h3>Account Information</h3></div>
+          <div class="card-body">
+            <form method="post" action="/admin/profile/update">
+              {csrf_input}
+              <input type="hidden" name="action" value="update_info"/>
+              <input type="hidden" name="email" value="{aemail}"/>
+              <div class="fg2">
+                <div><label>Full Name</label><input name="fullname" type="text" value="{aname}" placeholder="Your full name"/></div>
+                <div>
+                  <label>Email Address</label>
+                  <div style="padding:9px 12px;background:#F3F4F6;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;color:#6B7280;margin-bottom:12px">{aemail}</div>
+                  <div style="font-size:11px;color:#9CA3AF;margin-top:-10px">Cannot be changed</div>
+                </div>
+              </div>
+              <button class="btn bprimary" type="submit" style="padding:10px 24px;font-size:13px">Save Changes</button>
+            </form>
+          </div>
         </div>
+
+        <!-- Change Password -->
+        <div class="card">
+          <div class="card-hdr"><h3>Change Password</h3></div>
+          <div class="card-body">
+            <form method="post" action="/admin/profile/update">
+              {csrf_input}
+              <input type="hidden" name="action" value="change_password"/>
+              <div class="fg2">
+                <div><label>New Password</label><input name="new_password" type="password" placeholder="Min. 8 characters"/></div>
+                <div><label>Confirm Password</label><input name="confirm_password" type="password" placeholder="Repeat password"/></div>
+              </div>
+              <button class="btn bprimary" type="submit" style="padding:10px 24px;font-size:13px">Change Password</button>
+            </form>
+          </div>
+        </div>
+
       </div>
-    </div>'''
+    </div>
+    <script>
+    function previewAdminPhoto(inp) {{
+      var wrap = document.getElementById('admin-photo-preview');
+      var prev = document.getElementById('admin-preview-img');
+      var btn  = document.getElementById('admin-photo-btn');
+      if (inp.files && inp.files[0]) {{
+        if (inp.files[0].size > 3 * 1024 * 1024) {{
+          alert('File too large. Max 3 MB.'); inp.value=''; return;
+        }}
+        var reader = new FileReader();
+        reader.onload = function(e) {{ prev.src = e.target.result; wrap.style.display='block'; }};
+        reader.readAsDataURL(inp.files[0]);
+        btn.disabled = false;
+      }}
+    }}
+    </script>'''
     return shell("Admin Profile", body, "profile", admin)

@@ -137,7 +137,7 @@ body{{min-height:100vh;display:flex;flex-direction:row;font-family:'Segoe UI',sa
         style="width:100%;padding:13px 16px;padding-right:48px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;color:#1F2937;outline:none;background:#F9FAFB;box-sizing:border-box"
         onfocus="this.style.borderColor='#0038A8';this.style.boxShadow='0 0 0 3px rgba(0,56,168,.08)'"
         onblur="this.style.borderColor='#E5E7EB';this.style.boxShadow='none'"/>
-      <button type="button" onclick="togglePw()" style="position:absolute;right:14px;top:38px;background:none;border:none;cursor:pointer;color:#9CA3AF;font-size:18px">&#128065;</button>
+
       <div id="pw-error" style="color:#DC2626;font-size:12px;margin-top:6px;display:none"></div>
     </div>
     <form id="login-form" method="post" action="/guide/login" style="display:none">
@@ -406,6 +406,146 @@ document.getElementById('gverify-form').addEventListener('submit', function(e) {
 </script>
 </body></html>"""
 
+def render_guide_2fa(email, error=""):
+    """Step-2 login: guide enters the OTP we just emailed them."""
+    safe_email = e(email)
+    err = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px">&#9888; {e(error)}</div>' if error else ""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Verify Login - ATLAS Guide</title>
+<link rel="stylesheet" href="/css/styles.css"/>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#003087,#0038A8);font-family:'Segoe UI',sans-serif;padding:24px}}
+.verify-box{{background:#fff;border-radius:20px;padding:44px 52px;max-width:500px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.2);text-align:center}}
+.code-inputs{{display:flex;gap:10px;justify-content:center;margin:28px 0}}
+.code-input{{width:52px;height:62px;border:2px solid #E2E8F0;border-radius:12px;font-size:26px;font-weight:900;text-align:center;outline:none;color:#0F172A;font-family:monospace;transition:.15s}}
+.code-input:focus{{border-color:#0038A8;box-shadow:0 0 0 3px rgba(0,56,168,.12);background:#F0F7FF}}
+.submit-btn{{width:100%;padding:14px;background:#0038A8;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:8px}}
+.submit-btn:hover{{background:#0050D0}}
+</style>
+</head>
+<body>
+<div class="verify-box">
+  <div style="margin-bottom:16px">
+    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#0038A8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+  </div>
+  <div style="font-size:24px;font-weight:900;color:#0F172A;margin-bottom:8px">Check your email</div>
+  <div style="font-size:14px;color:#475569;line-height:1.6;margin-bottom:4px">We sent a 6-digit login code to</div>
+  <div style="font-size:15px;font-weight:700;color:#0038A8;margin-bottom:4px">{safe_email}</div>
+  <div style="font-size:13px;color:#94A3B8;margin-bottom:12px">Enter the code below to complete sign-in.</div>
+  {err}
+  <form method="post" action="/guide/2fa" id="g2fa-form">
+    <input type="hidden" name="email" value="{safe_email}"/>
+    <input type="hidden" name="code" id="g2fa-code"/>
+    <div class="code-inputs">
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]" autofocus/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
+      <input type="text" class="code-input" maxlength="1" inputmode="numeric" pattern="[0-9]"/>
+    </div>
+    <button class="submit-btn" type="submit">&#10003; Verify &amp; Sign In</button>
+  </form>
+  <div style="margin-top:18px;font-size:13px;color:#94A3B8">
+    Didn't receive it?
+    <a href="/guide/2fa/resend?email={safe_email}" style="color:#0038A8;font-weight:600">Resend code</a>
+  </div>
+  <div style="margin-top:12px"><a href="/guide" style="font-size:13px;color:#6B7280">&#8592; Back to login</a></div>
+</div>
+<script>
+var inputs = document.querySelectorAll('.code-input');
+inputs.forEach(function(inp, idx) {{
+  inp.addEventListener('input', function() {{
+    this.value = this.value.replace(/[^0-9]/g,'').slice(-1);
+    if (this.value && idx < 5) inputs[idx+1].focus();
+  }});
+  inp.addEventListener('keydown', function(e) {{
+    if (e.key==='Backspace' && !this.value && idx > 0) inputs[idx-1].focus();
+    if (e.key==='ArrowLeft' && idx > 0) inputs[idx-1].focus();
+    if (e.key==='ArrowRight' && idx < 5) inputs[idx+1].focus();
+  }});
+  inp.addEventListener('paste', function(e) {{
+    var pasted = (e.clipboardData||window.clipboardData).getData('text').replace(/\\D/g,'');
+    if (pasted.length >= 6) {{
+      for (var i=0;i<6;i++) inputs[i].value = pasted[i]||'';
+      inputs[5].focus();
+      e.preventDefault();
+    }}
+  }});
+}});
+document.getElementById('g2fa-form').addEventListener('submit', function(e) {{
+  var code = Array.from(inputs).map(function(i){{return i.value;}}).join('');
+  if (code.length < 6) {{ e.preventDefault(); alert('Please enter all 6 digits.'); return; }}
+  document.getElementById('g2fa-code').value = code;
+}});
+</script>
+</body></html>"""
+
+
+def render_2fa_setup(guide):
+    """Settings page at /guide/setup-2fa — toggle email-OTP 2FA on or off."""
+    enabled = bool(guide.get("totp_enabled"))
+    email   = e(guide.get("email", ""))
+    if enabled:
+        status_badge = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#10003; 2FA is currently <strong>&nbsp;enabled</strong> — a login code is emailed to {email} each time you sign in.</div>'
+        action_form = """
+  <form method="post" action="/guide/setup-2fa">
+    <input type="hidden" name="action" value="disable"/>
+    <button class="g-btn" type="submit"
+      style="background:#FEE2E2;color:#DC2626;width:100%;padding:13px;font-size:14px;border:1.5px solid #FECACA;border-radius:12px"
+      onclick="return confirm('Are you sure you want to disable 2FA?')">
+      &#128417; Disable Two-Factor Authentication
+    </button>
+  </form>"""
+    else:
+        status_badge = f'<div style="background:#F9FAFB;border:1px solid #E5E7EB;border-radius:10px;padding:12px 16px;color:#6B7280;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#128737; 2FA is currently <strong>&nbsp;disabled</strong> on your account.</div>'
+        action_form = f"""
+  <p style="font-size:14px;color:#475569;line-height:1.7;margin-bottom:20px">
+    When enabled, a 6-digit code will be emailed to <strong>{email}</strong> each time you sign in.
+    No app required.
+  </p>
+  <form method="post" action="/guide/setup-2fa">
+    <input type="hidden" name="action" value="enable"/>
+    <button class="g-btn" type="submit"
+      style="background:#0038A8;color:#fff;width:100%;padding:13px;font-size:14px;border-radius:12px">
+      &#128274; Enable Two-Factor Authentication
+    </button>
+  </form>"""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Two-Factor Authentication - ATLAS Guide</title>
+<link rel="stylesheet" href="/css/styles.css"/>
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#F1F5F9;font-family:'Segoe UI',sans-serif;padding:24px}}
+.box{{background:#fff;border-radius:16px;padding:40px 48px;max-width:520px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.1)}}
+.g-btn{{padding:9px 18px;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}}
+</style>
+</head>
+<body>
+<div class="box">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+    <div style="width:48px;height:48px;background:#EFF6FF;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid #BFDBFE;font-size:22px">&#9993;</div>
+    <div>
+      <div style="font-size:20px;font-weight:800;color:#1F2937">Two-Factor Authentication</div>
+      <div style="font-size:13px;color:#6B7280">Extra security via email code — no app needed</div>
+    </div>
+  </div>
+  {status_badge}
+  {action_form}
+  <div style="margin-top:20px;text-align:center">
+    <a href="/guide/profile" style="font-size:13px;color:#6B7280">&#8592; Back to Profile</a>
+  </div>
+</div>
+</body></html>"""
+
+
 def handle_login(form):
     import guide_db as _gdb
     email    = form.get("email","").strip().lower()
@@ -446,20 +586,41 @@ def render_dashboard(guide, msg="", err=""):
     pending   = [b for b in bookings if b["status"] == "pending"]
     upcoming  = [b for b in bookings if b["status"] == "accepted" and b["tour_date"] >= today]
     completed = [b for b in bookings if b["status"] == "completed"]
+    rejected  = [b for b in bookings if b["status"] == "rejected"]
+    cancelled = [b for b in bookings if b["status"] == "cancelled"]
+    total_pax = sum(b.get("pax", 1) or 1 for b in completed)
+    # this month
+    this_month = datetime.date.today().strftime("%Y-%m")
+    bookings_this_month = [b for b in bookings if b.get("created","")[:7] == this_month]
 
     alert = ""
     if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#10003; {msg}</div>'
     if err: alert = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:12px 16px;color:#DC2626;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#9888; {err}</div>'
 
+    # ── Stat cards (admin-style coloured tiles) ──
+    def stat_card(label, value, sub, bg_from, bg_to, icon):
+        return f"""
+        <div style="background:linear-gradient(135deg,{bg_from},{bg_to});border-radius:14px;padding:20px 22px;color:#fff;position:relative;overflow:hidden">
+          <div style="position:absolute;top:-16px;right:-16px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,.1)"></div>
+          <div style="font-size:28px;margin-bottom:6px;position:relative;z-index:1">{icon}</div>
+          <div style="font-size:34px;font-weight:900;line-height:1;position:relative;z-index:1">{value}</div>
+          <div style="font-size:13px;font-weight:700;margin-top:4px;position:relative;z-index:1">{label}</div>
+          <div style="font-size:11px;opacity:.8;margin-top:2px;position:relative;z-index:1">{sub}</div>
+        </div>"""
+
     stats = f"""
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:24px">
-      <div class="g-stat" style="background:linear-gradient(135deg,#0038A8,#0050d0)"><div style="font-size:32px;font-weight:900">{len(packages)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Packages</div></div>
-      <div class="g-stat" style="background:linear-gradient(135deg,#D97706,#F59E0B)"><div style="font-size:32px;font-weight:900">{len(pending)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Pending</div></div>
-      <div class="g-stat" style="background:linear-gradient(135deg,#059669,#10B981)"><div style="font-size:32px;font-weight:900">{len(upcoming)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Upcoming</div></div>
-      <div class="g-stat" style="background:linear-gradient(135deg,#7C3AED,#8B5CF6)"><div style="font-size:32px;font-weight:900">{len(completed)}</div><div style="font-size:12px;opacity:.85;margin-top:4px">Completed</div></div>
-      <div class="g-stat" style="background:linear-gradient(135deg,#DC2626,#EF4444)"><div style="font-size:32px;font-weight:900">{avg_rating}&#9733;</div><div style="font-size:12px;opacity:.85;margin-top:4px">Avg Rating</div></div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px">
+      {stat_card("My Packages", len(packages), f"{len([p for p in packages])} active packages", "#0038A8", "#0050d0", "&#128196;")}
+      {stat_card("Pending Requests", len(pending), "Awaiting your response", "#D97706", "#F59E0B", "&#9888;")}
+      {stat_card("Upcoming Tours", len(upcoming), "Confirmed &amp; scheduled", "#059669", "#10B981", "&#128197;")}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+      {stat_card("Completed Tours", len(completed), f"{total_pax} total tourists served", "#7C3AED", "#8B5CF6", "&#10003;")}
+      {stat_card("Avg Rating", f"{avg_rating}&#9733;", f"From {rating_count} review{'s' if rating_count!=1 else ''}", "#DC2626", "#EF4444", "&#11088;")}
+      {stat_card("Bookings This Month", len(bookings_this_month), f"{len(rejected)+len(cancelled)} rejected/cancelled total", "#0891B2", "#06B6D4", "&#128200;")}
     </div>"""
 
+    # ── Pending requests card ──
     pending_html = ""
     if pending:
         rows = "".join(f"""
@@ -475,20 +636,77 @@ def render_dashboard(guide, msg="", err=""):
             <form method="post" action="/guide/dashboard?section=dashboard"><input type="hidden" name="action" value="reject_booking"/><input type="hidden" name="booking_id" value="{e(b["id"])}"/><button class="g-btn" style="background:#DC2626;color:#fff;padding:8px 16px;font-size:13px">&#10007; Reject</button></form>
           </div>
         </div>""" for b in pending)
-        pending_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#0038A8">&#9888; Pending Booking Requests ({len(pending)})</div><div class="g-card-body">{rows}</div></div>'
+        pending_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#D97706">&#9888; Pending Booking Requests ({len(pending)})</div><div class="g-card-body">{rows}</div></div>'
 
-    upcoming_html = ""
+    # ── Two-column lower section ──
+    # Upcoming bookings table
     if upcoming:
-        rows = "".join(f'<tr style="border-bottom:1px solid #F3F4F6"><td style="padding:11px 14px;font-weight:600">{e(b["tourist_name"])}</td><td style="padding:11px 14px;color:#6B7280">{e(b.get("tourist_phone","N/A"))}</td><td style="padding:11px 14px;color:#6B7280">{e(b["tour_date"])}</td><td style="padding:11px 14px;color:#6B7280">{e(b["package_title"] or "Custom")}</td><td style="padding:11px 14px;color:#6B7280">{e(b["pax"])} pax</td></tr>' for b in upcoming[:6])
-        upcoming_html = f'<div class="g-card"><div class="g-card-hdr" style="background:#2563EB">&#128197; Upcoming Bookings</div><div class="g-card-body" style="padding:0"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8FAFC"><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Tourist</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Contact</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Date</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Package</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Pax</th></tr></thead><tbody>{rows}</tbody></table></div></div>'
+        up_rows = "".join(f'<tr style="border-bottom:1px solid #F3F4F6"><td style="padding:11px 14px;font-weight:600">{e(b["tourist_name"])}</td><td style="padding:11px 14px;color:#6B7280">{e(b["tour_date"])}</td><td style="padding:11px 14px;color:#6B7280">{e(b["package_title"] or "Custom")}</td><td style="padding:11px 14px;color:#6B7280">{e(b["pax"])} pax</td></tr>' for b in upcoming[:6])
+        upcoming_card = f'<div class="g-card"><div class="g-card-hdr" style="background:#2563EB">&#128197; Upcoming Bookings</div><div class="g-card-body" style="padding:0"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#F8FAFC"><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Tourist</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Date</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Package</th><th style="padding:11px 14px;text-align:left;font-size:12px;color:#6B7280;font-weight:600">Pax</th></tr></thead><tbody>{up_rows}</tbody></table></div></div>'
+    else:
+        upcoming_card = f'<div class="g-card"><div class="g-card-hdr" style="background:#2563EB">&#128197; Upcoming Bookings</div><div class="g-card-body" style="text-align:center;padding:32px;color:#9CA3AF"><div style="font-size:40px;margin-bottom:8px">&#128197;</div><div style="font-weight:700">No upcoming tours</div><div style="font-size:12px;margin-top:4px">Accepted bookings will appear here</div></div></div>'
+
+    # Recent completed + quick stats sidebar
+    recent_completed = "".join(f"""
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F3F4F6">
+      <div>
+        <div style="font-weight:600;font-size:14px;color:#1F2937">{e(b["tourist_name"])}</div>
+        <div style="font-size:12px;color:#9CA3AF">{e(b["tour_date"])} · {e(b["package_title"] or "Custom Tour")}</div>
+      </div>
+      <span style="background:#F5F3FF;color:#7C3AED;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">DONE</span>
+    </div>""" for b in completed[-5:][::-1]) or '<div style="text-align:center;padding:24px;color:#9CA3AF;font-size:13px">No completed tours yet</div>'
+
+    # Recent ratings
+    recent_ratings = "".join(f"""
+    <div style="padding:10px 0;border-bottom:1px solid #F3F4F6">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:600;font-size:13px;color:#1F2937">{e(r["tourist_name"])}</div>
+        <div style="color:#F59E0B;font-size:13px">{"&#9733;"*r["rating"]}{"&#9734;"*(5-r["rating"])}</div>
+      </div>
+      {"" if not r["feedback"] else f'<div style="font-size:12px;color:#6B7280;margin-top:3px;font-style:italic">&ldquo;{e(r["feedback"][:80])}{"..." if len(r["feedback"])>80 else ""}&rdquo;</div>'}
+    </div>""" for r in ratings[-3:][::-1]) or '<div style="text-align:center;padding:24px;color:#9CA3AF;font-size:13px">No reviews yet</div>'
+
+    quick_stats = f"""
+    <div class="g-card">
+      <div class="g-card-hdr" style="background:#0038A8">&#128202; Quick Stats</div>
+      <div class="g-card-body" style="padding:0">
+        <div style="padding:14px 18px;display:flex;justify-content:space-between;border-bottom:1px solid #F3F4F6"><span style="font-size:13px;color:#4B5563">Total Bookings</span><span style="font-weight:700;color:#1F2937">{len(bookings)}</span></div>
+        <div style="padding:14px 18px;display:flex;justify-content:space-between;border-bottom:1px solid #F3F4F6"><span style="font-size:13px;color:#4B5563">Accepted</span><span style="font-weight:700;color:#2563EB">{len([b for b in bookings if b["status"]=="accepted"])}</span></div>
+        <div style="padding:14px 18px;display:flex;justify-content:space-between;border-bottom:1px solid #F3F4F6"><span style="font-size:13px;color:#4B5563">Completed</span><span style="font-weight:700;color:#7C3AED">{len(completed)}</span></div>
+        <div style="padding:14px 18px;display:flex;justify-content:space-between;border-bottom:1px solid #F3F4F6"><span style="font-size:13px;color:#4B5563">Cancelled</span><span style="font-weight:700;color:#6B7280">{len(cancelled)}</span></div>
+        <div style="padding:14px 18px;display:flex;justify-content:space-between;border-bottom:1px solid #F3F4F6"><span style="font-size:13px;color:#4B5563">Rejected</span><span style="font-weight:700;color:#DC2626">{len(rejected)}</span></div>
+        <div style="padding:14px 18px;display:flex;justify-content:space-between"><span style="font-size:13px;color:#4B5563">Total Pax Served</span><span style="font-weight:700;color:#059669">{total_pax}</span></div>
+      </div>
+    </div>
+    <div class="g-card">
+      <div class="g-card-hdr" style="background:#F59E0B">&#11088; Latest Reviews</div>
+      <div class="g-card-body">{recent_ratings}</div>
+    </div>"""
+
+    bottom_grid = f"""
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start">
+      <div>
+        {upcoming_card}
+        <div class="g-card">
+          <div class="g-card-hdr" style="background:#7C3AED">&#10003; Recently Completed</div>
+          <div class="g-card-body">{recent_completed}</div>
+        </div>
+      </div>
+      <div>{quick_stats}</div>
+    </div>"""
 
     body = f"""
-    <div style="margin-bottom:24px">
-      <div style="font-size:24px;font-weight:900;color:#1F2937">Dashboard</div>
-      <div style="font-size:14px;color:#6B7280">Welcome back, {e(guide["fname"])}! &#128075;</div>
+    <div style="margin-bottom:24px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:26px;font-weight:900;color:#1F2937">Dashboard</div>
+        <div style="font-size:14px;color:#6B7280">Welcome back, {e(guide["fname"])}! &#128075; &nbsp;·&nbsp; {datetime.date.today().strftime("%A, %B %d, %Y")}</div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <a href="/guide/packages" style="padding:9px 18px;background:#0038A8;color:#fff;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700">&#43; Add Package</a>
+        <a href="/guide/bookings" style="padding:9px 18px;background:#fff;color:#0038A8;border:1.5px solid #0038A8;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700">View All Bookings</a>
+      </div>
     </div>
-    {alert}{stats}{pending_html}{upcoming_html}
-    {"" if upcoming_html or pending_html else '<div class="g-card"><div class="g-card-body" style="text-align:center;padding:40px;color:#9CA3AF"><div style="font-size:48px;margin-bottom:12px">&#128197;</div><div style="font-weight:700;font-size:16px">No bookings yet</div><div style="font-size:13px;margin-top:6px">Add packages to start receiving bookings!</div></div></div>'}"""
+    {alert}{stats}{pending_html}{bottom_grid}"""
     return build_guide_shell("Dashboard", body, "dashboard", guide)
 
 # ─────────────────────── PACKAGES ───────────────────────
@@ -701,6 +919,47 @@ def render_ratings(guide):
     {cards}"""
     return build_guide_shell("Ratings & Feedback", body, "ratings", guide)
 
+def render_totp_setup(guide, secret, qr_b64, error=""):
+    err_html = f'<div style="background:#FEE2E2;border:1px solid #FECACA;border-radius:10px;padding:10px 14px;color:#DC2626;font-size:13px;margin-bottom:18px">&#9888; {e(error)}</div>' if error else ""
+    qr_html  = (f'<img src="data:image/png;base64,{qr_b64}" style="width:200px;height:200px;border:4px solid #E2E8F0;border-radius:12px;display:block;margin:0 auto 16px"/>'
+                if qr_b64 else
+                '<div style="text-align:center;color:#9CA3AF;font-size:13px;margin-bottom:16px">QR code unavailable — ensure pyotp and qrcode are installed.</div>')
+    secret_html = (f'<div style="background:#F3F4F6;border-radius:8px;padding:10px 14px;font-family:monospace;font-size:14px;letter-spacing:2px;text-align:center;margin-bottom:16px;color:#1F2937;word-break:break-all">{e(secret)}</div>'
+                   if secret else "")
+    body = f"""
+    <div style="max-width:480px;margin:0 auto">
+      <div style="margin-bottom:24px">
+        <div style="font-size:24px;font-weight:900;color:#1F2937">Enable Two-Factor Authentication</div>
+        <div style="font-size:14px;color:#6B7280">Secure your guide account with Google Authenticator</div>
+      </div>
+      {err_html}
+      <div class="g-card">
+        <div class="g-card-hdr" style="background:#0038A8">&#128247; Step 1 — Scan QR Code</div>
+        <div class="g-card-body" style="text-align:center">
+          <div style="font-size:13px;color:#6B7280;margin-bottom:16px">Open Google Authenticator and scan this QR code, or enter the key manually.</div>
+          {qr_html}
+          {secret_html}
+        </div>
+      </div>
+      <div class="g-card" style="margin-top:16px">
+        <div class="g-card-hdr" style="background:#0038A8">&#128273; Step 2 — Verify Code</div>
+        <div class="g-card-body">
+          <form method="post" action="/guide/setup-2fa" style="display:flex;flex-direction:column;gap:14px">
+            <input type="hidden" name="action" value="enable"/>
+            <div>
+              <label class="g-lbl">Enter 6-digit code from your authenticator app</label>
+              <input class="g-inp" name="code" maxlength="6" placeholder="000000" autofocus style="letter-spacing:4px;font-size:20px;text-align:center"/>
+            </div>
+            <button class="g-btn" type="submit" style="background:#059669;color:#fff;padding:12px;font-size:15px;font-weight:700">&#10003; Verify &amp; Enable 2FA</button>
+          </form>
+        </div>
+      </div>
+      <div style="margin-top:16px;text-align:center">
+        <a href="/guide/profile" style="font-size:13px;color:#6B7280;text-decoration:none">&#8592; Cancel, go back to profile</a>
+      </div>
+    </div>"""
+    return build_guide_shell("Enable 2FA", body, "profile", guide)
+
 # ─────────────────────── PROFILE ───────────────────────
 def render_profile(guide, msg="", err=""):
     city_opts = "".join(f'<option {"selected" if c==guide.get("city","Manila") else ""}>{c}</option>' for c in CITIES)
@@ -754,8 +1013,9 @@ def render_profile(guide, msg="", err=""):
       <div class="g-card-hdr" style="background:#0038A8">&#128737; Two-Factor Authentication</div>
       <div class="g-card-body" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
         <div>
-          <div style="font-weight:700;font-size:14px;color:#1F2937;margin-bottom:4px">Google Authenticator</div>
-          <div style="font-size:13px;color:#6B7280">{"&#10003; Enabled — your account is protected" if tfa_enabled else "Not enabled — add an extra layer of security"}</div>
+          <div style="font-weight:700;font-size:14px;color:#1F2937;margin-bottom:4px">Email Verification Code</div>
+          <div style="font-size:13px;color:#6B7280">{"&#10003; Enabled — a code is emailed to you each login" if tfa_enabled else "Not enabled — add an extra layer of security"}</div>
+          <div style="font-size:12px;color:#94A3B8;margin-top:2px">No app required — the code is sent to <strong>{e(guide.get("email",""))}</strong></div>
         </div>
         <a href="/guide/setup-2fa">
           <button class="g-btn" style="background:{"#FEE2E2;color:#DC2626" if tfa_enabled else "#0038A8;color:#fff"};padding:9px 18px;font-size:13px">

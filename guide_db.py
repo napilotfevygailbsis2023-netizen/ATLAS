@@ -144,6 +144,17 @@ def init_guide_tables():
             created  DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    # Table for pending email-OTP 2FA codes (login step)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS guide_otp_pending (
+            id         INT AUTO_INCREMENT PRIMARY KEY,
+            guide_id   INT         NOT NULL,
+            code       VARCHAR(10) NOT NULL,
+            expires_at DATETIME    NOT NULL,
+            created    DATETIME    DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_guide (guide_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
     conn.commit(); cur.close(); conn.close()
 
 
@@ -189,105 +200,100 @@ def activate_guide(email, code):
                 (row["fname"], row["lname"], row["email"], row["password"], row["phone"], row["city"])
             )
         except IntegrityError:
-            pass
+            cur.close(); conn.close()
+            return False, "Email already registered."
         cur.execute("DELETE FROM pending_guides WHERE email=%s", (email,))
         conn.commit(); cur.close(); conn.close()
-        return True, "Email verified! Your guide account is now active."
+        return True, "Account activated successfully."
     except Exception as e:
-        cur.close(); conn.close()
-        return False, f"Verification error: {e}"
-
-def register_guide(fname, lname, email, password, phone, city):
-    try:
-        conn = get_conn(); cur = _cursor(conn)
-        cur.execute("INSERT INTO tour_guides (fname,lname,email,password,phone,city,status) VALUES (%s,%s,%s,%s,%s,%s,'pending')",
-                    (fname.strip(), lname.strip(), email.strip().lower(), hash_pw(password), phone.strip(), city))
-        conn.commit(); cur.close(); conn.close()
-        return True, "Account created!"
-    except IntegrityError:
-        return False, "Email already registered."
-    except Exception as e:
+        try: conn.rollback()
+        except: pass
+        try: cur.close(); conn.close()
+        except: pass
         return False, str(e)
 
-def login_guide(email, password):
+def register_guide(fname, lname, email, password, phone, city):
+    """Directly register a guide into tour_guides (used for Google OAuth auto-creation).
+    Inserts with status='pending' so the guide can log in immediately but is
+    flagged for admin review. Returns (True, '') on success or (False, reason) on failure.
+    """
+    email = email.strip().lower()
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("SELECT * FROM tour_guides WHERE email=%s",
-                (email.strip().lower(),))
-    guide = cur.fetchone(); cur.close(); conn.close()
-    if not guide or not check_pw(password, guide["password"]):
-        return False, None, None
-    # Re-hash with bcrypt if guide still has a legacy SHA-256 hash
-    if not guide["password"].startswith("$2"):
-        conn2 = get_conn(); cur2 = _cursor(conn2)
-        cur2.execute("UPDATE tour_guides SET password=%s WHERE id=%s", (hash_pw(password), guide["id"]))
-        conn2.commit(); cur2.close(); conn2.close()
-    token = secrets.token_hex(32)
-    conn = get_conn(); cur = _cursor(conn)
-    cur.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (%s,%s)", (token, guide["id"]))
-    conn.commit(); cur.close(); conn.close()
-    return True, token, guide
+    try:
+        cur.execute(
+            "INSERT INTO tour_guides (fname,lname,email,password,phone,city) VALUES (%s,%s,%s,%s,%s,%s)",
+            (fname.strip(), lname.strip(), email, hash_pw(password), phone.strip(), city)
+        )
+        conn.commit(); cur.close(); conn.close()
+        return True, ""
+    except IntegrityError:
+        try: cur.close(); conn.close()
+        except: pass
+        return False, "Email already registered."
+    except Exception as ex:
+        try: conn.rollback(); cur.close(); conn.close()
+        except: pass
+        return False, str(ex)
 
 def get_guide_by_email(email):
-    """Return a guide row by email address (any status), or None if not found."""
-    if not email: return None
-    try:
-        conn = get_conn(); cur = _cursor(conn)
-        cur.execute("SELECT * FROM tour_guides WHERE email=%s",
-                    (email.strip().lower(),))
-        row = cur.fetchone(); cur.close(); conn.close()
-        return row
-    except: return None
-
-def create_guide_session(guide_id):
-    """Create a new session token for a guide and return it."""
-    try:
-        token = secrets.token_hex(32)
-        conn = get_conn(); cur = _cursor(conn)
-        cur.execute("INSERT INTO guide_sessions (token, guide_id) VALUES (%s, %s)",
-                    (token, guide_id))
-        conn.commit(); cur.close(); conn.close()
-        return token
-    except: return None
-
-def get_guide_by_token(token):
-    if not token: return None
-    try:
-        conn = get_conn(); cur = _cursor(conn)
-        cur.execute("""SELECT g.* FROM tour_guides g
-            JOIN guide_sessions s ON s.guide_id=g.id
-            WHERE s.token=%s
-            AND s.created > NOW() - INTERVAL 24 HOUR""", (token,))
-        row = cur.fetchone(); cur.close(); conn.close()
-        return row
-    except: return None
-
-def purge_expired_guide_sessions():
-    """Delete guide sessions older than 24 hours. Call periodically on startup."""
-    try:
-        conn = get_conn(); cur = _cursor(conn)
-        cur.execute("DELETE FROM guide_sessions WHERE created < NOW() - INTERVAL 24 HOUR")
-        conn.commit(); cur.close(); conn.close()
-    except: pass
-
-def logout_guide(token):
-    try:
-        conn = get_conn(); cur = _cursor(conn)
-        cur.execute("DELETE FROM guide_sessions WHERE token=%s", (token,))
-        conn.commit(); cur.close(); conn.close()
-    except: pass
-
-def get_guide_by_id(gid):
+    email = email.strip().lower()
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("SELECT * FROM tour_guides WHERE id=%s", (gid,))
+    cur.execute("SELECT * FROM tour_guides WHERE email=%s", (email,))
     row = cur.fetchone(); cur.close(); conn.close()
     return row
 
-def update_guide_profile(gid, data):
-    """Update guide profile — fname and lname are intentionally excluded (locked at signup)."""
+def get_guide_by_id(guide_id):
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("""UPDATE tour_guides SET phone=%s,city=%s,languages=%s,
-        speciality=%s,bio=%s,rate=%s,availability=%s WHERE id=%s""",
-        (data["phone"], data["city"], data["languages"],
+    cur.execute("SELECT * FROM tour_guides WHERE id=%s", (guide_id,))
+    row = cur.fetchone(); cur.close(); conn.close()
+    return row
+
+def login_guide(email, password):
+    guide = get_guide_by_email(email)
+    if not guide:
+        return False, None, None
+    if not check_pw(password, guide["password"]):
+        return False, None, None
+    tok = secrets.token_hex(32)
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (%s,%s)", (tok, guide["id"]))
+    conn.commit(); cur.close(); conn.close()
+    return True, tok, guide
+
+def create_guide_session(guide_id):
+    """Create a new session token for a guide and return the token."""
+    tok = secrets.token_hex(32)
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("INSERT INTO guide_sessions (token,guide_id) VALUES (%s,%s)", (tok, guide_id))
+    conn.commit(); cur.close(); conn.close()
+    return tok
+
+def get_guide_by_token(token):
+    if not token: return None
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""
+        SELECT g.* FROM tour_guides g
+        JOIN guide_sessions s ON s.guide_id=g.id
+        WHERE s.token=%s
+    """, (token,))
+    row = cur.fetchone(); cur.close(); conn.close()
+    return row
+
+def logout_guide(token):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("DELETE FROM guide_sessions WHERE token=%s", (token,))
+    conn.commit(); cur.close(); conn.close()
+
+def purge_expired_guide_sessions():
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("DELETE FROM guide_sessions WHERE created < NOW() - INTERVAL 30 DAY")
+    conn.commit(); cur.close(); conn.close()
+
+def update_guide_profile(gid, data):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""
+        UPDATE tour_guides SET phone=%s,city=%s,languages=%s,speciality=%s,bio=%s,rate=%s,availability=%s WHERE id=%s
+    """, (data["phone"], data["city"], data["languages"],
          data["speciality"], data["bio"], data["rate"], data["availability"], gid))
     conn.commit(); cur.close(); conn.close()
 
@@ -329,7 +335,17 @@ def update_booking_status(booking_id, guide_id, status, notes=""):
                 (status, notes, booking_id, guide_id))
     conn.commit(); cur.close(); conn.close()
 
-# ── FIXED: explicit column list matches exactly the values passed ──
+def update_guide_photo(guide_id, photo_url):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE tour_guides SET photo_url=%s WHERE id=%s", (photo_url, guide_id))
+    conn.commit(); cur.close(); conn.close()
+
+def reschedule_booking(booking_id, guide_id, new_date):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE bookings SET status='rescheduled', tour_date=%s WHERE id=%s AND guide_id=%s",
+                (new_date, booking_id, guide_id))
+    conn.commit(); cur.close(); conn.close()
+
 def add_booking(data):
     guide_id      = int(data.get("guide_id", 0))
     tourist_name  = str(data.get("tourist_name", "")).strip()
@@ -433,16 +449,40 @@ def get_guides_with_pending_docs():
     rows = cur.fetchall(); cur.close(); conn.close()
     return rows
 
-# ── Guide 2FA ────────────────────────────────────────────────────────────────
-def set_guide_totp_secret(guide_id, secret):
-    conn = get_conn(); cur = _cursor(conn)
-    cur.execute("UPDATE tour_guides SET totp_secret=%s WHERE id=%s", (secret, guide_id))
-    conn.commit(); cur.close(); conn.close()
+# ── Guide Email OTP 2FA ──────────────────────────────────────────────────────
 
-def enable_guide_totp(guide_id, enabled: bool):
+def enable_guide_2fa(guide_id, enabled: bool):
+    """Turn email-OTP 2FA on or off for a guide."""
     conn = get_conn(); cur = _cursor(conn)
     cur.execute("UPDATE tour_guides SET totp_enabled=%s WHERE id=%s", (1 if enabled else 0, guide_id))
     conn.commit(); cur.close(); conn.close()
+
+def create_guide_otp(guide_id) -> str:
+    """Generate a 6-digit OTP, store it (expires in 10 min), and return the code."""
+    import random
+    code = str(random.randint(100000, 999999))
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""
+        INSERT INTO guide_otp_pending (guide_id, code, expires_at)
+        VALUES (%s, %s, NOW() + INTERVAL 10 MINUTE)
+        ON DUPLICATE KEY UPDATE code=VALUES(code), expires_at=VALUES(expires_at), created=NOW()
+    """, (guide_id, code))
+    conn.commit(); cur.close(); conn.close()
+    return code
+
+def verify_guide_otp(guide_id, submitted_code) -> bool:
+    """Return True and delete the OTP if it matches and hasn't expired."""
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""
+        SELECT id FROM guide_otp_pending
+        WHERE guide_id=%s AND code=%s AND expires_at > NOW()
+    """, (guide_id, submitted_code.strip()))
+    row = cur.fetchone()
+    if row:
+        cur.execute("DELETE FROM guide_otp_pending WHERE guide_id=%s", (guide_id,))
+        conn.commit()
+    cur.close(); conn.close()
+    return row is not None
 
 
 def get_all_guides():

@@ -278,7 +278,7 @@ def render_2fa(email, error=""):
 <html lang="en">
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Two-Factor Auth - ATLAS</title>
+<title>Verify Login - ATLAS</title>
 <link rel="stylesheet" href="/css/styles.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 <style>{_STYLE}</style>
@@ -286,10 +286,10 @@ def render_2fa(email, error=""):
 <body>
 <div class="modal" style="text-align:center">
   <div style="width:56px;height:56px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;border:1.5px solid #d1d9e0">
-    <i class="fa-brands fa-google" style="font-size:24px;color:#6b7280"></i>
+    <i class="fa-solid fa-envelope-open-text" style="font-size:22px;color:#1e3a8a"></i>
   </div>
-  <div style="font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:8px">Two-Factor Authentication</div>
-  <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:4px">Open Google Authenticator and enter the 6-digit code for</div>
+  <div style="font-size:22px;font-weight:700;color:#1a1a2e;margin-bottom:8px">Check your email</div>
+  <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:4px">We sent a 6-digit code to</div>
   <div style="font-size:14px;font-weight:600;color:#1a1a2e;margin-bottom:16px">{safe_email}</div>
   {err}
   <form method="post" action="/login/2fa">
@@ -301,9 +301,15 @@ def render_2fa(email, error=""):
              style="letter-spacing:8px;font-size:22px;font-weight:600;text-align:center;padding:22px 16px 8px"/>
       <label for="tfa-inp" style="left:50%;transform:translate(-50%,-50%);white-space:nowrap">Code</label>
     </div>
-    <button class="submit-btn" type="submit">Verify</button>
+    <button class="submit-btn" type="submit">Verify &amp; Sign in</button>
   </form>
   <div style="margin-top:16px">
+    <a href="/login/2fa/resend?email={safe_email}"
+       style="font-size:13px;color:#1e3a8a;font-weight:600;text-decoration:underline">
+      Resend code
+    </a>
+  </div>
+  <div style="margin-top:10px">
     <a href="/login.py" style="font-size:13px;color:#6b7280">&#8592; Back to login</a>
   </div>
   <div class="footer-links">
@@ -313,26 +319,43 @@ def render_2fa(email, error=""):
 </body></html>"""
 
 
-def render_2fa_setup(user, secret, qr_b64, error=""):
-    err = _err_box(error)
-    enabled = user.get("totp_enabled", 0)
+def render_2fa_setup(user):
+    enabled = bool(user.get("totp_enabled"))
+    email   = e(user.get("email", ""))
+    if enabled:
+        status_badge = '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px 16px;color:#16a34a;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-shield-halved"></i> 2FA is currently <strong>&nbsp;enabled</strong> on your account.</div>'
+        desc = f'When you sign in, a 6-digit code is emailed to <strong>{email}</strong>. Enter it to complete login.'
+        action_form = '''
+  <form method="post" action="/setup-2fa">
+    <input type="hidden" name="action" value="disable"/>
+    <button class="btn" type="submit"
+      style="background:#fef2f2;color:#dc2626;width:100%;padding:13px;border:1.5px solid #fca5a5"
+      onclick="return confirm(\'Are you sure you want to disable 2FA?\')">
+      <i class="fa-solid fa-shield-xmark"></i> Disable Two-Factor Authentication
+    </button>
+  </form>'''
+    else:
+        status_badge = '<div style="background:#fafafa;border:1px solid #d1d9e0;border-radius:10px;padding:12px 16px;color:#6b7280;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-shield"></i> 2FA is currently <strong>&nbsp;disabled</strong> on your account.</div>'
+        desc = f'When enabled, a 6-digit code will be emailed to <strong>{email}</strong> each time you sign in. No app required.'
+        action_form = '''
+  <form method="post" action="/setup-2fa">
+    <input type="hidden" name="action" value="enable"/>
+    <button class="btn" type="submit"
+      style="background:#1a1a2e;color:#fff;width:100%;padding:13px">
+      <i class="fa-solid fa-shield-halved"></i> Enable Two-Factor Authentication
+    </button>
+  </form>'''
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Setup 2FA - ATLAS</title>
+<title>Two-Factor Authentication - ATLAS</title>
 <link rel="stylesheet" href="/css/styles.css"/>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-family:'Segoe UI',sans-serif;padding:24px}}
 .box{{background:#ffffff;border-radius:16px;padding:40px 48px;max-width:520px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.12)}}
-.field{{margin-bottom:14px;position:relative}}
-.field input{{width:100%;padding:22px 16px 8px;border:1.5px solid #d1d9e0;border-radius:100px;font-size:14px;color:#1a1a2e;outline:none;background:#f8fafc;transition:.15s;font-family:inherit}}
-.field input:focus{{border-color:#1e3a8a;background:#fff}}
-.field input::placeholder{{color:transparent}}
-.field label{{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:14px;color:#9ca3af;pointer-events:none;transition:.15s}}
-.field input:focus ~ label,.field input:not(:placeholder-shown) ~ label{{top:9px;transform:none;font-size:11px;color:#1e3a8a}}
 .btn{{padding:12px 24px;border:none;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}}
 </style>
 </head>
@@ -340,51 +363,17 @@ body{{min-height:100vh;display:flex;align-items:center;justify-content:center;ba
 <div class="box">
   <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
     <div style="width:48px;height:48px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid #d1d9e0">
-      <i class="fa-brands fa-google" style="font-size:22px;color:#6b7280"></i>
+      <i class="fa-solid fa-envelope-open-text" style="font-size:20px;color:#1e3a8a"></i>
     </div>
     <div>
-      <div style="font-size:20px;font-weight:700;color:#1a1a2e">Google Authenticator</div>
-      <div style="font-size:13px;color:#6b7280">Two-factor authentication setup</div>
+      <div style="font-size:20px;font-weight:700;color:#1a1a2e">Two-Factor Authentication</div>
+      <div style="font-size:13px;color:#6b7280">Extra security via email code</div>
     </div>
   </div>
-  {"" if not enabled else '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px 16px;color:#16a34a;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px"><i class="fa-solid fa-shield-halved"></i> 2FA is currently <strong>enabled</strong> on your account.</div>'}
-  {err}
-  {"" if enabled else f'''
-  <div>
-    <div style="font-weight:600;color:#374151;margin-bottom:8px">Step 1 &mdash; Scan this QR code</div>
-    <div style="font-size:13px;color:#6b7280;margin-bottom:14px">Open Google Authenticator on your phone, tap +, then scan.</div>
-    <div style="text-align:center;margin-bottom:14px">
-      <img src="data:image/png;base64,{qr_b64}" style="width:180px;height:180px;border:2px solid #d1d9e0;border-radius:12px"/>
-    </div>
-    <div style="background:#f8fafc;border:1px solid #d1d9e0;border-radius:10px;padding:12px;text-align:center;margin-bottom:20px">
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:4px">Or enter this key manually</div>
-      <div style="font-family:monospace;font-size:14px;font-weight:700;color:#374151;letter-spacing:2px">{e(secret)}</div>
-    </div>
-    <div style="font-weight:600;color:#374151;margin-bottom:8px">Step 2 &mdash; Enter the 6-digit code to confirm</div>
-    <form method="post" action="/setup-2fa">
-      <input type="hidden" name="action" value="enable"/>
-      <div class="field">
-        <input type="text" name="code" id="setup-inp" placeholder="Code"
-               maxlength="6" inputmode="numeric" autofocus
-               style="letter-spacing:8px;font-size:22px;font-weight:600;text-align:center;padding:22px 16px 8px"/>
-        <label for="setup-inp" style="left:50%;transform:translate(-50%,-50%);white-space:nowrap">Code</label>
-      </div>
-      <button class="btn" type="submit" style="background:#1a1a2e;color:#fff;width:100%;padding:13px">
-        <i class="fa-solid fa-check"></i> Enable Two-Factor Authentication
-      </button>
-    </form>
-  </div>
-  '''}
-  {"" if not enabled else '''
-  <form method="post" action="/setup-2fa">
-    <input type="hidden" name="action" value="disable"/>
-    <button class="btn" type="submit" style="background:#fef2f2;color:#dc2626;width:100%;padding:13px;border:1.5px solid #fca5a5"
-      onclick="return confirm(\'Are you sure you want to disable 2FA?\')">
-      <i class="fa-solid fa-shield-xmark"></i> Disable Two-Factor Authentication
-    </button>
-  </form>
-  '''}
-  <div style="margin-top:16px;text-align:center">
+  {status_badge}
+  <p style="font-size:14px;color:#475569;line-height:1.7;margin-bottom:24px">{desc}</p>
+  {action_form}
+  <div style="margin-top:20px;text-align:center">
     <a href="/profile.py" style="font-size:13px;color:#6b7280">&#8592; Back to Profile</a>
   </div>
 </div>
@@ -402,6 +391,6 @@ def handle_post(form):
         return None, render_login_password(email, error="Your account has been suspended. Please contact support."), None
     if not result:
         return None, render_login_password(email, error="Incorrect password. Please try again."), None
-    if user.get("totp_enabled") and user.get("totp_secret"):
+    if user.get("totp_enabled"):
         return None, render_2fa(email), email
     return token, None, None

@@ -159,6 +159,16 @@ def init_db():
             created  DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS user_otp_pending (
+            id         INT AUTO_INCREMENT PRIMARY KEY,
+            user_id    INT         NOT NULL,
+            code       VARCHAR(10) NOT NULL,
+            expires_at DATETIME    NOT NULL,
+            created    DATETIME    DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_user (user_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    """)
     # Note: default admin account is seeded by admin_db.init_admin()
     conn.commit()
     cur.close(); conn.close()
@@ -466,16 +476,42 @@ def clear_pending_by_email(email):
         conn.commit(); cur.close(); conn.close()
     except: pass
 
-# ── 2FA / TOTP ──────────────────────────────────────────────────────────────
-def set_totp_secret(user_id, secret):
-    conn = get_conn(); cur = _cursor(conn)
-    cur.execute("UPDATE users SET totp_secret=%s WHERE id=%s", (secret, user_id))
-    conn.commit(); cur.close(); conn.close()
-
-def enable_totp(user_id, enabled: bool):
+# ── Email OTP 2FA ─────────────────────────────────────────────────────────────
+def enable_2fa(user_id, enabled: bool):
+    """Turn email-OTP 2FA on or off for a tourist user."""
     conn = get_conn(); cur = _cursor(conn)
     cur.execute("UPDATE users SET totp_enabled=%s WHERE id=%s", (1 if enabled else 0, user_id))
     conn.commit(); cur.close(); conn.close()
+
+def create_user_otp(user_id) -> str:
+    """Generate a 6-digit OTP, store it (expires in 10 min), and return the code."""
+    import random
+    code = str(random.randint(100000, 999999))
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""
+        INSERT INTO user_otp_pending (user_id, code, expires_at)
+        VALUES (%s, %s, NOW() + INTERVAL 10 MINUTE)
+        ON DUPLICATE KEY UPDATE
+            code       = VALUES(code),
+            expires_at = VALUES(expires_at),
+            created    = NOW()
+    """, (user_id, code))
+    conn.commit(); cur.close(); conn.close()
+    return code
+
+def verify_user_otp(user_id, submitted_code) -> bool:
+    """Return True and consume the OTP if it matches and hasn't expired."""
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("""
+        SELECT id FROM user_otp_pending
+        WHERE user_id = %s AND code = %s AND expires_at > NOW()
+    """, (user_id, submitted_code.strip()))
+    row = cur.fetchone()
+    if row:
+        cur.execute("DELETE FROM user_otp_pending WHERE user_id = %s", (user_id,))
+        conn.commit()
+    cur.close(); conn.close()
+    return row is not None
 
 # ── View history ─────────────────────────────────────────────────────────────
 def log_view(user_id, item_type, item_name, item_city="", item_extra=""):

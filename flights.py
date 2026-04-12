@@ -17,33 +17,69 @@ INTERNATIONAL_FALLBACK = [
 AIRLINE_COLORS = {"Philippine Airlines":"#0038A8","Cebu Pacific":"#C8930A",
                   "AirAsia":"#CE1126","PAL Express":"#0038A8"}
 
-def fetch_flights(dep_iata="MNL"):
+def _fetch_aviationstack(dep_iata, limit=100):
+    """Fetch raw flight data from Aviationstack — mirrors the admin panel implementation."""
+    import os as _os
+    key = _os.environ.get("AVIATION_API_KEY", API_KEY)
+    params = urllib.parse.urlencode({
+        "access_key": key,
+        "dep_iata":   dep_iata,
+        "limit":      limit,
+    })
+    url = f"http://api.aviationstack.com/v1/flights?{params}"
     try:
-        url = f"https://api.aviationstack.com/v1/flights?access_key={API_KEY}&dep_iata={dep_iata}&limit=6"
-        with urllib.request.urlopen(url, timeout=6) as r:
-            d = json.loads(r.read())
-        results = []
-        dep_iata = dep_iata.upper()
-        for f in (d.get("data") or [])[:10]:
-            dep = f.get("departure",{})
-            arr = f.get("arrival",{})
-            if (dep.get("iata") or "").upper() != dep_iata:
-                continue
-            al  = f.get("airline",{}).get("name","Unknown")
-            results.append({
-                "from": f"{dep.get('airport','?')} ({dep.get('iata','?')})",
-                "to":   f"{arr.get('airport','?')} ({arr.get('iata','?')})",
-                "airline": al,
-                "dep": (dep.get("scheduled") or "")[:16].replace("T"," ")[11:16] or "--:--",
-                "arr": (arr.get("scheduled") or "")[:16].replace("T"," ")[11:16] or "--:--",
-                "dur": "--",
-                "price": "Check airline",
-                "seats": 10,
-                "status": f.get("flight_status","scheduled").title()
-            })
-        return results[:6] if results else FALLBACK
-    except:
-        return FALLBACK
+        req = urllib.request.Request(url, headers={"User-Agent": "ATLAS/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read())
+        return data.get("data", [])
+    except Exception as e:
+        print(f"[flights] fetch error ({dep_iata}): {e}", flush=True)
+        return []
+
+def _parse_flight(f):
+    """Normalise one Aviationstack flight object — mirrors the admin panel implementation."""
+    airline  = (f.get("airline") or {}).get("name", "Unknown")
+    dep      = f.get("departure") or {}
+    arr      = f.get("arrival")   or {}
+    dep_apt  = dep.get("airport", dep.get("iata", "?"))
+    dep_iata = dep.get("iata", "")
+    arr_apt  = arr.get("airport", arr.get("iata", "?"))
+    arr_iata = arr.get("iata", "")
+    # Prefer actual → estimated → scheduled
+    dep_time = dep.get("actual") or dep.get("estimated") or dep.get("scheduled") or ""
+    arr_time = arr.get("actual") or arr.get("estimated") or arr.get("scheduled") or ""
+    dep_time = dep_time[11:16] if len(dep_time) > 10 else dep_time[:5]
+    arr_time = arr_time[11:16] if len(arr_time) > 10 else arr_time[:5]
+    raw_status = (f.get("flight_status") or "scheduled").lower()
+    status_map = {
+        "scheduled": "Scheduled", "active": "On Time",
+        "landed":    "Landed",    "cancelled": "Cancelled",
+        "incident":  "Incident",  "diverted":  "Diverted",
+        "delayed":   "Delayed",
+    }
+    status   = status_map.get(raw_status, raw_status.title())
+    from_lbl = f"{dep_apt} ({dep_iata})" if dep_iata else dep_apt
+    to_lbl   = f"{arr_apt} ({arr_iata})" if arr_iata else arr_apt
+    return {
+        "flight":  (f.get("flight") or {}).get("iata", ""),
+        "airline": airline,
+        "from":    from_lbl,
+        "to":      to_lbl,
+        "dep":     dep_time or "–",
+        "arr":     arr_time or "–",
+        "dur":     "–",
+        "price":   "Check airline",
+        "seats":   10,
+        "status":  status,
+    }
+
+def fetch_flights(dep_iata="MNL"):
+    """Fetch and parse live flights. Returns (flights_list, error_msg|None)."""
+    raw = _fetch_aviationstack(dep_iata, limit=100)
+    if not raw:
+        return FALLBACK, "Could not reach live flight API. Showing sample flights."
+    results = [_parse_flight(f) for f in raw]
+    return (results, None) if results else (FALLBACK, None)
 
 def _card(f, user=None):
     col = AIRLINE_COLORS.get(f["airline"], "#0038A8")
@@ -56,25 +92,7 @@ def _card(f, user=None):
     status_color = {"Scheduled":"#1E40AF","Active":"#065F46","Landed":"#475569","Cancelled":"#991B1B"}.get(status,"#475569")
     status_bg = {"Scheduled":"#DBEAFE","Active":"#D1FAE5","Landed":"#F1F5F9","Cancelled":"#FEE2E2"}.get(status,"#F1F5F9")
 
-    # Book button — only for logged-in users, only for schedulable flights
     book_btn = ""
-    if user and status not in ("Landed","Cancelled"):
-        safe_airline  = html.escape(airline)
-        safe_origin   = html.escape(f["from"])
-        safe_dest     = html.escape(f["to"])
-        safe_dep      = html.escape(f["dep"])
-        safe_arr      = html.escape(f["arr"])
-        book_btn = f"""
-        <form method="post" action="/book-flight" style="margin-top:8px">
-          <input type="hidden" name="airline"     value="{safe_airline}"/>
-          <input type="hidden" name="origin"      value="{safe_origin}"/>
-          <input type="hidden" name="destination" value="{safe_dest}"/>
-          <input type="hidden" name="dep_time"    value="{safe_dep}"/>
-          <input type="hidden" name="arr_time"    value="{safe_arr}"/>
-          <button class="btn" type="submit" style="background:#059669;color:#fff;width:100%;padding:10px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px">
-            <i class="fa-solid fa-bookmark"></i> Book This Flight
-          </button>
-        </form>"""
 
     return f"""
     <div class="grid-card">
@@ -128,10 +146,19 @@ def render(filters=None, user=None):
     dep_date = filters.get("dep_date", today) or today
     ret_date = filters.get("ret_date", in5) or in5
 
+    api_error_banner = ""
     if trip == "international":
         flights = INTERNATIONAL_FALLBACK[:]
     else:
-        flights = fetch_flights(dep_airport)
+        flights, api_err = fetch_flights(dep_airport)
+        if api_err:
+            api_error_banner = (
+                '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:12px;'
+                'padding:14px 18px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px">'
+                '<div style="font-size:22px;flex-shrink:0">&#9888;</div>'
+                f'<div style="font-size:13px;color:#92400E;line-height:1.6">'
+                f'<strong>Notice:</strong> {html.escape(api_err)}</div></div>'
+            )
 
     if origin_q:
         flights = [f for f in flights if origin_q in f["from"].lower()]
@@ -191,6 +218,7 @@ def render(filters=None, user=None):
         <div class="section-title">Flight Search</div>
         <div class="section-sub">Search domestic or international flights</div>
       </div>
+      {api_error_banner}
       {weather_banner}
       <div class="card" style="margin-bottom:24px">
         <div class="card-hdr" style="background:#0038A8"><span>Search Flights</span></div>

@@ -35,6 +35,7 @@ def init_admin():
             id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(100) UNIQUE NOT NULL,
             password VARCHAR(64) NOT NULL, email VARCHAR(255) DEFAULT 'admin@atlas.ph',
             fullname VARCHAR(200) DEFAULT 'ATLAS Administrator',
+            photo_url TEXT,
             created DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
         """CREATE TABLE IF NOT EXISTS admin_sessions (
@@ -83,6 +84,9 @@ def init_admin():
     except: pass
     try: cur.execute("ALTER TABLE custom_transport DROP COLUMN dep_time")
     except: pass
+    # Add photo_url to existing admins table if missing
+    try: cur.execute("ALTER TABLE admins ADD COLUMN photo_url TEXT")
+    except: pass
     conn.commit()
     try:
         default_pw = os.environ.get("ATLAS_ADMIN_PASSWORD", "admin123")
@@ -102,7 +106,6 @@ def admin_login(username, password):
     cur.execute("INSERT INTO admin_sessions (token,admin_id) VALUES (%s,%s)", (token, row["id"]))
     conn.commit(); cur.close(); conn.close()
     return token
-    return None
 
 def get_admin_by_token(token):
     if not token: return None
@@ -120,12 +123,20 @@ def admin_logout(token):
         conn.commit(); cur.close(); conn.close()
     except: pass
 
-def update_admin_profile(admin_id, fullname, email, new_password=None):
+def update_admin_profile(admin_id, fullname, email, new_password=None, photo_url=None):
     conn = get_conn(); cur = _cursor(conn)
-    if new_password:
-        cur.execute("UPDATE admins SET fullname=%s,email=%s,password=%s WHERE id=%s", (fullname, email, hash_pw(new_password), admin_id))
+    if new_password and photo_url is not None:
+        cur.execute("UPDATE admins SET fullname=%s,email=%s,password=%s,photo_url=%s WHERE id=%s",
+                    (fullname, email, hash_pw(new_password), photo_url, admin_id))
+    elif new_password:
+        cur.execute("UPDATE admins SET fullname=%s,email=%s,password=%s WHERE id=%s",
+                    (fullname, email, hash_pw(new_password), admin_id))
+    elif photo_url is not None:
+        cur.execute("UPDATE admins SET fullname=%s,email=%s,photo_url=%s WHERE id=%s",
+                    (fullname, email, photo_url, admin_id))
     else:
-        cur.execute("UPDATE admins SET fullname=%s,email=%s WHERE id=%s", (fullname, email, admin_id))
+        cur.execute("UPDATE admins SET fullname=%s,email=%s WHERE id=%s",
+                    (fullname, email, admin_id))
     conn.commit(); cur.close(); conn.close()
 
 def get_stats():
