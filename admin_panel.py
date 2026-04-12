@@ -609,7 +609,7 @@ def guides_page(admin, msg="", err="", page=1, tab="registered"):
         <div style="padding:0 0 8px;display:flex;justify-content:flex-end">{_export_btns("tbl-guides","ATLAS_Tour_Guides")}</div>
         <table id="tbl-guides">
           <thead><tr><th>Photo</th><th>Name</th><th>City</th><th>Languages</th><th>Rate</th><th>Rating</th><th>Docs</th><th>Action</th></tr></thead>
-          <tbody>{"<tr><td colspan=8 style='text-align:center;color:#94A3B8;padding:20px'>No registered guides yet</td></tr>" if not reg_rows else ""}{reg_rows}</tbody>
+          <tbody>{"<tr><td colspan=7 style='text-align:center;color:#94A3B8;padding:20px'>No registered guides yet</td></tr>" if not reg_rows else ""}{reg_rows}</tbody>
         </table>
         {reg_pager}
       </div>
@@ -685,54 +685,393 @@ def guides_page(admin, msg="", err="", page=1, tab="registered"):
     return shell("Tour Guides", body, "guides", admin)
 
 # ── TRANSPORTATION ──
-def transport_page(admin, msg="", err="", page=1, tab="list"):
+def transport_page(admin, msg="", err="", page=1, tab="add", csrf=""):
+    import os as _os, urllib.request as _ur, urllib.parse as _up, json as _json
+
     items = admin_db.get_transport()
+    active_items   = [t for t in items if (t.get("status") or "active") != "archived"]
+    archived_items = [t for t in items if (t.get("status") or "active") == "archived"]
     TYPES = ["All","Bus","Van","Train","Ferry","Jeepney"]
-    PER = 8
-    row_list = []
-    for t in items:
-        acts = f'<a href="/admin/transport/delete/{t["id"]}" onclick="return confirm(\'Delete?\')"><button class="btn bdanger">Delete</button></a>'
-        row_list.append(f'<tr><td style="font-weight:600;color:#1E293B">{t["route"]}</td><td><span class=bb>{t["type"]}</span></td><td>{t["origin"]}</td><td>{t["dest"]}</td><td>{t["dep_time"]}</td><td style="color:#0369A1;font-weight:600">{t["fare"]}</td><td>{acts}</td></tr>')
+    PER = 10
 
-    rows_html, pager, total, _ = _paginate(row_list, page, PER, "/admin/transport")
+    # ── Build All Routes rows ────────────────────────────────────────────────
+    def _trow(t):
+        st  = t.get("status") or "active"
+        if st == "archived":
+            acts = (
+                f'<a href="/admin/transport/restore/{t["id"]}"><button class="btn bsuccess" style="margin-right:4px">Restore</button></a>'
+                f'<a href="/admin/transport/delete/{t["id"]}" onclick="return confirm(\'Permanently delete?\')"><button class="btn bdanger">Delete</button></a>'
+            )
+            status_badge = '<span style="background:#F3F4F6;color:#6B7280;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Archived</span>'
+        else:
+            _tid  = t["id"]
+            _args = ",".join([
+                str(t["id"]),
+                _json.dumps(t["route"]),
+                _json.dumps(t["type"]),
+                _json.dumps(t["origin"]),
+                _json.dumps(t["dest"]),
+                _json.dumps(t["fare"]),
+            ])
+            acts = (
+                f'<button class="btn bblue" style="margin-right:4px" onclick="openEditModal({_args})">Edit</button>'
+                f'<a href="/admin/transport/archive/{_tid}"><button class="btn bwarn" style="margin-right:4px">Archive</button></a>'
+                f'<a href="/admin/transport/delete/{_tid}" onclick="return confirm(\'Delete?\')"><button class="btn bdanger">Delete</button></a>'
+            )
+            status_badge = '<span style="background:#DCFCE7;color:#16A34A;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700">Active</span>'
+        fare_raw = str(t.get("fare",""))
+        return (
+            f'<tr data-fare="{fare_raw}">'
+            f'<td style="font-weight:600;color:#1E293B">{t["route"]}</td>'
+            f'<td><span class=bb>{t["type"]}</span></td>'
+            f'<td>{t["origin"]}</td>'
+            f'<td>{t["dest"]}</td>'
+            f'<td style="color:#0369A1;font-weight:600">{fare_raw}</td>'
+            f'<td>{status_badge}</td>'
+            f'<td>{acts}</td>'
+            f'</tr>'
+        )
+
+    all_rows   = "".join(_trow(t) for t in active_items)
+    arch_rows  = "".join(_trow(t) for t in archived_items)
+    total      = len(active_items)
+    arch_total = len(archived_items)
+
     type_opts = "".join(f'<option value="{tp if tp!="All" else ""}">{tp}</option>' for tp in TYPES)
-    tab_btns = (
-        f'<button class="tab-btn {"active" if tab=="add" else ""}" data-tab="add" onclick="switchTab(\'transport\',\'add\')">+ Add Route</button>'
-        f'<button class="tab-btn {"active" if tab=="list" else ""}" data-tab="list" onclick="switchTab(\'transport\',\'list\')">All Routes ({total})</button>'
-    )
-    add_form = f'''<div id="transport-add" class="tab-pane {"active" if tab=="add" else ""}"><div style="padding:20px">
-    <form method="post" action="/admin/transport/add"><div class="fg2">
-    <div><label>Route Name *</label><input name="route" placeholder="Manila to Baguio Express" required/></div>
-    <div><label>Type</label><select name="type"><option>Bus</option><option>Van</option><option>Train</option><option>Ferry</option><option>Jeepney</option></select></div>
-    <div><label>Origin *</label><input name="origin" placeholder="Manila, Tarlac..." required/></div>
-    <div><label>Destination *</label><input name="dest" placeholder="Baguio, Ilocos Norte..." required/></div>
-    <div><label>Departure Time *</label><input name="dep_time" placeholder="6:00 AM" required/></div>
-    <div><label>Fare</label><input name="fare" placeholder="PHP 450"/></div>
-    </div><button class="btn bprimary" type="submit" style="padding:9px 22px;font-size:13px">+ Add Route</button>
-    </form></div></div>'''
 
+    # ── Build set of already-added (origin, dest) pairs for filtering ─────────
+    added_pairs = _json.dumps([
+        [t["origin"].strip().lower(), t["dest"].strip().lower()]
+        for t in active_items
+    ])
+
+    # ── 50 major Luzon transport routes ──────────────────────────────────────
+    ORS_KEY = _os.environ.get("ORS_API_KEY", "")
+
+    POPULAR_ROUTES = [
+        # Manila → North Luzon
+        ("Manila", "Baguio City",              "Bus"),
+        ("Manila", "Vigan City",               "Bus"),
+        ("Manila", "Laoag City",               "Bus"),
+        ("Manila", "Tuguegarao City",          "Bus"),
+        ("Manila", "Dagupan City",             "Bus"),
+        ("Manila", "San Fernando, La Union",   "Bus"),
+        ("Manila", "Alaminos, Pangasinan",     "Bus"),
+        ("Manila", "Urdaneta City",            "Bus"),
+        ("Manila", "Cabanatuan City",          "Bus"),
+        ("Manila", "Tarlac City",              "Bus"),
+        ("Manila", "Angeles City",             "Van"),
+        ("Manila", "San Fernando, Pampanga",   "Van"),
+        ("Manila", "Olongapo City",            "Bus"),
+        ("Manila", "Subic Bay",                "Bus"),
+        ("Manila", "Baler, Aurora",            "Bus"),
+        ("Manila", "Palayan City",             "Bus"),
+        ("Manila", "Ilagan City",              "Bus"),
+        ("Manila", "Bayombong, Nueva Vizcaya", "Bus"),
+        # Manila → South Luzon
+        ("Manila", "Batangas City",            "Bus"),
+        ("Manila", "Tagaytay City",            "Van"),
+        ("Manila", "Lucena City",              "Bus"),
+        ("Manila", "Legazpi City",             "Bus"),
+        ("Manila", "Naga City",                "Bus"),
+        ("Manila", "Daet, Camarines Norte",    "Bus"),
+        ("Manila", "Sorsogon City",            "Bus"),
+        ("Manila", "Irosin, Sorsogon",         "Bus"),
+        ("Manila", "Masbate City",             "Bus"),
+        # Manila → Metro/CALABARZON
+        ("Manila", "Calamba, Laguna",          "Van"),
+        ("Manila", "Santa Cruz, Laguna",       "Bus"),
+        ("Manila", "San Pablo City",           "Bus"),
+        ("Manila", "Lipa City",                "Bus"),
+        ("Manila", "Tanauan City",             "Van"),
+        ("Manila", "Antipolo City",            "Van"),
+        # Baguio → Other Luzon
+        ("Baguio City", "Vigan City",          "Bus"),
+        ("Baguio City", "Laoag City",          "Bus"),
+        ("Baguio City", "Dagupan City",        "Bus"),
+        ("Baguio City", "San Fernando, La Union", "Bus"),
+        ("Baguio City", "Manila",              "Bus"),
+        ("Baguio City", "Sagada",              "Van"),
+        ("Baguio City", "Banaue",              "Bus"),
+        ("Baguio City", "Tabuk, Kalinga",      "Bus"),
+        # Inter-provincial
+        ("Batangas City",  "Puerto Galera",    "Ferry"),
+        ("Batangas City",  "Lucena City",      "Bus"),
+        ("Lucena City",    "Daet, Camarines Norte", "Bus"),
+        ("Naga City",      "Legazpi City",     "Bus"),
+        ("Legazpi City",   "Sorsogon City",    "Bus"),
+        ("Dagupan City",   "San Fernando, La Union", "Bus"),
+        ("San Fernando, Pampanga", "Baguio City", "Bus"),
+        ("Olongapo City",  "Manila",           "Bus"),
+    ]
+
+    # Filter out already-added routes (server-side, exact match origin+dest)
+    added_set = {
+        (t["origin"].strip().lower(), t["dest"].strip().lower())
+        for t in active_items
+    }
+    filtered_routes = [
+        (o, d, tp) for o, d, tp in POPULAR_ROUTES
+        if (o.lower(), d.lower()) not in added_set
+    ]
+    remaining = len(filtered_routes)
+
+    def _rec_card(origin, dest, stype):
+        cid = "rc-" + (origin + dest).replace(" ", "").replace(",", "")
+        return (
+            f'<div id="{cid}" data-origin="{origin}" data-dest="{dest}" data-type="{stype}"'
+            f' style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px">'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">'
+            f'<div style="font-weight:700;font-size:12px;color:#1E293B">{origin} → {dest}</div>'
+            f'<span class="rc-badge" style="background:#F3F4F6;color:#9CA3AF;font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;white-space:nowrap">Loading…</span>'
+            f'</div>'
+            f'<div class="rc-meta" style="font-size:11px;color:#6B7280">Type: <strong>{stype}</strong></div>'
+            f'<div class="rc-fare" style="font-size:11px;color:#CE1126;font-weight:700">—</div>'
+            f'<button onclick="prefillFromCard(this)"'
+            f' style="background:#0038A8;color:#fff;border:none;border-radius:6px;padding:6px;font-size:11px;font-weight:700;cursor:pointer;width:100%">'
+            f'↙ Pre-fill Form</button>'
+            f'</div>'
+        )
+
+    if ORS_KEY:
+        if filtered_routes:
+            cards_html = "".join(_rec_card(o, d, t) for o, d, t in filtered_routes)
+            rec_content = f'<div id="rec-cards-list" style="display:flex;flex-direction:column;gap:8px;max-height:480px;overflow-y:auto;padding-right:4px">{cards_html}</div>'
+        else:
+            rec_content = '<div style="text-align:center;padding:30px;color:#6B7280;font-size:13px">🎉 All suggested routes have been added!</div>'
+
+        rec_panel = f'''
+        <div style="border:1px solid #E2E8F0;border-radius:10px;padding:16px;background:#FAFAFA">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:13px;font-weight:800;color:#1E293B">🗺️ Suggested Routes</span>
+              <span style="background:#EFF6FF;color:#1D4ED8;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:700">ORS Live</span>
+            </div>
+            <button onclick="refreshRecCards()" id="refresh-btn"
+              style="background:#F1F5F9;border:1px solid #E2E8F0;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;color:#475569;cursor:pointer">
+              🔄 Refresh
+            </button>
+          </div>
+          <div style="font-size:11px;color:#9CA3AF;margin-bottom:10px">{remaining} of {len(POPULAR_ROUTES)} routes not yet added</div>
+          <div style="font-size:11px;color:#6B7280;margin-bottom:12px">Click <strong>↙ Pre-fill Form</strong> to auto-fill the fields. Already-added routes are hidden.</div>
+          {rec_content}
+        </div>'''
+    else:
+        rec_panel = '''
+        <div style="background:#FEF3C7;border:1px solid #F59E0B;border-radius:10px;padding:14px;font-size:12px;color:#92400E">
+          <strong>⚠️ ORS API Key not set.</strong><br/>
+          Add <code>ORS_API_KEY=your_key</code> to your <strong>.env</strong> to enable route suggestions.<br/>
+          <a href="https://openrouteservice.org/dev/#/signup" target="_blank" style="color:#0038A8">Get a free key →</a>
+        </div>'''
+
+    # ── Combined Add + Recommend pane ────────────────────────────────────────
+    add_pane = f'''<div id="transport-add" class="tab-pane {"active" if tab in ("add","") else ""}">
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;padding:20px;align-items:start">
+
+        <!-- LEFT: Add Form -->
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#1E293B;margin-bottom:14px">+ Add New Route</div>
+          <div id="prefill-notice" style="display:none;background:#D1FAE5;border:1px solid #6EE7B7;border-radius:8px;padding:9px 13px;font-size:12px;color:#065F46;margin-bottom:12px;font-weight:600">
+            ✓ Pre-filled from ORS — review and adjust before saving.
+          </div>
+          <form method="post" action="/admin/transport/add">
+            <input type="hidden" name="csrf_token" value="{csrf}"/>
+            <div class="fg2">
+              <div><label>Route Name *</label><input id="f-route" name="route" placeholder="Manila to Baguio Express" required/></div>
+              <div><label>Type</label><select id="f-type" name="type"><option>Bus</option><option>Van</option><option>Train</option><option>Ferry</option><option>Jeepney</option></select></div>
+              <div><label>Origin *</label><input id="f-origin" name="origin" placeholder="Manila" required/></div>
+              <div><label>Destination *</label><input id="f-dest" name="dest" placeholder="Baguio City" required/></div>
+              <div><label>Fare</label><input id="f-fare" name="fare" placeholder="PHP 450"/></div>
+            </div>
+            <button class="btn bprimary" type="submit" style="padding:10px 24px;font-size:13px">+ Add Route</button>
+          </form>
+        </div>
+
+        <!-- RIGHT: Suggestions -->
+        <div>{rec_panel}</div>
+      </div>
+    </div>'''
+
+    # ── All Routes pane ──────────────────────────────────────────────────────
     list_pane = f'''<div id="transport-list" class="tab-pane {"active" if tab=="list" else ""}">
       <div class="filter-bar">
-        <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;padding:7px 12px;flex:1;max-width:240px">
-          <input placeholder="Search routes..." oninput="applyFilters('tbl-transport',[{{col:0,value:this.value}}])" style="border:none;background:none;outline:none;font-size:13px;width:100%;margin:0"/>
+        <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;padding:7px 12px;flex:1;max-width:220px">
+          <input placeholder="Search routes..." oninput="filterTransport()" id="tr-search" style="border:none;background:none;outline:none;font-size:13px;width:100%;margin:0"/>
         </div>
-        <select onchange="applyFilters('tbl-transport',[{{col:1,value:this.value}}])" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{type_opts}</select>
-        <input placeholder="Origin city..." oninput="applyFilters('tbl-transport',[{{col:2,value:this.value}}])" style="margin:0;width:130px;padding:7px 10px;font-size:12px;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff"/>
-        <input placeholder="Destination city..." oninput="applyFilters('tbl-transport',[{{col:3,value:this.value}}])" style="margin:0;width:140px;padding:7px 10px;font-size:12px;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff"/>
+        <select id="tr-type" onchange="filterTransport()" style="margin:0;width:auto;padding:7px 10px;font-size:12px">{type_opts}</select>
+        <input id="tr-origin" placeholder="Origin city..." oninput="filterTransport()" style="margin:0;width:120px;padding:7px 10px;font-size:12px;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff"/>
+        <input id="tr-dest" placeholder="Destination..." oninput="filterTransport()" style="margin:0;width:120px;padding:7px 10px;font-size:12px;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff"/>
+        <select id="tr-fare" onchange="filterTransport()" style="margin:0;width:auto;padding:7px 10px;font-size:12px">
+          <option value="">All Fares</option>
+          <option value="low">Under PHP 200</option>
+          <option value="mid">PHP 200–500</option>
+          <option value="high">PHP 500–1000</option>
+          <option value="premium">PHP 1000+</option>
+        </select>
       </div>
       <div style="padding:0 16px 8px;display:flex;justify-content:flex-end">{_export_btns("tbl-transport","ATLAS_Transport")}</div>
-      <table id="tbl-transport"><thead><tr><th>Route Name</th><th>Type</th><th>Origin</th><th>Destination</th><th>Departure</th><th>Fare</th><th>Action</th></tr></thead>
-      <tbody>{"" if rows_html else "<tr><td colspan=7 style='text-align:center;color:#94A3B8;padding:20px'>No routes added yet</td></tr>"}{rows_html}</tbody></table>
-      {pager}</div>'''
+      <table id="tbl-transport">
+        <thead><tr><th>Route Name</th><th>Type</th><th>Origin</th><th>Destination</th><th>Fare</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="tbody-transport">{"<tr><td colspan=7 style='text-align:center;color:#94A3B8;padding:20px'>No routes added yet</td></tr>" if not all_rows else all_rows}</tbody>
+      </table>
+    </div>'''
+
+    # ── Archived pane ────────────────────────────────────────────────────────
+    arch_pane = f'''<div id="transport-archived" class="tab-pane {"active" if tab=="archived" else ""}">
+      <div style="padding:12px 16px 8px;font-size:13px;color:#6B7280">Archived routes are hidden from the public site. You can restore or permanently delete them.</div>
+      <table id="tbl-transport-arch">
+        <thead><tr><th>Route Name</th><th>Type</th><th>Origin</th><th>Destination</th><th>Fare</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>{"<tr><td colspan=7 style='text-align:center;color:#94A3B8;padding:20px'>No archived routes</td></tr>" if not arch_rows else arch_rows}</tbody>
+      </table>
+    </div>'''
+
+    tab_btns = (
+        f'<button class="tab-btn {"active" if tab in ("add","") else ""}" data-tab="add" onclick="switchTab(\'transport\',\'add\')">+ Add Route</button>'
+        f'<button class="tab-btn {"active" if tab=="list" else ""}" data-tab="list" onclick="switchTab(\'transport\',\'list\')">All Routes ({total})</button>'
+        f'<button class="tab-btn {"active" if tab=="archived" else ""}" data-tab="archived" onclick="switchTab(\'transport\',\'archived\')">'
+        f'Archived {"<span style=\'background:#FEF3C7;color:#D97706;padding:1px 7px;border-radius:10px;font-size:11px\'>" + str(arch_total) + "</span>" if arch_total else f"({arch_total})"}</button>'
+    )
+
+    # ── Edit modal ───────────────────────────────────────────────────────────
+    edit_modal = f'''
+    <div id="edit-transport-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center">
+      <div style="background:#fff;border-radius:14px;width:520px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+        <div style="background:#0038A8;padding:18px 24px;border-radius:14px 14px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:800;font-size:15px;color:#fff">✏️ Edit Route</div>
+          <button onclick="document.getElementById('edit-transport-modal').style.display='none'" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:16px">✕</button>
+        </div>
+        <div style="padding:24px">
+          <form method="post" id="edit-transport-form" action="/admin/transport/edit/0">
+            <input type="hidden" name="csrf_token" id="edit-transport-csrf" value="{csrf}"/>
+            <div class="fg2">
+              <div><label>Route Name *</label><input id="ef-route" name="route" required/></div>
+              <div><label>Type</label><select id="ef-type" name="type"><option>Bus</option><option>Van</option><option>Train</option><option>Ferry</option><option>Jeepney</option></select></div>
+              <div><label>Origin *</label><input id="ef-origin" name="origin" required/></div>
+              <div><label>Destination *</label><input id="ef-dest" name="dest" required/></div>
+              <div><label>Fare</label><input id="ef-fare" name="fare"/></div>
+            </div>
+            <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
+              <button type="button" onclick="document.getElementById('edit-transport-modal').style.display='none'" style="padding:9px 18px;background:#F3F4F6;color:#374151;border:none;border-radius:8px;font-weight:600;cursor:pointer">Cancel</button>
+              <button type="submit" class="btn bprimary" style="padding:9px 20px;font-size:13px">Save Changes</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>'''
 
     body = f'''
     <div style="font-size:22px;font-weight:900;margin-bottom:4px">Transportation</div>
-    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{total} routes</div>
+    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">{total} active routes · {arch_total} archived</div>
     {_alert(msg,err)}
     <div class="card"><div style="padding:0 20px" data-group="transport">
       <div class="tabs">{tab_btns}</div>
-      {add_form}{list_pane}
-    </div></div>'''
+      {add_pane}{list_pane}{arch_pane}
+    </div></div>
+    {edit_modal}
+    <script>
+    function prefillFromCard(btn) {{
+      var card   = btn.closest("[data-origin]");
+      var origin = card.dataset.origin;
+      var dest   = card.dataset.dest;
+      var type   = card.dataset.type;
+      var fare   = card.querySelector(".rc-fare").textContent.trim();
+      document.getElementById("f-route").value  = origin + " to " + dest;
+      document.getElementById("f-origin").value = origin;
+      document.getElementById("f-dest").value   = dest;
+      document.getElementById("f-fare").value   = (fare && fare !== "—") ? fare : "";
+      var sel = document.getElementById("f-type");
+      for (var i = 0; i < sel.options.length; i++) {{
+        if (sel.options[i].text === type) {{ sel.selectedIndex = i; break; }}
+      }}
+      document.getElementById("prefill-notice").style.display = "block";
+      window.scrollTo({{top: 0, behavior: "smooth"}});
+    }}
+    function loadOneCard(card) {{
+      var origin = card.dataset.origin;
+      var dest   = card.dataset.dest;
+      var badge  = card.querySelector(".rc-badge");
+      var meta   = card.querySelector(".rc-meta");
+      var fareEl = card.querySelector(".rc-fare");
+      fetch("/api/transport/lookup?origin=" + encodeURIComponent(origin) + "&dest=" + encodeURIComponent(dest))
+        .then(function(r) {{ return r.json(); }})
+        .then(function(data) {{
+          if (data.ok) {{
+            badge.textContent = "● Live";
+            badge.style.background = "#D1FAE5";
+            badge.style.color = "#065F46";
+            meta.innerHTML = "Type: <strong>" + card.dataset.type + "</strong> &nbsp;·&nbsp; " + data.duration + " &nbsp;·&nbsp; " + data.distance;
+            fareEl.textContent = data.fare || "Check operator";
+          }} else {{
+            badge.textContent = "No data";
+            badge.style.background = "#FEE2E2";
+            badge.style.color = "#DC2626";
+          }}
+        }})
+        .catch(function() {{
+          badge.textContent = "Error";
+          badge.style.background = "#FEE2E2";
+          badge.style.color = "#DC2626";
+        }});
+    }}
+    function loadAllCards() {{
+      var cards = document.querySelectorAll("#rec-cards-list [data-origin]");
+      var delay = 0;
+      cards.forEach(function(card) {{
+        var badge = card.querySelector(".rc-badge");
+        badge.textContent = "Loading…";
+        badge.style.background = "#F3F4F6";
+        badge.style.color = "#9CA3AF";
+        card.querySelector(".rc-meta").innerHTML = "Type: <strong>" + card.dataset.type + "</strong>";
+        card.querySelector(".rc-fare").textContent = "—";
+        setTimeout(function() {{ loadOneCard(card); }}, delay);
+        delay += 250;
+      }});
+    }}
+    function refreshRecCards() {{
+      var btn = document.getElementById("refresh-btn");
+      if (btn) {{ btn.textContent = "⏳ Refreshing…"; btn.disabled = true; }}
+      loadAllCards();
+      setTimeout(function() {{
+        if (btn) {{ btn.textContent = "🔄 Refresh"; btn.disabled = false; }}
+      }}, 5000);
+    }}
+    document.addEventListener("DOMContentLoaded", loadAllCards);
+    function openEditModal(id, route, type, origin, dest, fare) {{
+      document.getElementById("ef-route").value  = route;
+      document.getElementById("ef-origin").value = origin;
+      document.getElementById("ef-dest").value   = dest;
+      document.getElementById("ef-fare").value   = fare;
+      var sel = document.getElementById("ef-type");
+      for (var i=0; i<sel.options.length; i++) {{
+        if (sel.options[i].value === type) {{ sel.selectedIndex = i; break; }}
+      }}
+      document.getElementById("edit-transport-form").action = "/admin/transport/edit/" + id;
+      document.getElementById("edit-transport-modal").style.display = "flex";
+    }}
+    function filterTransport() {{
+      var q    = (document.getElementById("tr-search").value || "").toLowerCase();
+      var tp   = (document.getElementById("tr-type").value  || "").toLowerCase();
+      var orig = (document.getElementById("tr-origin").value|| "").toLowerCase();
+      var dst  = (document.getElementById("tr-dest").value  || "").toLowerCase();
+      var fare = document.getElementById("tr-fare").value;
+      document.querySelectorAll("#tbody-transport tr").forEach(function(tr) {{
+        var cells = tr.cells;
+        if (!cells || cells.length < 6) return;
+        var name  = (cells[0].textContent||"").toLowerCase();
+        var type  = (cells[1].textContent||"").toLowerCase();
+        var org   = (cells[2].textContent||"").toLowerCase();
+        var de    = (cells[3].textContent||"").toLowerCase();
+        var fareVal = parseFloat((tr.dataset.fare||"0").replace(/[^0-9.]/g,"")) || 0;
+        var fareOk = true;
+        if (fare === "low")     fareOk = fareVal < 200;
+        if (fare === "mid")     fareOk = fareVal >= 200 && fareVal <= 500;
+        if (fare === "high")    fareOk = fareVal > 500 && fareVal <= 1000;
+        if (fare === "premium") fareOk = fareVal > 1000;
+        var show = (!q || name.includes(q)) && (!tp || type.includes(tp)) && (!orig || org.includes(orig)) && (!dst || de.includes(dst)) && fareOk;
+        tr.style.display = show ? "" : "none";
+      }});
+    }}
+    </script>'''
     return shell("Transportation", body, "transport", admin)
 
 # ── FLIGHTS ──

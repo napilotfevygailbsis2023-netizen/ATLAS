@@ -1,5 +1,6 @@
 import http.server, socketserver, urllib.parse, os, sys, re, email, hmac, hashlib, secrets
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import login as login_page
 
 import index, flights, weather, attractions, restaurants, guides, transport, itinerary, about
 import logout, db
@@ -106,6 +107,137 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
         cookie = self.headers.get("Cookie","")
         token  = get_token(cookie, "atlas_token")
         user   = db.get_user_by_token(token)
+
+        # ── Geocode proxy — avoids browser forbidden-header / CORS issues ──
+        if path == "/api/transport/geocode":
+            import json as _json, urllib.request as _ur, urllib.parse as _up
+
+            def _json_resp_geo(handler, payload):
+                b = _json.dumps(payload, ensure_ascii=False).encode("utf-8")
+                handler.send_response(200)
+                handler.send_header("Content-Type", "application/json; charset=utf-8")
+                handler.send_header("Content-Length", str(len(b)))
+                handler.send_header("Access-Control-Allow-Origin", "*")
+                handler.end_headers()
+                handler.wfile.write(b)
+
+            place = params.get("place", "").strip()
+            if not place:
+                _json_resp_geo(self, {"ok": False, "error": "place required"})
+            else:
+                try:
+                    import urllib.parse as _up2
+                    q = place if "Philippines" in place else place + ", Philippines"
+                    geo_url = "https://nominatim.openstreetmap.org/search?" + _up2.urlencode({
+                        "q": q, "format": "json", "countrycodes": "ph", "limit": 1,
+                    })
+                    geo_req = _ur.Request(geo_url, headers={
+                        "Accept": "application/json",
+                        "User-Agent": "ATLAS-Transport/1.0",
+                    })
+                    with _ur.urlopen(geo_req, timeout=6) as r:
+                        geo_data = _json.loads(r.read())
+                    if not geo_data:
+                        _json_resp_geo(self, {"ok": False, "error": f"Place not found: {place}"})
+                    else:
+                        _json_resp_geo(self, {"ok": True, "lat": float(geo_data[0]["lat"]), "lng": float(geo_data[0]["lon"])})
+                except Exception as e:
+                    _json_resp_geo(self, {"ok": False, "error": str(e)})
+            return
+
+        if path == "/api/transport/lookup":
+            import json as _json, urllib.request as _ur, urllib.parse as _up
+            origin = params.get("origin", "").strip()
+            dest   = params.get("dest",   "").strip()
+            ors_key = os.environ.get("ORS_API_KEY", "")
+
+            def _json_resp(handler, payload):
+                b = _json.dumps(payload, ensure_ascii=False).encode("utf-8")
+                handler.send_response(200)
+                handler.send_header("Content-Type", "application/json; charset=utf-8")
+                handler.send_header("Content-Length", str(len(b)))
+                handler.send_header("Access-Control-Allow-Origin", "*")
+                handler.end_headers()
+                handler.wfile.write(b)
+
+            if not origin or not dest:
+                _json_resp(self, {"ok": False, "error": "origin and dest required"}); return
+            if not ors_key:
+                _json_resp(self, {"ok": False, "error": "ORS_API_KEY not set"}); return
+
+            def _geocode(place):
+                """Convert place name to [lon, lat] using Nominatim (free, no key needed)."""
+                q = place if "Philippines" in place else place + ", Philippines"
+                url = "https://nominatim.openstreetmap.org/search?" + _up.urlencode({
+                    "q": q,
+                    "format": "json",
+                    "countrycodes": "ph",
+                    "limit": 1,
+                })
+                req = _ur.Request(url, headers={
+                    "Accept": "application/json",
+                    "User-Agent": "ATLAS-Transport/1.0",
+                })
+                with _ur.urlopen(req, timeout=6) as r:
+                    data = _json.loads(r.read())
+                if not data:
+                    return None
+                return [float(data[0]["lon"]), float(data[0]["lat"])]  # [lon, lat]
+
+            def _fetch_route(profile="driving-car"):
+                try:
+                    orig_coords = _geocode(origin)
+                    dest_coords = _geocode(dest)
+                    if not orig_coords or not dest_coords:
+                        return None
+                    body = _json.dumps({
+                        "coordinates": [orig_coords, dest_coords],
+                        "instructions": False,
+                    }).encode("utf-8")
+                    url = f"https://api.openrouteservice.org/v2/directions/{profile}"
+                    req = _ur.Request(url, data=body, headers={
+                        "Authorization": f"Bearer {ors_key}",
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                    })
+                    with _ur.urlopen(req, timeout=8) as r:
+                        data = _json.loads(r.read())
+                    routes = data.get("routes", [])
+                    if not routes:
+                        return None
+                    seg = routes[0]["segments"][0]
+                    dist_km  = round(routes[0]["summary"]["distance"] / 1000, 1)
+                    dur_min  = int(routes[0]["summary"]["duration"] / 60)
+                    dur_text = f"{dur_min // 60}h {dur_min % 60}m" if dur_min >= 60 else f"{dur_min} min"
+                    dist_text = f"{dist_km} km"
+                    # Estimate fare: ₱13 base + ₱1.80/km (PH jeepney/bus rough rate)
+                    fare_est = round(13 + dist_km * 1.80)
+                    ttype = "Bus"
+                    if profile == "driving-hgv":
+                        ttype = "Van"
+                    return {
+                        "duration": dur_text,
+                        "distance": dist_text,
+                        "fare": f"₱{fare_est} (est.)",
+                        "type": ttype,
+                    }
+                except:
+                    return None
+
+            result = _fetch_route("driving-car")
+            if result:
+                _json_resp(self, {
+                    "ok":             True,
+                    "origin":         origin,
+                    "destination":    dest,
+                    "duration":       result["duration"],
+                    "distance":       result["distance"],
+                    "fare":           result["fare"],
+                    "suggested_type": result["type"],
+                })
+            else:
+                _json_resp(self, {"ok": False, "error": "No route found between those locations"})
+            return
 
         if path == "/css/styles.css":
             with open(CSS,"rb") as f: css = f.read()
@@ -340,7 +472,17 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             m = _re.match(r"^transport/delete/(\d+)$", _sec)
             if m:
                 admin_db.delete_transport(int(m.group(1)))
-                redirect(self, "/admin/transport"); return
+                redirect(self, "/admin/transport?tab=list&msg=Route+deleted"); return
+
+            m = _re.match(r"^transport/archive/(\d+)$", _sec)
+            if m:
+                admin_db.archive_transport(int(m.group(1)))
+                redirect(self, "/admin/transport?tab=list&msg=Route+archived"); return
+
+            m = _re.match(r"^transport/restore/(\d+)$", _sec)
+            if m:
+                admin_db.restore_transport(int(m.group(1)))
+                redirect(self, "/admin/transport?tab=archived&msg=Route+restored"); return
 
             # ── Page renders ──
             tab = params.get("tab", "registered")
@@ -350,42 +492,59 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 "spots":       lambda: admin_panel.spots_page(admin, page=int(params.get("page",1))),
                 "restaurants": lambda: admin_panel.restaurants_page(admin, page=int(params.get("page",1))),
                 "guides":      lambda: admin_panel.guides_page(admin, page=int(params.get("page",1)), tab=tab, msg=params.get("msg","")),
-                "transport":   lambda: admin_panel.transport_page(admin, page=int(params.get("page",1))),
+                "transport":   lambda: admin_panel.transport_page(admin, page=int(params.get("page",1)), tab=params.get("tab","add"), csrf=_csrf_token(tok)),
                 "flights":     lambda: admin_panel.flights_page(admin),
                 "profile":     lambda: admin_panel.profile_page(admin),
             }.get(_sec, lambda: admin_panel.dashboard(admin))()
+            if tok and "<head>" in html_out:
+                html_out = html_out.replace("<head>", f'<head><script>var ATLAS_CSRF="{_csrf_token(tok)}";</script>', 1)
             send_html(self, html_out); return
 
         # ── Login / Signup GET routes ─────────────────────────────────────────
         if path == "/login.py":
-            import login as login_page
             send_html(self, login_page.render(
                 error=params.get("error",""),
                 success=params.get("success","")
             )); return
         if path == "/login/password":
-            import login as login_page
             email = params.get("email","").strip().lower()
             if not email:
                 redirect(self, "/login.py"); return
             send_html(self, login_page.render_login_password(email,
                 error=params.get("error",""))); return
         if path == "/signup/password":
-            import login as login_page
             email = params.get("email","").strip().lower()
             if not email:
                 redirect(self, "/login.py"); return
             send_html(self, login_page.render_signup_password(email,
                 error=params.get("error",""))); return
         if path == "/signup/verify":
-            import login as login_page
             email = params.get("email","").strip().lower()
             if not email:
                 redirect(self, "/login.py"); return
             send_html(self, login_page.render_verify_email(email,
                 error=params.get("error",""))); return
 
-        # ── Guide portal routes ──
+        if path == "/setup-2fa":
+            if not user:
+                redirect(self, "/login.py"); return
+            try:
+                import pyotp, qrcode, io, base64 as _b64
+                secret = user.get("totp_secret","")
+                if not secret:
+                    secret = pyotp.random_base32()
+                    _conn2 = db.get_conn(); _cur2 = _conn2.cursor()
+                    _cur2.execute("UPDATE users SET totp_secret=%s WHERE id=%s", (secret, user["id"]))
+                    _conn2.commit(); _cur2.close(); _conn2.close()
+                    user = db.get_user_by_token(token)
+                uri = pyotp.totp.TOTP(secret).provisioning_uri(
+                    name=user.get("email",""), issuer_name="ATLAS")
+                img = qrcode.make(uri)
+                buf = io.BytesIO(); img.save(buf, format="PNG")
+                qr_b64 = _b64.b64encode(buf.getvalue()).decode()
+                send_html(self, login_page.render_2fa_setup(user, secret, qr_b64)); return
+            except ImportError:
+                send_html(self, login_page.render_2fa_setup(user, "", "")); return
         if path == "/guide/check-email":
             import json as _json
             email = params.get("email","").strip().lower()
@@ -457,19 +616,22 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             body = raw_body.decode("utf-8", errors="replace")
             form = dict(urllib.parse.parse_qsl(body))
 
-        _sess_tok = (get_token(cookie, "atlas_token") or
-                     get_token(cookie, "atlas_admin") or
-                     get_token(cookie, "atlas_guide") or "")
+        if path.startswith("/admin/"):
+            _sess_tok = get_token(cookie, "atlas_admin") or ""
+        elif path.startswith("/guide/"):
+            _sess_tok = get_token(cookie, "atlas_guide") or ""
+        else:
+            _sess_tok = get_token(cookie, "atlas_token") or ""
         _csrf_exempt = {"/login.py", "/login/email", "/login/2fa",
                         "/signup/password", "/signup/verify", "/signup/resend",
                         "/verify", "/admin/login", "/guide/login",
-                        "/profile/photo", "/auth/google/complete"}
+                        "/profile/photo", "/auth/google/complete", "/setup-2fa"}
 
         if path not in _csrf_exempt and not _csrf_ok(form, _sess_tok):
             self.send_error(403, "Invalid or missing CSRF token"); return
 
         if path == "/login.py":
-            import login as login_page, urllib.parse as _up
+            import urllib.parse as _up
             email    = form.get("email","").strip().lower()
             password = form.get("password","").strip()
             if not email or not password:
@@ -483,7 +645,6 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                          "&error=Incorrect+password.+Please+try+again."); return
             # 2FA check
             if usr.get("totp_enabled") and usr.get("totp_secret"):
-                import login as login_page
                 send_html(self, login_page.render_2fa(email)); return
             redirect(self, "/", f"atlas_token={tok}; Path=/; Max-Age=86400")
 
@@ -500,22 +661,20 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 redirect(self, "/signup/password?email=" + _up.quote(email)); return
 
         elif path == "/signup/password":
-            import login as login_page, urllib.parse as _up
+            import urllib.parse as _up
             email = form.get("email","").strip().lower()
             pw    = form.get("password","").strip()
             if not email:
                 redirect(self, "/login.py"); return
-            # Server-side password validation (mirrors client-side rules)
-            if (len(pw) < 12
-                    or not any(c.isupper() for c in pw)
-                    or not any(c.isdigit() for c in pw)):
+            # Server-side password validation — must be at least 12 characters
+            if len(pw) < 12:
                 redirect(self, "/signup/password?email=" + _up.quote(email) +
-                         "&error=Password+must+be+12%2B+chars+with+uppercase+and+a+number"); return
+                         "&error=Password+must+be+at+least+12+characters"); return
             # Store pending and send code
             code = db.store_signup_pending(email, pw)
-            # ── Replace the print below with your email-sending call ──────────
-            print(f"[ATLAS SIGNUP CODE] {email} → {code}")
-            # ─────────────────────────────────────────────────────────────────
+            from email_sender import send_verification_email
+            fname_guess = email.split("@")[0].capitalize()
+            send_verification_email(email, fname_guess, code)
             redirect(self, "/signup/verify?email=" + _up.quote(email)); return
 
         elif path == "/signup/verify":
@@ -540,9 +699,9 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 conn_u = db.get_conn(); cur_u = conn_u.cursor()
                 cur_u.execute("UPDATE pending_users SET code=%s WHERE email=%s", (new_code, email))
                 conn_u.commit(); cur_u.close(); conn_u.close()
-                # ── Replace print with your email-sending call ───────────────
-                print(f"[ATLAS RESEND CODE] {email} → {new_code}")
-                # ─────────────────────────────────────────────────────────────
+                from email_sender import send_verification_email
+                fname_guess = email.split("@")[0].capitalize()
+                send_verification_email(email, fname_guess, new_code)
             redirect(self, "/signup/verify?email=" + _up.quote(email)); return
 
         # ── Admin POST ──
@@ -665,6 +824,36 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(resp_b)
                 return
+
+            import re as _re2
+            m_add = _re2.match(r"^/admin/transport/add$", path)
+            if m_add:
+                admin_db.add_transport(
+                    form.get("route", "").strip(),
+                    form.get("type", "Bus").strip(),
+                    form.get("origin", "").strip(),
+                    form.get("dest", "").strip(),
+                    form.get("fare", "").strip(),
+                )
+                redirect(self, "/admin/transport?tab=list&msg=Route+added")
+                return
+
+            m2 = _re2.match(r"^/admin/transport/edit/(\d+)$", path)
+            if m2:
+                admin, tok = self.require_admin()
+                if not admin: return
+                tid = int(m2.group(1))
+                admin_db.update_transport(
+                    tid,
+                    form.get("route","").strip(),
+                    form.get("type","Bus").strip(),
+                    form.get("origin","").strip(),
+                    form.get("dest","").strip(),
+                    form.get("fare","").strip(),
+                )
+                redirect(self, "/admin/transport?tab=list&msg=Route+updated")
+                return
+
             self.send_error(404)
 
         elif path == "/profile/photo":
@@ -768,9 +957,19 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                     send_html(self, profile_page.render(user=user, err="Please enter a valid email address."))
                     return
                 db.update_profile(user["id"], new_email)
-                # Refresh user from DB so the page shows updated data
                 user = db.get_user_by_token(token)
                 send_html(self, profile_page.render(user=user, msg="Profile updated successfully."))
+            elif action == "update_contact":
+                phone = form.get("phone", "").strip()
+                try:
+                    import mysql.connector as _mc
+                    _conn = db.get_conn(); _cur = _conn.cursor()
+                    _cur.execute("UPDATE users SET phone=%s WHERE id=%s", (phone, user["id"]))
+                    _conn.commit(); _cur.close(); _conn.close()
+                except Exception:
+                    pass
+                user = db.get_user_by_token(token)
+                send_html(self, profile_page.render(user=user, msg="Contact number saved."))
             elif action == "change_password":
                 old_pw  = form.get("old_pw",  "").strip()
                 new_pw  = form.get("new_pw",  "").strip()
@@ -789,9 +988,43 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 redirect(self, "/profile.py")
 
-        elif path == "/auth/google/complete":
+        elif path == "/setup-2fa":
+            if not user:
+                redirect(self, "/login.py"); return
+            action = form.get("action","")
+            try:
+                import pyotp
+                if action == "enable":
+                    code   = form.get("code","").strip()
+                    secret = user.get("totp_secret","")
+                    if not secret:
+                        redirect(self, "/setup-2fa"); return
+                    totp = pyotp.TOTP(secret)
+                    if totp.verify(code, valid_window=1):
+                        _conn3 = db.get_conn(); _cur3 = _conn3.cursor()
+                        _cur3.execute("UPDATE users SET totp_enabled=1 WHERE id=%s", (user["id"],))
+                        _conn3.commit(); _cur3.close(); _conn3.close()
+                        redirect(self, "/profile.py?msg=Two-factor+authentication+enabled"); return
+                    else:
+                        import qrcode, io, base64 as _b64
+                        secret = user.get("totp_secret","")
+                        uri = pyotp.totp.TOTP(secret).provisioning_uri(
+                            name=user.get("email",""), issuer_name="ATLAS")
+                        img = qrcode.make(uri)
+                        buf = io.BytesIO(); img.save(buf, format="PNG")
+                        qr_b64 = _b64.b64encode(buf.getvalue()).decode()
+                        user = db.get_user_by_token(token)
+                        send_html(self, login_page.render_2fa_setup(
+                            user, secret, qr_b64, error="Invalid code. Please try again.")); return
+                elif action == "disable":
+                    _conn4 = db.get_conn(); _cur4 = _conn4.cursor()
+                    _cur4.execute("UPDATE users SET totp_enabled=0,totp_secret=NULL WHERE id=%s", (user["id"],))
+                    _conn4.commit(); _cur4.close(); _conn4.close()
+                    redirect(self, "/profile.py?msg=Two-factor+authentication+disabled"); return
+            except ImportError:
+                redirect(self, "/profile.py?err=2FA+library+not+installed"); return
+            redirect(self, "/setup-2fa")
             # ── New Google user completes registration (sets name + password) ──
-            import login as login_page
             g_email = form.get("email", "").strip().lower()
             fname   = form.get("fname", "").strip()
             lname   = form.get("lname", "").strip()

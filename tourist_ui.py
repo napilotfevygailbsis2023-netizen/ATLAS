@@ -20,8 +20,9 @@ def build_shell(page_title, body_content, active="", user=None, csrf_token=""):
     def ta(p): return "active" if active == p else ""
 
     if user:
-        fname = user.get("fname","User")
-        lname = user.get("lname","")
+        fname = user.get("fname","") or user.get("email","user@").split("@")[0].capitalize()
+        fname = fname if fname.strip() else "User"
+        lname = user.get("lname","") or ""
         auth_html = f"""
         <div class="nav-auth">
           <div class="user-pill" onclick="toggleProfileDrop()" style="cursor:pointer;position:relative;display:inline-flex;align-items:center;gap:8px;background:#0038A8;border-radius:30px;padding:6px 14px 6px 8px">
@@ -106,56 +107,45 @@ def build_shell(page_title, body_content, active="", user=None, csrf_token=""):
 
 <!-- Sign-in Gate Modal -->
 <div id="signin-gate" style="display:none;position:fixed;inset:0;z-index:99999;align-items:center;justify-content:center;background:rgba(0,0,0,.50);backdrop-filter:blur(4px)">
-  <div style="background:#fff;border-radius:20px;padding:36px 36px 32px;max-width:400px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,.2);position:relative">
+  <div style="background:#fff;border-radius:20px;padding:36px 36px 28px;max-width:400px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,.2);position:relative">
     <button onclick="closeSigninGate()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;color:#9CA3AF;cursor:pointer;line-height:1">&times;</button>
 
     <!-- Header -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <img src="/ATLAS_LOGO.jpg" style="width:28px;height:28px;border-radius:50%;object-fit:cover"/>
-      <span style="font-weight:800;font-size:16px;color:#0F172A">ATLAS</span>
-    </div>
-    <div style="font-size:20px;font-weight:900;color:#0F172A;margin-bottom:4px">Sign In to Continue</div>
-    <div style="font-size:13px;color:#94A3B8;margin-bottom:20px">Access flights, attractions, restaurants, guides and more.</div>
-
-    <div style="margin-bottom:16px;background:#FEF9C3;border:1px solid #FDE047;border-radius:8px;padding:10px 13px;font-size:13px;color:#854D0E;line-height:1.6;display:flex;align-items:flex-start;gap:8px">
-      <span style="font-size:16px;flex-shrink:0">&#128274;</span>
-      <span>You need to <strong>log in</strong> to access this feature. Please sign in below to continue.</span>
-    </div>
-
-    <!-- Email/Password form -->
-    <div style="margin-bottom:12px">
-      <label style="display:block;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Email Address</label>
-      <input id="gate-email" type="email" placeholder="you@email.com" autocomplete="email"
-        style="width:100%;padding:11px 13px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;color:#0F172A;outline:none;background:#F8FAFC;font-family:inherit;box-sizing:border-box"
-        onfocus="this.style.borderColor='#0038A8'" onblur="this.style.borderColor='#E2E8F0'"/>
-    </div>
-    <div style="margin-bottom:16px">
-      <label style="display:block;font-size:11px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">Password</label>
-      <input id="gate-password" type="password" placeholder="Enter your password"
-        style="width:100%;padding:11px 13px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;color:#0F172A;outline:none;background:#F8FAFC;font-family:inherit;box-sizing:border-box"
-        onfocus="this.style.borderColor='#0038A8'" onblur="this.style.borderColor='#E2E8F0'"
-        onkeydown="if(event.key==='Enter')submitGateLogin()"/>
-    </div>
-    <div id="gate-error" style="display:none;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:10px 13px;color:#991B1B;font-size:13px;margin-bottom:12px"></div>
-    <button onclick="submitGateLogin()"
-      style="width:100%;padding:12px;background:#0038A8;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:14px;font-family:inherit">
-      &#x2192; Log In
-    </button>
-
-    <!-- Divider -->
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <div style="flex:1;height:1px;background:#E2E8F0"></div>
-      <span style="font-size:12px;color:#94A3B8;white-space:nowrap">or continue with</span>
-      <div style="flex:1;height:1px;background:#E2E8F0"></div>
+    <div style="text-align:center;margin-bottom:6px">
+      <img src="/ATLAS_LOGO.jpg" style="width:36px;height:36px;border-radius:50%;object-fit:cover;display:inline-block;margin-bottom:14px"/>
+      <div style="font-size:22px;font-weight:900;color:#0F172A;margin-bottom:6px">Log in or sign up</div>
+      <div style="font-size:13px;color:#94A3B8;margin-bottom:22px">Access flights, attractions, restaurants, guides and more.</div>
     </div>
 
     <!-- Google button -->
-    <a href="/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:11px;border:1.5px solid #E2E8F0;border-radius:8px;background:#fff;font-size:14px;font-weight:600;color:#1F2937;text-decoration:none;box-sizing:border-box"
+    <a href="/auth/google" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;border:1.5px solid #E2E8F0;border-radius:100px;background:#fff;font-size:14px;font-weight:600;color:#1F2937;text-decoration:none;box-sizing:border-box;margin-bottom:10px"
        onmouseover="this.style.background='#F8FAFC'" onmouseout="this.style.background='#fff'">
       <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
       Continue with Google
     </a>
 
+    <!-- OR divider -->
+    <div style="display:flex;align-items:center;gap:10px;margin:16px 0">
+      <div style="flex:1;height:1px;background:#E2E8F0"></div>
+      <span style="font-size:12px;color:#94A3B8;letter-spacing:.5px">OR</span>
+      <div style="flex:1;height:1px;background:#E2E8F0"></div>
+    </div>
+
+    <!-- Email input -->
+    <div id="gate-error" style="display:none;background:#FEE2E2;border:1px solid #FECACA;border-radius:8px;padding:10px 13px;color:#991B1B;font-size:13px;margin-bottom:12px"></div>
+    <input id="gate-email" type="email" placeholder="Email address" autocomplete="email"
+      style="width:100%;padding:13px 16px;border:1.5px solid #E2E8F0;border-radius:100px;font-size:14px;color:#0F172A;outline:none;background:#F8FAFC;font-family:inherit;box-sizing:border-box;margin-bottom:10px"
+      onfocus="this.style.borderColor='#0038A8';this.style.background='#fff'" onblur="this.style.borderColor='#E2E8F0';this.style.background='#F8FAFC'"
+      onkeydown="if(event.key==='Enter')submitGateLogin()"/>
+    <button onclick="submitGateLogin()"
+      style="width:100%;padding:13px;background:#0F172A;color:#fff;border:none;border-radius:100px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit">
+      Continue
+    </button>
+
+    <!-- Footer links -->
+    <div style="margin-top:20px;text-align:center;font-size:12px;color:#94A3B8">
+      <a href="#" style="color:#94A3B8;text-decoration:underline;margin:0 6px">Terms of Use</a>|<a href="#" style="color:#94A3B8;text-decoration:underline;margin:0 6px">Privacy Policy</a>
+    </div>
   </div>
 </div>
 {body_content}
@@ -214,55 +204,21 @@ def build_shell(page_title, body_content, active="", user=None, csrf_token=""):
     </div>
   </div>
 
-  <!-- About Us Section -->
-  <div style="border-top:1px solid #E5E7EB;padding:40px 0 20px;margin-top:20px">
-    <div style="text-align:center;margin-bottom:30px">
-      <div style="font-size:22px;font-weight:900;color:#0038A8;margin-bottom:8px">About ATLAS</div>
-      <div style="font-size:14px;color:#6B7280;max-width:700px;margin:0 auto;line-height:1.8">
-        ATLAS (Accessible Travel and Luzon Assistance System) is a comprehensive travel platform designed to help tourists explore the beautiful provinces of Luzon, Philippines. We connect travelers with verified local tour guides, real-time flight information, live weather forecasts, curated tourist attractions, and the best local restaurants — all in one place.
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;max-width:900px;margin:0 auto;padding:0 20px">
-      <div style="text-align:center;padding:20px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
-        <div style="font-size:32px;margin-bottom:8px">&#9992;</div>
-        <div style="font-weight:700;color:#1F2937;margin-bottom:4px">Flight Search</div>
-        <div style="font-size:12px;color:#6B7280">Live domestic &amp; international flight data from Philippine airports</div>
-      </div>
-      <div style="text-align:center;padding:20px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
-        <div style="font-size:32px;margin-bottom:8px">&#127968;</div>
-        <div style="font-weight:700;color:#1F2937;margin-bottom:4px">Tourist Attractions</div>
-        <div style="font-size:12px;color:#6B7280">Curated top spots across all major Luzon destinations</div>
-      </div>
-      <div style="text-align:center;padding:20px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
-        <div style="font-size:32px;margin-bottom:8px">&#128100;</div>
-        <div style="font-weight:700;color:#1F2937;margin-bottom:4px">Tour Guide Booking</div>
-        <div style="font-size:12px;color:#6B7280">Book verified local guides with ratings and transparent pricing</div>
-      </div>
-      <div style="text-align:center;padding:20px;background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0">
-        <div style="font-size:32px;margin-bottom:8px">&#127774;</div>
-        <div style="font-weight:700;color:#1F2937;margin-bottom:4px">Live Weather</div>
-        <div style="font-size:12px;color:#6B7280">Real-time forecasts and travel advisories for every Luzon city</div>
-      </div>
-    </div>
-  </div>
-
   <div class="footer-bottom"><span>&copy; 2026 ATLAS. All Rights Reserved.</span></div>
 </footer>
 <script>
 var ATLAS_LOGGED_IN = {'true' if user else 'false'};
 var ATLAS_CSRF = '{csrf_token}';
 function openSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='flex';document.body.style.overflow='hidden';setTimeout(function(){{var el=document.getElementById('gate-email');if(el)el.focus();}},100);}}}}
-function closeSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='none';document.body.style.overflow='';document.getElementById('gate-email').value='';document.getElementById('gate-password').value='';var err=document.getElementById('gate-error');err.style.display='none';err.textContent='';}}}}
+function closeSigninGate(){{var g=document.getElementById('signin-gate');if(g){{g.style.display='none';document.body.style.overflow='';document.getElementById('gate-email').value='';var err=document.getElementById('gate-error');err.style.display='none';err.textContent='';}}}}
 function submitGateLogin(){{
   var email=document.getElementById('gate-email').value.trim();
-  var pw=document.getElementById('gate-password').value;
   var err=document.getElementById('gate-error');
-  if(!email||!pw){{err.style.display='block';err.textContent='Please enter your email and password.';return;}}
+  if(!email){{err.style.display='block';err.textContent='Please enter your email address.';return;}}
   err.style.display='none';
   var form=document.createElement('form');
-  form.method='post';form.action='/login.py';
+  form.method='post';form.action='/login/email';
   var fe=document.createElement('input');fe.type='hidden';fe.name='email';fe.value=email;form.appendChild(fe);
-  var fp=document.createElement('input');fp.type='hidden';fp.name='password';fp.value=pw;form.appendChild(fp);
   if(typeof ATLAS_CSRF!=='undefined'){{var fc=document.createElement('input');fc.type='hidden';fc.name='csrf_token';fc.value=ATLAS_CSRF;form.appendChild(fc);}}
   document.body.appendChild(form);form.submit();
 }}

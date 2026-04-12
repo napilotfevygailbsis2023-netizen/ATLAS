@@ -71,13 +71,17 @@ def init_admin():
         """CREATE TABLE IF NOT EXISTS custom_transport (
             id INT AUTO_INCREMENT PRIMARY KEY, route VARCHAR(200) NOT NULL,
             type VARCHAR(100) NOT NULL, origin VARCHAR(200) NOT NULL, dest VARCHAR(200) NOT NULL,
-            dep_time VARCHAR(20) NOT NULL, fare VARCHAR(100) DEFAULT 'PHP 100',
+            fare VARCHAR(100) DEFAULT 'PHP 100',
             created DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
     ]
     for t in tables:
         cur.execute(t)
     try: cur.execute("ALTER TABLE users ADD COLUMN status VARCHAR(20) DEFAULT 'active'")
+    except: pass
+    try: cur.execute("ALTER TABLE custom_transport ADD COLUMN status VARCHAR(20) DEFAULT 'active'")
+    except: pass
+    try: cur.execute("ALTER TABLE custom_transport DROP COLUMN dep_time")
     except: pass
     conn.commit()
     try:
@@ -246,20 +250,41 @@ def delete_guide(gid):
     except: pass
     conn.commit(); cur.close(); conn.close()
 
-def get_transport():
+def add_transport(route, ttype, origin, dest, fare):
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("SELECT * FROM custom_transport ORDER BY created DESC")
-    rows = cur.fetchall(); cur.close(); conn.close(); return rows
-
-def add_transport(route, ttype, origin, dest, dep_time, fare):
-    conn = get_conn(); cur = _cursor(conn)
-    cur.execute("INSERT INTO custom_transport (route,type,origin,dest,dep_time,fare) VALUES (%s,%s,%s,%s,%s,%s)",
-                (route, ttype, origin, dest, dep_time, fare))
+    cur.execute("INSERT INTO custom_transport (route,type,origin,dest,fare) VALUES (%s,%s,%s,%s,%s)",
+                (route, ttype, origin, dest, fare))
     conn.commit(); cur.close(); conn.close()
 
 def delete_transport(tid):
     conn = get_conn(); cur = _cursor(conn)
     cur.execute("DELETE FROM custom_transport WHERE id=%s", (tid,))
     conn.commit(); cur.close(); conn.close()
+
+def archive_transport(tid):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE custom_transport SET status='archived' WHERE id=%s", (tid,))
+    conn.commit(); cur.close(); conn.close()
+
+def restore_transport(tid):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE custom_transport SET status='active' WHERE id=%s", (tid,))
+    conn.commit(); cur.close(); conn.close()
+
+def get_transport_by_id(tid):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT * FROM custom_transport WHERE id=%s", (tid,))
+    row = cur.fetchone(); cur.close(); conn.close(); return row
+
+def update_transport(tid, route, ttype, origin, dest, fare):
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("UPDATE custom_transport SET route=%s,type=%s,origin=%s,dest=%s,fare=%s WHERE id=%s",
+                (route, ttype, origin, dest, fare, tid))
+    conn.commit(); cur.close(); conn.close()
+
+def get_transport():
+    conn = get_conn(); cur = _cursor(conn)
+    cur.execute("SELECT * FROM custom_transport ORDER BY created DESC")
+    rows = cur.fetchall(); cur.close(); conn.close(); return rows
 
 init_admin()

@@ -39,7 +39,13 @@ def _recently_viewed_html(user_email):
         itype = r.get("item_type","")
         icon  = _TYPE_ICON.get(itype, "&#128269;")
         col   = _TYPE_COLOR.get(itype, "#6B7280")
-        link  = _TYPE_LINK.get(itype, "/")
+        base_link = _TYPE_LINK.get(itype, "/")
+        item_id = r.get("item_id","")
+        # Link directly to the item if we have an id, otherwise category page
+        if item_id:
+            link = f"{base_link}?id={item_id}"
+        else:
+            link = base_link
         name  = e(r.get("item_name",""))
         city  = e(r.get("item_city",""))
         extra = e(r.get("item_extra",""))
@@ -328,13 +334,21 @@ def render(user=None, msg="", err="", tab="profile"):
     tfa_status = "&#10003; Enabled — your account is protected with 2FA" if tfa_enabled else "Not enabled — add an extra layer of security to your account"
     tfa_btn_style = "background:#FEE2E2;color:#DC2626" if tfa_enabled else "background:#0038A8;color:#fff"
 
+    phone    = e(user.get("phone","") or "")
+
     body = f"""
-    <div class="page-wrap" style="max-width:760px;margin:0 auto">
+    <div class="page-wrap" style="max-width:1100px;margin:0 auto">
       <div style="margin-bottom:24px">
         <div class="section-title">My Profile</div>
         <div class="section-sub">Manage your tourist account details</div>
       </div>
       {photo_banner}{msg_html}{err_html}
+
+      <!-- Two-column layout -->
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start">
+
+      <!-- LEFT COLUMN: Photo + Account Info + Password + 2FA -->
+      <div>
 
       <!-- Profile Photo Card -->
       <div class="card" style="margin-bottom:20px{';border:2px solid #F59E0B;box-shadow:0 0 0 4px #FEF3C755' if photo_missing else ''}">
@@ -392,9 +406,17 @@ def render(user=None, msg="", err="", tab="profile"):
               <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Cannot be changed</div>
             </div>
           </div>
+          <div style="margin-bottom:14px">
+            <label class="lbl">Email Address</label>
+            <div style="padding:10px 12px;background:#F3F4F6;border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;color:#6B7280">{email}</div>
+            <div style="font-size:11px;color:#9CA3AF;margin-top:3px">Cannot be changed</div>
+          </div>
           <form method="post" action="/profile/update">
-            <input type="hidden" name="action" value="update_profile"/>
-            <div style="margin-bottom:16px"><label class="lbl">Email Address</label><input class="inp" name="email" value="{email}" style="width:100%"/></div>
+            <input type="hidden" name="action" value="update_contact"/>
+            <div style="margin-bottom:16px">
+              <label class="lbl">Contact Number</label>
+              <input class="inp" name="phone" type="tel" value="{phone}" placeholder="+63 9XX XXX XXXX" style="width:100%"/>
+            </div>
             <button class="btn" style="background:#0038A8;color:#fff;padding:10px 28px" type="submit">Save Changes</button>
           </form>
         </div>
@@ -436,6 +458,11 @@ def render(user=None, msg="", err="", tab="profile"):
         </div>
       </div>
 
+      </div><!-- end LEFT COLUMN -->
+
+      <!-- RIGHT COLUMN: Flights + Tour Guide Bookings + Recently Viewed -->
+      <div>
+
       <!-- My Saved Flights (only if bookings exist) -->
       {_flight_bookings_html(user)}
 
@@ -444,6 +471,9 @@ def render(user=None, msg="", err="", tab="profile"):
 
       <!-- Recently Viewed -->
       {_recently_viewed_html(email)}
+
+      </div><!-- end RIGHT COLUMN -->
+      </div><!-- end grid -->
 
     </div>
     {_guide_feedback_modal()}

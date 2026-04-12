@@ -8,28 +8,51 @@ _STYLE = """
 *{box-sizing:border-box;margin:0;padding:0}
 body{min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',sans-serif;background:#f0f4f8;padding:20px}
 .modal{background:#ffffff;border-radius:16px;padding:40px 40px 32px;width:100%;max-width:400px;box-shadow:0 8px 40px rgba(0,0,0,.12)}
+
+/* Floating label fields */
 .field{margin-bottom:14px;position:relative}
-.field input{width:100%;padding:18px 16px 6px;border:1.5px solid #d1d9e0;border-radius:100px;font-size:14px;color:#1a1a2e;outline:none;background:#f8fafc;transition:.15s;font-family:inherit}
+.field input{
+  width:100%;padding:22px 16px 8px;
+  border:1.5px solid #d1d9e0;border-radius:100px;
+  font-size:14px;color:#1a1a2e;outline:none;
+  background:#f8fafc;transition:border-color .15s,background .15s;
+  font-family:inherit}
 .field input:focus{border-color:#1e3a8a;background:#fff}
 .field input::placeholder{color:transparent}
-.field label{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:14px;color:#9ca3af;pointer-events:none;transition:.15s;background:transparent}
-.field input:focus ~ label,
-.field input:not(:placeholder-shown) ~ label{top:10px;transform:none;font-size:11px;color:#1e3a8a}
+.field label{
+  position:absolute;left:18px;top:50%;
+  transform:translateY(-50%);
+  font-size:14px;color:#9ca3af;
+  pointer-events:none;
+  transition:top .15s,font-size .15s,color .15s,transform .15s}
+.field input:not(:placeholder-shown) ~ label{
+  top:9px;transform:none;font-size:11px;color:#1e3a8a}
+.field input:focus ~ label{color:#1e3a8a}
+
+/* Buttons */
 .pill-btn{width:100%;padding:13px;border:1.5px solid #d1d9e0;border-radius:100px;font-size:14px;font-weight:500;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;background:#fff;color:#1a1a2e;margin-bottom:10px}
 .pill-btn:hover{background:#f1f5f9;border-color:#b0bec5}
-.submit-btn{width:100%;padding:14px;background:#1a1a2e;color:#fff;border:none;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s;margin-top:6px}
-.submit-btn:hover{background:#2d2d4e}
+.submit-btn{width:100%;padding:14px;background:#1e3a8a;color:#fff;border:none;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:6px}
+.submit-btn:hover{background:#1a3070}
 .submit-btn:disabled{background:#d1d9e0;color:#9ca3af;cursor:not-allowed}
+
+/* Divider */
 .divider{display:flex;align-items:center;gap:12px;margin:18px 0}
 .divider hr{flex:1;border:none;border-top:1px solid #e2e8f0}
-.divider span{font-size:12px;color:#9ca3af}
+.divider span{font-size:12px;color:#9ca3af;letter-spacing:.5px}
+
+/* Password requirement row */
 .req{font-size:13px;color:#6b7280;display:flex;align-items:center;gap:8px;padding:4px 0}
 .req.ok{color:#1e3a8a}
-.email-chip{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border:1.5px solid #d1d9e0;border-radius:100px;background:#f8fafc;margin-bottom:14px}
-.email-chip span{font-size:14px;color:#374151}
-.email-chip a{font-size:13px;color:#1e3a8a;font-weight:600;text-decoration:none}
+
+/* Email chip */
+.email-chip{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border:1.5px solid #d1d9e0;border-radius:100px;background:#f8fafc;margin-bottom:14px}
+.email-chip span{font-size:14px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.email-chip a{font-size:13px;color:#1e3a8a;font-weight:600;text-decoration:none;flex-shrink:0;margin-left:10px}
+
+/* Footer links */
 .footer-links{margin-top:24px;font-size:12px;color:#9ca3af;text-align:center}
-.footer-links a{color:#9ca3af;text-decoration:underline;margin:0 8px}
+.footer-links a{color:#9ca3af;text-decoration:underline;margin:0 6px}
 """
 
 _GOOGLE_SVG = '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>'
@@ -72,12 +95,6 @@ def render(error="", success=""):
   <a href="/auth/google" class="pill-btn">
     {_GOOGLE_SVG} Continue with Google
   </a>
-  <button class="pill-btn" style="opacity:.4;cursor:not-allowed" disabled>
-    <i class="fa-brands fa-apple" style="font-size:18px"></i> Continue with Apple
-  </button>
-  <button class="pill-btn" style="opacity:.4;cursor:not-allowed" disabled>
-    <i class="fa-solid fa-phone" style="font-size:16px"></i> Continue with phone
-  </button>
   <div class="divider"><hr/><span>OR</span><hr/></div>
   <form method="post" action="/login/email">
     <div class="field">
@@ -106,19 +123,27 @@ def render_login_password(email, error=""):
       <a href="/login.py">Edit</a>
     </div>
     <div class="field">
-      <input type="password" name="password" id="pw-inp" placeholder="Password" required autofocus style="padding-right:48px"/>
+      <input type="password" name="password" id="pw-inp" placeholder="Password" required autofocus style="padding-right:52px"/>
       <label for="pw-inp">Password</label>
-      <button type="button" tabindex="-1"
-        onclick="var i=document.getElementById('pw-inp');i.type=i.type==='password'?'text':'password';this.querySelector('i').className=i.type==='password'?'fa-regular fa-eye':'fa-regular fa-eye-slash'"
-        style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;padding:0">
-        <i class="fa-regular fa-eye"></i>
+      <button type="button" tabindex="-1" onclick="togglePw('pw-inp',this)"
+        style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;padding:4px;line-height:0">
+        <svg id="eye-inp" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
     <button class="submit-btn" type="submit">Continue</button>
   </form>
   <div class="footer-links">
     <a href="#">Terms of Use</a> | <a href="#">Privacy Policy</a>
-  </div>"""
+  </div>
+<script>
+function togglePw(id,btn) {{
+  var i = document.getElementById(id);
+  i.type = i.type === 'password' ? 'text' : 'password';
+  btn.querySelector('svg').innerHTML = i.type === 'password'
+    ? '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'
+    : '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+}}
+</script>"""
     return _page("Log In", body)
 
 
@@ -137,17 +162,17 @@ def render_signup_password(email, error=""):
     </div>
     <div class="field">
       <input type="password" name="password" id="pw-input" placeholder="Password"
-             required autofocus style="padding-right:48px" oninput="checkPw(this.value)"/>
+             required autofocus style="padding-right:52px" oninput="checkPw(this.value)"/>
       <label for="pw-input">Password</label>
-      <button type="button" tabindex="-1"
-        onclick="var i=document.getElementById('pw-input');i.type=i.type==='password'?'text':'password';this.querySelector('i').className=i.type==='password'?'fa-regular fa-eye':'fa-regular fa-eye-slash'"
-        style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;padding:0">
-        <i class="fa-regular fa-eye"></i>
+      <button type="button" tabindex="-1" onclick="togglePw('pw-input',this)"
+        style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;padding:4px;line-height:0">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       </button>
     </div>
     <div style="background:#f8fafc;border:1.5px solid #d1d9e0;border-radius:12px;padding:14px 18px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:8px">Your password must contain:</div>
-      <div id="req-len" class="req"><i class="fa-solid fa-xmark" style="width:14px;color:#d1d9e0"></i> At least 12 characters</div>
+      <div id="req-len" class="req">
+        <i class="fa-solid fa-xmark" style="width:14px;color:#d1d9e0"></i> At least 12 characters
+      </div>
     </div>
     <button class="submit-btn" type="submit" id="pw-btn" disabled>Continue</button>
   </form>
@@ -159,9 +184,9 @@ function checkPw(v) {{
   var len = v.length >= 12;
   var el = document.getElementById('req-len');
   el.className = 'req' + (len ? ' ok' : '');
-  el.innerHTML = (len
+  el.innerHTML = len
     ? '<i class="fa-solid fa-check" style="width:14px;color:#1e3a8a"></i> At least 12 characters'
-    : '<i class="fa-solid fa-xmark" style="width:14px;color:#d1d9e0"></i> At least 12 characters');
+    : '<i class="fa-solid fa-xmark" style="width:14px;color:#d1d9e0"></i> At least 12 characters';
   document.getElementById('pw-btn').disabled = !len;
 }}
 </script>"""
@@ -181,11 +206,13 @@ def render_verify_email(email, error=""):
   <form method="post" action="/signup/verify">
     <input type="hidden" name="email" value="{safe_email}"/>
     <div class="field">
-      <input type="text" name="code" id="code-inp" placeholder="Code"
+      <input type="text" name="code" id="code-inp" placeholder="Paste code here"
              required autofocus maxlength="6" inputmode="numeric"
              autocomplete="one-time-code"
-             style="letter-spacing:6px;font-size:20px;font-weight:600;text-align:center;padding:18px 16px 6px"/>
-      <label for="code-inp" style="left:50%;transform:translate(-50%,-50%);white-space:nowrap">Code</label>
+             style="letter-spacing:8px;font-size:22px;font-weight:600;text-align:center;padding:22px 16px 8px"/>
+      <label for="code-inp" style="left:50%;transform:translate(-50%,-50%);white-space:nowrap;font-size:13px">
+        Verification code
+      </label>
     </div>
     <button class="submit-btn" type="submit">Continue</button>
   </form>
@@ -211,6 +238,7 @@ def render_register_complete(email, google_name="", error=""):
     parts = safe_name.split()
     fname = parts[0] if parts else ""
     lname = " ".join(parts[1:]) if len(parts) > 1 else ""
+    full  = (fname + " " + lname).strip()
     body = f"""
   <div style="font-size:28px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px">How old are you?</div>
   <div style="font-size:13px;color:#6b7280;text-align:center;margin-bottom:24px;line-height:1.7">
@@ -222,8 +250,7 @@ def render_register_complete(email, google_name="", error=""):
     <input type="hidden" name="email" value="{safe_email}"/>
     <div class="field">
       <input type="text" name="fullname" id="fullname-inp" placeholder="Full name"
-             value="{(fname + ' ' + lname).strip()}"
-             required maxlength="120" autocomplete="name"/>
+             value="{full}" required maxlength="120" autocomplete="name"/>
       <label for="fullname-inp">Full name</label>
     </div>
     <div class="field">
@@ -231,12 +258,15 @@ def render_register_complete(email, google_name="", error=""):
       <label for="age-inp">Age</label>
     </div>
     <div style="font-size:12px;color:#9ca3af;text-align:center;margin-bottom:16px;line-height:1.7">
-      By clicking "Finish creating account", you agree to our
+      By clicking &ldquo;Finish creating account&rdquo;, you agree to our
       <a href="#" style="color:#1e3a8a;text-decoration:underline">Terms</a> and have read our
       <a href="#" style="color:#1e3a8a;text-decoration:underline">Privacy Policy</a>.
     </div>
     <button class="submit-btn" type="submit">Finish creating account</button>
-  </form>"""
+  </form>
+  <div class="footer-links">
+    <a href="#">Terms of Use</a> | <a href="#">Privacy Policy</a>
+  </div>"""
     return _page("Complete Registration", body)
 
 
@@ -268,7 +298,7 @@ def render_2fa(email, error=""):
       <input type="text" name="code" id="tfa-inp" placeholder="6-digit code"
              required maxlength="6" inputmode="numeric" autofocus
              autocomplete="one-time-code"
-             style="letter-spacing:6px;font-size:20px;font-weight:600;text-align:center;padding:18px 16px 6px"/>
+             style="letter-spacing:8px;font-size:22px;font-weight:600;text-align:center;padding:22px 16px 8px"/>
       <label for="tfa-inp" style="left:50%;transform:translate(-50%,-50%);white-space:nowrap">Code</label>
     </div>
     <button class="submit-btn" type="submit">Verify</button>
@@ -298,11 +328,11 @@ def render_2fa_setup(user, secret, qr_b64, error=""):
 body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-family:'Segoe UI',sans-serif;padding:24px}}
 .box{{background:#ffffff;border-radius:16px;padding:40px 48px;max-width:520px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.12)}}
 .field{{margin-bottom:14px;position:relative}}
-.field input{{width:100%;padding:18px 16px 6px;border:1.5px solid #d1d9e0;border-radius:100px;font-size:14px;color:#1a1a2e;outline:none;background:#f8fafc;transition:.15s;font-family:inherit}}
+.field input{{width:100%;padding:22px 16px 8px;border:1.5px solid #d1d9e0;border-radius:100px;font-size:14px;color:#1a1a2e;outline:none;background:#f8fafc;transition:.15s;font-family:inherit}}
 .field input:focus{{border-color:#1e3a8a;background:#fff}}
 .field input::placeholder{{color:transparent}}
-.field label{{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:14px;color:#9ca3af;pointer-events:none;transition:.15s}}
-.field input:focus ~ label,.field input:not(:placeholder-shown) ~ label{{top:10px;transform:none;font-size:11px;color:#1e3a8a}}
+.field label{{position:absolute;left:18px;top:50%;transform:translateY(-50%);font-size:14px;color:#9ca3af;pointer-events:none;transition:.15s}}
+.field input:focus ~ label,.field input:not(:placeholder-shown) ~ label{{top:9px;transform:none;font-size:11px;color:#1e3a8a}}
 .btn{{padding:12px 24px;border:none;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}}
 </style>
 </head>
@@ -336,7 +366,7 @@ body{{min-height:100vh;display:flex;align-items:center;justify-content:center;ba
       <div class="field">
         <input type="text" name="code" id="setup-inp" placeholder="Code"
                maxlength="6" inputmode="numeric" autofocus
-               style="letter-spacing:6px;font-size:20px;font-weight:600;text-align:center;padding:18px 16px 6px"/>
+               style="letter-spacing:8px;font-size:22px;font-weight:600;text-align:center;padding:22px 16px 8px"/>
         <label for="setup-inp" style="left:50%;transform:translate(-50%,-50%);white-space:nowrap">Code</label>
       </div>
       <button class="btn" type="submit" style="background:#1a1a2e;color:#fff;width:100%;padding:13px">
