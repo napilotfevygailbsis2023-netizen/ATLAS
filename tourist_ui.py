@@ -149,27 +149,6 @@ def build_shell(page_title, body_content, active="", user=None, csrf_token=""):
   </div>
 </div>
 {body_content}
-<div class="modal-overlay" id="booking-modal" onclick="if(event.target===this)closeBooking()">
-  <div class="modal-box">
-    <div class="modal-hdr">
-      <div style="font-weight:800;font-size:18px">Book Tour Guide</div>
-      <div id="modal-guide-name" style="opacity:.8;font-size:14px;margin-top:4px"></div>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="m-csrf" value="{csrf_token}"/>
-      <div style="margin-bottom:14px"><label class="lbl">Tour Date</label><input class="inp" type="date" id="m-date"/></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-        <div><label class="lbl">Duration (days)</label><input class="inp" id="m-dur" value="2"/></div>
-        <div><label class="lbl">Group Size</label><input class="inp" id="m-grp" value="3"/></div>
-      </div>
-      <div style="margin-bottom:20px"><label class="lbl">Special Requests</label><input class="inp" placeholder="Any requirements..."/></div>
-      <div style="display:flex;gap:10px">
-        <button class="btn" style="background:#0038A8;color:#fff;flex:1;padding:11px" onclick="confirmBooking()">Confirm Booking</button>
-        <button class="btn-outline" style="flex:1;padding:11px" onclick="closeBooking()">Cancel</button>
-      </div>
-    </div>
-  </div>
-</div>
 <div id="toast"></div>
 <footer class="site-footer" id="about">
   <div class="footer-top">
@@ -225,9 +204,7 @@ function submitGateLogin(){{
 document.addEventListener('keydown',function(e){{if(e.key==='Escape')closeSigninGate();}});
 function toggleDrop(){{document.getElementById('cat-drop').classList.toggle('open');}}
 document.addEventListener('click',function(e){{var d=document.getElementById('cat-drop');if(d&&!d.contains(e.target))d.classList.remove('open');var g=document.getElementById('signin-gate');if(g&&e.target===g)closeSigninGate();}});
-function openBookingModal(name){{document.getElementById('modal-guide-name').textContent=name;document.getElementById('booking-modal').style.display='flex';document.body.style.overflow='hidden';}}
-function closeBooking(){{document.getElementById('booking-modal').style.display='none';document.body.style.overflow='';}}
-function confirmBooking(){{var name=document.getElementById('modal-guide-name').textContent;closeBooking();showToast('Booking sent to '+name+'!');}}
+// openBookingModal, closeBooking, confirmBooking are defined per-page (e.g. guides.py) and must not be overridden here
 function showToast(msg){{var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){{t.style.display='none';}},2800);}}
 </script>
 </body>

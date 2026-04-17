@@ -77,8 +77,16 @@ def build_guide_shell(title, body, section="", guide=None, csrf_token=""):
 {close_layout}
 <div id="toast" style="position:fixed;bottom:24px;right:24px;background:#1F2937;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;display:none;z-index:9999"></div>
 <script>
-var ATLAS_CSRF = '{csrf_token}';
+if(typeof ATLAS_CSRF==='undefined'){{var ATLAS_CSRF='{csrf_token}';}}
 function showToast(msg){{var t=document.getElementById('toast');t.textContent=msg;t.style.display='block';setTimeout(function(){{t.style.display='none';}},3000);}}
+document.addEventListener('DOMContentLoaded',function(){{
+  if(typeof ATLAS_CSRF==='undefined'||!ATLAS_CSRF) return;
+  document.querySelectorAll('form[method="post"],form[method="POST"]').forEach(function(f){{
+    if(!f.querySelector('input[name="csrf_token"]')){{
+      var i=document.createElement('input');i.type='hidden';i.name='csrf_token';i.value=ATLAS_CSRF;f.appendChild(i);
+    }}
+  }});
+}});
 </script>
 </body>
 </html>"""
