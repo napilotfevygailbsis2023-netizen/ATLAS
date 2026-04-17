@@ -577,7 +577,52 @@ def handle_login(form):
 
 # ─────────────────────── DASHBOARD ───────────────────────
 def render_dashboard(guide, msg="", err=""):
-    gid = guide["id"]
+    gid        = guide["id"]
+    doc_status = guide.get("doc_status", "none") or "none"
+    g_status   = guide.get("status", "pending") or "pending"
+
+    # ── Gate: guide not yet approved → show status page instead of full dashboard ──
+    if g_status != "active" or doc_status != "approved":
+        if doc_status == "pending":
+            status_color, status_bg = "#D97706", "#FFFBEB"
+            status_icon  = "&#9200;"
+            status_title = "Application Under Review"
+            status_msg   = "Your documents have been submitted and are being reviewed by our admin team. We'll notify you once approved."
+            action_html  = ""
+        elif doc_status == "rejected":
+            status_color, status_bg = "#DC2626", "#FEF2F2"
+            status_icon  = "&#9888;"
+            status_title = "Documents Rejected"
+            status_msg   = "Your submitted documents were rejected. Please upload valid documents to continue."
+            action_html  = '<a href="/guide/profile" style="display:inline-block;margin-top:16px;padding:10px 24px;background:#0038A8;color:#fff;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px">&#128196; Upload New Documents</a>'
+        else:
+            status_color, status_bg = "#6B7280", "#F9FAFB"
+            status_icon  = "&#128196;"
+            status_title = "Complete Your Registration"
+            status_msg   = "Your account has been created. To be listed as a verified guide, please upload your tour guide license or accreditation document."
+            action_html  = '<a href="/guide/profile" style="display:inline-block;margin-top:16px;padding:10px 24px;background:#0038A8;color:#fff;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px">&#128196; Upload Requirements</a>'
+
+        alert_html = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px">&#10003; {msg}</div>' if msg else ""
+        body = f"""
+        {alert_html}
+        <div style="max-width:560px;margin:60px auto;text-align:center">
+          <div style="font-size:64px;margin-bottom:16px">{status_icon}</div>
+          <div style="font-size:24px;font-weight:900;color:#1F2937;margin-bottom:10px">{status_title}</div>
+          <div style="font-size:14px;color:#6B7280;line-height:1.7;margin-bottom:8px">{status_msg}</div>
+          {action_html}
+          <div style="margin-top:32px;background:{status_bg};border:1px solid {status_color}33;border-radius:12px;padding:20px 24px;text-align:left">
+            <div style="font-size:12px;font-weight:700;color:{status_color};text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px">Registration Steps</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              {"".join(f'''<div style="display:flex;align-items:center;gap:12px;font-size:13px">
+                <div style="width:24px;height:24px;border-radius:50%;background:{"#059669" if i < (1 if doc_status=="none" else 2 if doc_status=="pending" else 3) else status_color};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;flex-shrink:0">{"✓" if i < (1 if doc_status=="none" else 2 if doc_status=="pending" else 3) else i+1}</div>
+                <span style="color:{"#374151" if i < (1 if doc_status=="none" else 2 if doc_status=="pending" else 3) else "#9CA3AF"}">{step}</span>
+              </div>''' for i, step in enumerate(["Create account", "Upload license / accreditation document", "Admin reviews & approves", "Listed as a verified guide"]))}
+            </div>
+          </div>
+        </div>"""
+        return build_guide_shell("Dashboard", body, "dashboard", guide)
+
+    # ── Full dashboard (approved guides only) ──
     packages = guide_db.get_packages(gid)
     bookings = guide_db.get_bookings(gid)
     ratings  = guide_db.get_ratings(gid)
@@ -591,7 +636,7 @@ def render_dashboard(guide, msg="", err=""):
     total_pax = sum(b.get("pax", 1) or 1 for b in completed)
     # this month
     this_month = datetime.date.today().strftime("%Y-%m")
-    bookings_this_month = [b for b in bookings if b.get("created","")[:7] == this_month]
+    bookings_this_month = [b for b in bookings if str(b.get("created",""))[:7] == this_month]
 
     alert = ""
     if msg: alert = f'<div style="background:#D1FAE5;border:1px solid #A7F3D0;border-radius:10px;padding:12px 16px;color:#065F46;font-size:13px;margin-bottom:20px;display:flex;align-items:center;gap:8px">&#10003; {msg}</div>'

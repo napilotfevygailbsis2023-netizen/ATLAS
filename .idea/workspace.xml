@@ -6,6 +6,18 @@
   <component name="ChangeListManager">
     <list default="true" id="e85fe3d4-4214-4234-876f-2a74b8689c42" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/admin_panel.py" beforeDir="false" afterPath="$PROJECT_DIR$/admin_panel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/attractions.py" beforeDir="false" afterPath="$PROJECT_DIR$/attractions.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/guide_db.py" beforeDir="false" afterPath="$PROJECT_DIR$/guide_db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/guide_portal.py" beforeDir="false" afterPath="$PROJECT_DIR$/guide_portal.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/guide_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/guide_ui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/guides.py" beforeDir="false" afterPath="$PROJECT_DIR$/guides.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/index.py" beforeDir="false" afterPath="$PROJECT_DIR$/index.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/login.py" beforeDir="false" afterPath="$PROJECT_DIR$/login.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/profile.py" beforeDir="false" afterPath="$PROJECT_DIR$/profile.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tourist_ui.py" beforeDir="false" afterPath="$PROJECT_DIR$/tourist_ui.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/weather.py" beforeDir="false" afterPath="$PROJECT_DIR$/weather.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -56,6 +68,7 @@
     &quot;Python.attractions.executor&quot;: &quot;Run&quot;,
     &quot;Python.db_config.executor&quot;: &quot;Run&quot;,
     &quot;Python.db_migration.executor&quot;: &quot;Run&quot;,
+    &quot;Python.diagnose.executor&quot;: &quot;Run&quot;,
     &quot;Python.flights.executor&quot;: &quot;Run&quot;,
     &quot;Python.guide_dashboard.executor&quot;: &quot;Run&quot;,
     &quot;Python.guide_db.executor&quot;: &quot;Run&quot;,
@@ -66,6 +79,7 @@
     &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;Python.register.executor&quot;: &quot;Run&quot;,
     &quot;Python.restaurants.executor&quot;: &quot;Run&quot;,
+    &quot;Python.tourist_ui.executor&quot;: &quot;Run&quot;,
     &quot;Python.weather.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
@@ -111,16 +125,5 @@
     <ignored-roots>
       <path value="$PROJECT_DIR$/files" />
     </ignored-roots>
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>647</line>
-          <option name="timeStamp" value="2" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>

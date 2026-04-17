@@ -730,7 +730,13 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             guide = guide_db.get_guide_by_token(g_tok)
             if not guide:
                 redirect(self, "/guide"); return
-            section = path.replace("/guide/","").replace("/guide","") or "dashboard"
+            section    = path.replace("/guide/","").replace("/guide","") or "dashboard"
+            g_status   = guide.get("status","pending") or "pending"
+            doc_status = guide.get("doc_status","none") or "none"
+            is_approved = g_status == "active" and doc_status == "approved"
+            # Pending/unverified guides: only dashboard (shows status page) and profile (to upload docs)
+            if not is_approved and section not in ("dashboard", "profile", "profile/doc", "profile/photo", "setup-2fa"):
+                redirect(self, "/guide/dashboard"); return
             html_out = {
                 "dashboard":    lambda: guide_portal.render_dashboard(guide, msg=urllib.parse.unquote_plus(params.get("msg",""))),
                 "packages":     lambda: guide_portal.render_packages(guide, msg=urllib.parse.unquote_plus(params.get("msg","")), err=urllib.parse.unquote_plus(params.get("err",""))),
@@ -739,6 +745,8 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 "ratings":      lambda: guide_portal.render_ratings(guide),
                 "profile":      lambda: guide_portal.render_profile(guide),
             }.get(section, lambda: guide_portal.render_dashboard(guide))()
+            if g_tok and "<head>" in html_out:
+                html_out = html_out.replace("<head>", f'<head><script>var ATLAS_CSRF="{_csrf_token(g_tok)}";</script>', 1)
             send_html(self, html_out); return
 
         handler = ROUTES.get(path)
@@ -780,8 +788,9 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
         _csrf_exempt = {"/login.py", "/login/email", "/login/2fa",
                         "/signup/password", "/signup/verify", "/signup/resend",
                         "/verify", "/admin/login", "/guide/login", "/guide/2fa",
+                        "/guide/register", "/guide/verify",
                         "/profile/photo", "/admin/profile/photo", "/auth/google/complete", "/setup-2fa",
-                        "/guide/profile/doc", "/guide/profile/photo", "/guide/setup-2fa"}
+                        "/guide/profile/doc", "/guide/profile/photo", "/guide/setup-2fa", "/book-guide"}
 
         if path not in _csrf_exempt and not _csrf_ok(form, _sess_tok):
             self.send_error(403, "Invalid or missing CSRF token"); return
@@ -890,6 +899,48 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                 send_html(self, admin_login.render(error=result.get("error","")))
 
         # ── Guide POST ──
+        elif path == "/guide/register":
+            import urllib.parse as _up
+            fname    = form.get("fname", "").strip()
+            lname    = form.get("lname", "").strip()
+            email    = form.get("email", "").strip().lower()
+            phone    = form.get("phone", "").strip()
+            city     = form.get("city", "Manila").strip()
+            password = form.get("password", "").strip()
+            password2= form.get("password2", "").strip()
+            if not all([fname, lname, email, phone, password]):
+                send_html(self, guide_portal.render_register(error="Please fill in all fields.")); return
+            if len(password) < 6:
+                send_html(self, guide_portal.render_register(error="Password must be at least 6 characters.")); return
+            if password != password2:
+                send_html(self, guide_portal.render_register(error="Passwords do not match.")); return
+            if guide_db.guide_email_registered(email):
+                send_html(self, guide_portal.render_register(error="Email already registered. Please log in.")); return
+            code = guide_db.store_pending_guide(fname, lname, email, password, phone, city)
+            try:
+                from email_sender import send_verification_email
+                send_verification_email(email, fname, code)
+            except Exception:
+                pass
+            redirect(self, "/guide/verify?email=" + _up.quote(email)); return
+
+        elif path == "/guide/verify":
+            import urllib.parse as _up
+            email = form.get("email", "").strip().lower()
+            code  = form.get("code", "").strip()
+            if not email or not code:
+                redirect(self, "/guide/verify?email=" + _up.quote(email)); return
+            ok, msg = guide_db.activate_guide(email, code)
+            if not ok:
+                send_html(self, guide_portal.render_verify_guide(email, error=msg)); return
+            # Guide activated with status='pending' — log them in
+            guide = guide_db.get_guide_by_email(email)
+            if not guide:
+                send_html(self, guide_portal.render_verify_guide(email, error="Activation failed. Please try again.")); return
+            g_sess_token = guide_db.create_guide_session(guide["id"])
+            redirect(self, "/guide/dashboard?welcome=1",
+                     f"atlas_guide={g_sess_token}; Path=/; Max-Age=86400"); return
+
         elif path == "/guide/login":
             import urllib.parse as _up
             result = guide_portal.handle_login(form) if hasattr(guide_portal, 'handle_login') else {}
@@ -902,8 +953,9 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
                     from email_sender import send_otp_email
                     send_otp_email(guide_obj["email"], otp_code)
                     redirect(self, "/guide/2fa?email=" + _up.quote(guide_obj["email"])); return
-                dest = "/guide/dashboard?welcome=1" if result.get("new") else "/guide/dashboard"
-                redirect(self, dest, f"atlas_guide={result['token']}; Path=/; Max-Age=86400")
+                redirect(self, "/guide/dashboard", f"atlas_guide={result['token']}; Path=/; Max-Age=86400")
+            elif result.get("redirect"):
+                send_html(self, guide_portal.render_login(error=result.get("error",""), hint_register=True))
             else:
                 send_html(self, guide_portal.render_login(error=result.get("error","")))
 
@@ -929,7 +981,13 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
             guide = guide_db.get_guide_by_token(g_tok)
             if not guide:
                 redirect(self, "/guide"); return
-            section = path.replace("/guide/","")
+            section    = path.replace("/guide/","")
+            g_status   = guide.get("status","pending") or "pending"
+            doc_status = guide.get("doc_status","none") or "none"
+            is_approved = g_status == "active" and doc_status == "approved"
+            # Pending/unverified guides: only allow dashboard and profile POSTs
+            if not is_approved and section not in ("dashboard", "profile", "profile/doc", "profile/photo", "setup-2fa"):
+                redirect(self, "/guide/dashboard"); return
             if section == "dashboard":
                 action     = form.get("action", "")
                 booking_id = int(form.get("booking_id", 0) or 0)
@@ -1138,22 +1196,71 @@ class ATLASHandler(http.server.SimpleHTTPRequestHandler):
         # ── Tourist books a guide ──
         elif path == "/book-guide":
             if not user:
-                redirect(self, "/guides.py"); return
+                redirect(self, "/login.py"); return
             guide_id = int(form.get("guide_id", 0) or 0)
+            print(f"[book-guide] user={user.get('email')} guide_id={guide_id} form={form}")
             if not guide_id:
                 redirect(self, "/guides.py"); return
-            guide_db.add_booking({
-                "guide_id":      guide_id,
-                "tourist_name":  form.get("tourist_name",  "").strip(),
-                "tourist_email": user.get("email", ""),
-                "tourist_phone": form.get("tourist_phone", "").strip(),
-                "package_id":    0,
-                "package_title": form.get("package_title", "Custom Tour").strip(),
-                "tour_date":     form.get("tour_date",     "").strip(),
-                "pax":           int(form.get("pax", 1) or 1),
-                "notes":         form.get("notes",         "").strip(),
-            })
-            redirect(self, "/guides.py?booked=1"); return
+            try:
+                guide_db.add_booking({
+                    "guide_id":      guide_id,
+                    "tourist_name":  form.get("tourist_name",  "").strip(),
+                    "tourist_email": user.get("email", ""),
+                    "tourist_phone": form.get("tourist_phone", "").strip(),
+                    "package_id":    0,
+                    "package_title": form.get("package_title", "Custom Tour").strip(),
+                    "tour_date":     form.get("tour_date",     "").strip(),
+                    "pax":           int(form.get("pax", 1) or 1),
+                    "notes":         form.get("notes",         "").strip(),
+                })
+                print(f"[book-guide] SAVED OK guide_id={guide_id}")
+                redirect(self, "/guides.py?booked=1"); return
+            except Exception as _e:
+                import traceback; traceback.print_exc()
+                print(f"[book-guide] FAILED: {_e}")
+                redirect(self, "/guides.py"); return
+
+        elif path == "/submit-review":
+            if not user:
+                redirect(self, "/login.py"); return
+            booking_id = int(form.get("booking_id", 0) or 0)
+            guide_id   = int(form.get("guide_id",   0) or 0)
+            rating     = int(form.get("rating",     0) or 0)
+            comment    = form.get("comment", "").strip()
+            if not booking_id or not guide_id or not (1 <= rating <= 5):
+                redirect(self, "/profile.py?err=Invalid+review+data"); return
+            try:
+                import guide_db as _gdb2
+                _conn = _gdb2.get_conn(); _cur = _conn.cursor(dictionary=True)
+                # Verify booking belongs to this user
+                _cur.execute(
+                    "SELECT id, status, tourist_email FROM bookings WHERE id=%s AND guide_id=%s",
+                    (booking_id, guide_id)
+                )
+                row = _cur.fetchone()
+                if not row or row["tourist_email"].lower() != user["email"].lower():
+                    _cur.close(); _conn.close()
+                    redirect(self, "/profile.py?err=Booking+not+found"); return
+                if row["status"] in ("cancelled", "rejected"):
+                    _cur.close(); _conn.close()
+                    redirect(self, "/profile.py?err=Cannot+review+a+cancelled+or+rejected+booking"); return
+                # Prevent duplicate reviews
+                _cur.execute("SELECT id FROM guide_ratings WHERE booking_id=%s", (booking_id,))
+                if _cur.fetchone():
+                    _cur.close(); _conn.close()
+                    redirect(self, "/profile.py?err=You+have+already+submitted+a+review+for+this+booking"); return
+                # Save review
+                tourist_name = f"{user.get('fname','') or ''} {user.get('lname','') or ''}".strip() or user["email"]
+                _cur.execute(
+                    """INSERT INTO guide_ratings (guide_id, booking_id, tourist_name, tourist_email, rating, feedback)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (guide_id, booking_id, tourist_name, user["email"], rating, comment)
+                )
+                _conn.commit(); _cur.close(); _conn.close()
+                redirect(self, "/profile.py?msg=Review+submitted+successfully%21+Thank+you+for+your+feedback"); return
+            except Exception as _ex:
+                import traceback; traceback.print_exc()
+                redirect(self, "/profile.py?err=Could+not+save+review+—+please+try+again"); return
 
         elif path.startswith("/admin/"):
             admin, tok = self.get_admin()

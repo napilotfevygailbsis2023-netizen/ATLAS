@@ -164,10 +164,7 @@ def render_signup_password(email, error=""):
       <input type="password" name="password" id="pw-input" placeholder="Password"
              required autofocus style="padding-right:52px" oninput="checkPw(this.value)"/>
       <label for="pw-input">Password</label>
-      <button type="button" tabindex="-1" onclick="togglePw('pw-input',this)"
-        style="position:absolute;right:16px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#9ca3af;padding:4px;line-height:0">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      </button>
+    
     </div>
     <div style="background:#f8fafc;border:1.5px solid #d1d9e0;border-radius:12px;padding:14px 18px;margin-bottom:16px">
       <div id="req-len" class="req">
@@ -193,7 +190,46 @@ function checkPw(v) {{
     return _page("Create Password", body)
 
 
-# ── STEP 3: Check your inbox ──────────────────────────────────────────────────
+# ── STEP 3: Name + Age ────────────────────────────────────────────────────────
+def render_signup_profile(email, error=""):
+    safe_email = e(email)
+    body = f"""
+  <div style="font-size:28px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px">Tell us about yourself</div>
+  <div style="font-size:13px;color:#6b7280;text-align:center;margin-bottom:24px;line-height:1.7">
+    This helps us personalise your experience and provide<br/>the right settings, in line with our
+    <a href="#" style="color:#1e3a8a;text-decoration:underline">Privacy Policy</a>.
+  </div>
+  {_err_box(error)}
+  <form method="post" action="/signup/profile">
+    <input type="hidden" name="email" value="{safe_email}"/>
+    <div class="field">
+      <input type="text" name="fname" id="fname-inp" placeholder="First name"
+             required maxlength="80" autocomplete="given-name" autofocus/>
+      <label for="fname-inp">First name</label>
+    </div>
+    <div class="field">
+      <input type="text" name="mname" id="mname-inp" placeholder="Middle name (optional)"
+             maxlength="80" autocomplete="additional-name"/>
+      <label for="mname-inp">Middle name (optional)</label>
+    </div>
+    <div class="field">
+      <input type="text" name="lname" id="lname-inp" placeholder="Last name"
+             required maxlength="80" autocomplete="family-name"/>
+      <label for="lname-inp">Last name</label>
+    </div>
+    <div class="field">
+      <input type="number" name="age" id="age-inp" placeholder="Age" min="13" max="120" required/>
+      <label for="age-inp">Age</label>
+    </div>
+    <button class="submit-btn" type="submit">Continue</button>
+  </form>
+  <div class="footer-links">
+    <a href="#">Terms of Use</a> | <a href="#">Privacy Policy</a>
+  </div>"""
+    return _page("Your Profile", body)
+
+
+# ── STEP 4: Check your inbox ──────────────────────────────────────────────────
 def render_verify_email(email, error=""):
     safe_email = e(email)
     body = f"""
@@ -238,9 +274,8 @@ def render_register_complete(email, google_name="", error=""):
     parts = safe_name.split()
     fname = parts[0] if parts else ""
     lname = " ".join(parts[1:]) if len(parts) > 1 else ""
-    full  = (fname + " " + lname).strip()
     body = f"""
-  <div style="font-size:28px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px">How old are you?</div>
+  <div style="font-size:28px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px">Tell us about yourself</div>
   <div style="font-size:13px;color:#6b7280;text-align:center;margin-bottom:24px;line-height:1.7">
     This helps us personalise your experience and provide<br/>the right settings, in line with our
     <a href="#" style="color:#1e3a8a;text-decoration:underline">Privacy Policy</a>.
@@ -249,9 +284,19 @@ def render_register_complete(email, google_name="", error=""):
   <form method="post" action="/auth/google/complete">
     <input type="hidden" name="email" value="{safe_email}"/>
     <div class="field">
-      <input type="text" name="fullname" id="fullname-inp" placeholder="Full name"
-             value="{full}" required maxlength="120" autocomplete="name"/>
-      <label for="fullname-inp">Full name</label>
+      <input type="text" name="fname" id="fname-inp" placeholder="First name"
+             value="{e(fname)}" required maxlength="80" autocomplete="given-name" autofocus/>
+      <label for="fname-inp">First name</label>
+    </div>
+    <div class="field">
+      <input type="text" name="mname" id="mname-inp" placeholder="Middle name (optional)"
+             maxlength="80" autocomplete="additional-name"/>
+      <label for="mname-inp">Middle name (optional)</label>
+    </div>
+    <div class="field">
+      <input type="text" name="lname" id="lname-inp" placeholder="Last name"
+             value="{e(lname)}" required maxlength="80" autocomplete="family-name"/>
+      <label for="lname-inp">Last name</label>
     </div>
     <div class="field">
       <input type="number" name="age" id="age-inp" placeholder="Age" min="13" max="120" required/>

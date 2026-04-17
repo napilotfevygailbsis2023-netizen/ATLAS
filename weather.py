@@ -4,12 +4,12 @@ from tourist_ui import build_shell
 from data import WEATHER as FALLBACK
 
 API_KEY = "64a99b2ac477b0d12944d61cd3514ebd"
-CITIES  = ["Albay","Baguio","Bataan","Batangas","Ilocos Norte","La Union","Manila","Pangasinan","Tagaytay","Vigan"]
-CITY_QUERY = {
-    "Manila":"Manila,PH","Baguio":"Baguio,PH","Ilocos Norte":"Laoag,PH",
-    "La Union":"San Fernando,PH","Albay":"Legazpi,PH","Pangasinan":"Dagupan,PH",
-    "Bataan":"Balanga,PH","Vigan":"Vigan,PH","Batangas":"Batangas,PH","Tagaytay":"Tagaytay,PH",
-}
+# CITIES  = ["Albay","Baguio","Bataan","Batangas","Ilocos Norte","La Union","Manila","Pangasinan","Tagaytay","Vigan"]
+# CITY_QUERY = {
+#     "Manila":"Manila,PH","Baguio":"Baguio,PH","Ilocos Norte":"Laoag,PH",
+#     "La Union":"San Fernando,PH","Albay":"Legazpi,PH","Pangasinan":"Dagupan,PH",
+#     "Bataan":"Balanga ,PH","Vigan":"Vigan,PH","Batangas":"Batangas,PH","Tagaytay":"Tagaytay,PH",
+# }
 ICONS = {
     "Clear":"&#9728;","Clouds":"&#9925;","Rain":"&#127783;","Drizzle":"&#127783;",
     "Thunderstorm":"&#9928;","Snow":"&#10052;","Mist":"&#127787;","Fog":"&#127787;","Haze":"&#127787;",

@@ -183,6 +183,9 @@ def _guide_feedback_modal():
       form.method = 'post';
       form.action = '/submit-review';
       var fields = {{ booking_id: bookingId, guide_id: guideId, rating: _fbRating, comment: comment }};
+      if (typeof ATLAS_CSRF !== 'undefined' && ATLAS_CSRF) {{
+        fields['csrf_token'] = ATLAS_CSRF;
+      }}
       Object.keys(fields).forEach(function(k) {{
         var inp = document.createElement('input');
         inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
@@ -258,12 +261,24 @@ def render(user=None, msg="", err="", tab="profile"):
         gname = e(f'{b.get("gfname","")} {b.get("glname","")}'.strip() or "Tour Guide")
         guide_id_val = b.get("guide_id","")
         booking_id_val = b.get("id","")
-        can_review = b["status"] == "completed" and not b.get("reviewed")
-        review_btn = (
-            f'<button onclick="openFeedback(\'{booking_id_val}\',\'{guide_id_val}\',\'{gname}\')" '
-            f'style="margin-top:8px;padding:7px 14px;background:#0038A8;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">&#9733; Leave a Review</button>'
-            if can_review else ""
-        )
+        can_review = b["status"] not in ("cancelled", "rejected") and not b.get("reviewed")
+        if can_review:
+            status_val = b["status"]
+            if status_val == "completed":
+                btn_label = "&#9733; Leave a Review"
+                btn_color = "#0038A8"
+            elif status_val == "accepted":
+                btn_label = "&#9733; Rate Your Guide"
+                btn_color = "#059669"
+            else:  # pending
+                btn_label = "&#9733; Rate This Guide"
+                btn_color = "#D97706"
+            review_btn = (
+                f'<button onclick="openFeedback(\'{booking_id_val}\',\'{guide_id_val}\',\'{gname}\')" '
+                f'style="margin-top:8px;padding:7px 14px;background:{btn_color};color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">{btn_label}</button>'
+            )
+        else:
+            review_btn = ""
         return f"""
         <div style="border:1px solid #E2E8F0;border-radius:12px;padding:16px 18px;background:{sb};margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">

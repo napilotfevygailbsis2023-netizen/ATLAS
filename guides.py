@@ -21,7 +21,7 @@ def get_all_guides_combined(city="All"):
                 "tours":    completed_data.get(g["id"], 0),
                 "spec":     g.get("speciality", "General Tours"),
                 "avail":    g.get("availability", "Mon-Sun"),
-                "bio":      g.get("bio", "Registered local tour guide."),
+                "bio":      g.get("bio") or "Registered local tour guide.",
                 "pkgs":     [f'{p["title"]} - {p["price"]}' for p in pkgs] or ["Custom Tour Available"],
                 "guide_id": g["id"],
                 "photo_url": g.get("photo_url", ""),
@@ -66,8 +66,14 @@ def _card(g, i):
         f'<div style="font-size:18px;font-weight:800;color:{col};margin-bottom:8px">{g["rate"]}</div>'
         f'<div style="margin-bottom:14px;border:1px solid #E5E7EB;border-radius:8px;overflow:hidden"><div style="background:#F9FAFB;padding:6px 10px;font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase">Packages</div>{pkgs}</div>'
         '<div style="margin-top:auto;display:flex;flex-direction:column;gap:7px">'
-        f'<button class="btn" style="background:{col};color:#fff;width:100%;padding:10px;font-size:14px;font-weight:700" onclick="openBookingModal(\'{name}\',\'{city}\',\'{g["rate"]}\',\'{guide_id_str}\')">&#128197; Book This Guide</button>'
-        f'<button class="btn-outline" style="width:100%;padding:8px;color:{col};border-color:{col}" onclick="openProfileModal(\'{name}\',\'{city}\',\'{g["spec"]}\',\'{g["bio"]}\',\'{g["lang"]}\',\'{g["avail"]}\',\'{g["rate"]}\',\'{g["rating"]}\',\'{g["tours"]}\',\'{guide_id_str}\')">&#128100; View Full Profile</button>'
+        f'<button class="btn" style="background:{col};color:#fff;width:100%;padding:10px;font-size:14px;font-weight:700"'
+        f' data-gid="{guide_id_str}" data-name="{g["name"]}" data-city="{g["city"]}" data-rate="{g["rate"]}"'
+        f' onclick="openBookingModalFromBtn(this)">&#128197; Book This Guide</button>'
+        f'<button class="btn-outline" style="width:100%;padding:8px;color:{col};border-color:{col}"'
+        f' data-gid="{guide_id_str}" data-name="{g["name"]}" data-city="{g["city"]}" data-rate="{g["rate"]}"'
+        f' data-spec="{g["spec"]}" data-bio="{g["bio"]}" data-lang="{g["lang"]}" data-avail="{g["avail"]}"'
+        f' data-rating="{g["rating"]}" data-tours="{g["tours"]}"'
+        f' onclick="openProfileModalFromBtn(this)">&#128100; View Full Profile</button>'
         '</div></div></div>'
     )
 
@@ -158,8 +164,32 @@ def render(filter_city="All", filter_lang="All", user=None, booked=False):
     var _bookingRate    = "";
     var _bookingGuideId = "";
 
+    function openBookingModalFromBtn(btn) {{
+      _bookingGuideId = btn.getAttribute("data-gid")  || "";
+      _bookingGuide   = btn.getAttribute("data-name") || "";
+      _bookingCity    = btn.getAttribute("data-city") || "";
+      _bookingRate    = btn.getAttribute("data-rate") || "";
+      console.log("BOOKING: guide_id=" + _bookingGuideId + " name=" + _bookingGuide);
+      document.getElementById("booking-guide-info").innerHTML =
+        "<strong>&#128100; " + _bookingGuide + "</strong> &mdash; " + _bookingCity +
+        "<br>Rate: <strong style='color:#0038A8'>" + _bookingRate + "</strong>";
+      document.getElementById("booking-modal").style.display = "flex";
+    }}
+    function openProfileModalFromBtn(btn) {{
+      var gid   = btn.getAttribute("data-gid")    || "";
+      var name  = btn.getAttribute("data-name")   || "";
+      var city  = btn.getAttribute("data-city")   || "";
+      var rate  = btn.getAttribute("data-rate")   || "";
+      var spec  = btn.getAttribute("data-spec")   || "";
+      var bio   = btn.getAttribute("data-bio")    || "";
+      var lang  = btn.getAttribute("data-lang")   || "";
+      var avail = btn.getAttribute("data-avail")  || "";
+      var rating= btn.getAttribute("data-rating") || "";
+      var tours = btn.getAttribute("data-tours")  || "";
+      openProfileModal(name, city, spec, bio, lang, avail, rate, rating, tours, gid);
+    }}
     function openBookingModal(name, city, rate, guideId) {{
-      if(typeof ATLAS_LOGGED_IN!=='undefined' && !ATLAS_LOGGED_IN){{ openSigninGate(); return; }}
+      if(typeof ATLAS_LOGGED_IN!=='undefined' && !ATLAS_LOGGED_IN){{ window.location='/login.py'; return; }}
       _bookingGuide = name; _bookingCity = city; _bookingRate = rate; _bookingGuideId = guideId || "";
       document.getElementById("booking-guide-info").innerHTML =
         "<strong>&#128100; " + name + "</strong> &mdash; " + city + "<br>Rate: <strong style='color:#0038A8'>" + rate + "</strong>";

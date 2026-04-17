@@ -102,7 +102,8 @@ SPOT_IMAGES = {
     'San Fernando Cathedral':       f'{SF}/Saint_William_Cathedral,_San_Fernando,_La_Union.jpg?width=800',
     'Bacnotan Coastal Area':        f'{SF}/Bacnotan,_La_Union_coastline.jpg?width=800',
 }
-DEFAULT_IMG = f'{SF}/Paoay_Church_of_Ilocos_Norte,_Philippines.JPG?width=800'
+DEFAULT_IMG = 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80'
+DEFAULT_IMG_WIKIMEDIA = f'{SF}/Paoay_Church_of_Ilocos_Norte,_Philippines.JPG?width=800'
 
 # Reliable Unsplash fallbacks (direct photo IDs) used if Wikimedia image fails to load
 FALLBACK_IMAGES = {
@@ -205,7 +206,9 @@ PRICE_RANGES = {
 }
 
 def _get_img(name, city):
-    return SPOT_IMAGES.get(name, DEFAULT_IMG)
+    if name in SPOT_IMAGES:
+        return SPOT_IMAGES[name]
+    return DEFAULT_IMG
 
 def _get_fallback_img(name):
     return FALLBACK_IMAGES.get(name, 'https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=800&q=80')
@@ -346,6 +349,7 @@ def _card(s):
         </div>
         <div style="padding:20px 24px">
           <img id="img-{mid}" loading="lazy" src="{H(img)}"
+               referrerpolicy="no-referrer" crossorigin="anonymous"
                style="width:100%;height:200px;object-fit:cover;border-radius:10px;margin-bottom:16px"
                onerror="this.onerror=null;this.src='{H(fallback)}'"/>
           <div style="font-size:14px;margin-bottom:4px">{stars} <span style="color:#94A3B8;font-size:13px">{s['rating']}/5.0 &nbsp;·&nbsp; {review_cnt}+ reviews</span></div>
@@ -380,6 +384,7 @@ def _card(s):
     <div class="grid-card" style="cursor:pointer" onclick="if(typeof ATLAS_LOGGED_IN!=='undefined'&&!ATLAS_LOGGED_IN){{openSigninGate();}}else{{document.getElementById('{mid}').style.display='flex';}}">
       <div style="position:relative;height:150px;overflow:hidden;border-radius:12px 12px 0 0;background:{col}">
         <img loading="lazy" src="{H(img)}" alt="{H(name)}"
+             referrerpolicy="no-referrer" crossorigin="anonymous"
              style="width:100%;height:100%;object-fit:cover;transition:transform .3s"
              onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'"
              onerror="this.onerror=null;this.src='{H(fallback)}'"/>

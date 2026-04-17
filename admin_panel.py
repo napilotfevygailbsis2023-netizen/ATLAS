@@ -294,7 +294,7 @@ def dashboard(admin):
     db_rests   = admin_db.get_restaurants()
     db_guides  = admin_db.get_guides()
     db_trans   = admin_db.get_transport()
-    reg_guides = guide_db.get_public_guides()
+    reg_guides = [g for g in guide_db.get_all_guides() if g.get("status") == "active" and g.get("doc_status") == "approved"]
 
     # Count ALL attractions (API + admin-added) across all cities, deduplicated
     try:
@@ -546,13 +546,19 @@ def restaurants_page(admin, msg="", err="", page=1, tab="list"):
 
 # ── TOUR GUIDES ──
 def guides_page(admin, msg="", err="", page=1, tab="registered"):
-    reg_guides   = guide_db.get_public_guides()
     pending_docs = guide_db.get_guides_with_pending_docs()
-    try:
-        all_guides = guide_db.get_all_guides()
-        not_reg = [g for g in all_guides if g.get("status") not in ("active",)]
-    except:
-        not_reg = []
+    all_guides   = guide_db.get_all_guides()
+    # Registered = active status AND doc approved (fully verified)
+    # Normalise None/NULL doc_status (from pre-migration rows) to 'none' so they
+    # are never mistakenly shown as registered.
+    for g in all_guides:
+        if g.get("doc_status") is None:
+            g["doc_status"] = "none"
+        if g.get("status") is None:
+            g["status"] = "pending"
+    reg_guides = [g for g in all_guides if g.get("status") == "active" and g.get("doc_status") == "approved"]
+    # Not Registered = anyone not yet fully approved (pending, no docs, rejected docs, etc.)
+    not_reg    = [g for g in all_guides if g.get("status") != "active" or g.get("doc_status") != "approved"]
 
     ALL_CITIES = ["Manila","Baguio","Ilocos Norte","Vigan","Batangas","Tagaytay","Albay","Pangasinan","Bataan","La Union"]
     LANGS      = ["All","English","Filipino","Ilocano","Bicolano","Waray","Kapampangan"]

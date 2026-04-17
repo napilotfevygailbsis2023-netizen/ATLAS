@@ -78,6 +78,24 @@ def init_guide_tables():
             conn.commit()
         except Exception:
             pass
+    # Backfill: rows created before doc_status column was added will have NULL.
+    # Treat them as 'none' (no docs submitted) so they land in Not Registered
+    # unless an admin explicitly approves them.
+    try:
+        cur.execute("UPDATE tour_guides SET doc_status='none' WHERE doc_status IS NULL")
+        conn.commit()
+    except Exception:
+        pass
+    # Also ensure any legacy 'active' rows without doc approval are demoted back
+    # to 'pending' so they cannot bypass the verification gate.
+    try:
+        cur.execute(
+            "UPDATE tour_guides SET status='pending' "
+            "WHERE status='active' AND (doc_status IS NULL OR doc_status != 'approved')"
+        )
+        conn.commit()
+    except Exception:
+        pass
     cur.execute("""
         CREATE TABLE IF NOT EXISTS guide_sessions (
             token    VARCHAR(64) PRIMARY KEY,
@@ -123,14 +141,25 @@ def init_guide_tables():
         pass  # Already exists
     cur.execute("""
         CREATE TABLE IF NOT EXISTS guide_ratings (
-            id           INT AUTO_INCREMENT PRIMARY KEY,
-            guide_id     INT          NOT NULL,
-            tourist_name VARCHAR(200) NOT NULL,
-            rating       INT          NOT NULL,
-            feedback     TEXT,
-            created      DATETIME     DEFAULT CURRENT_TIMESTAMP
+            id            INT AUTO_INCREMENT PRIMARY KEY,
+            guide_id      INT          NOT NULL,
+            booking_id    INT          DEFAULT 0,
+            tourist_name  VARCHAR(200) NOT NULL,
+            tourist_email VARCHAR(255) DEFAULT '',
+            rating        INT          NOT NULL,
+            feedback      TEXT,
+            created       DATETIME     DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
     """)
+    for _col, _defn in [
+        ("booking_id",    "INT DEFAULT 0"),
+        ("tourist_email", "VARCHAR(255) DEFAULT ''"),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE guide_ratings ADD COLUMN {_col} {_defn}")
+            conn.commit()
+        except Exception:
+            pass
     cur.execute("""
         CREATE TABLE IF NOT EXISTS pending_guides (
             id       INT AUTO_INCREMENT PRIMARY KEY,
@@ -196,7 +225,7 @@ def activate_guide(email, code):
             return False, "Invalid or expired code. Please try again."
         try:
             cur.execute(
-                "INSERT INTO tour_guides (fname,lname,email,password,phone,city) VALUES (%s,%s,%s,%s,%s,%s)",
+                "INSERT INTO tour_guides (fname,lname,email,password,phone,city,status) VALUES (%s,%s,%s,%s,%s,%s,'pending')",
                 (row["fname"], row["lname"], row["email"], row["password"], row["phone"], row["city"])
             )
         except IntegrityError:
@@ -221,7 +250,7 @@ def register_guide(fname, lname, email, password, phone, city):
     conn = get_conn(); cur = _cursor(conn)
     try:
         cur.execute(
-            "INSERT INTO tour_guides (fname,lname,email,password,phone,city) VALUES (%s,%s,%s,%s,%s,%s)",
+            "INSERT INTO tour_guides (fname,lname,email,password,phone,city,status) VALUES (%s,%s,%s,%s,%s,%s,'pending')",
             (fname.strip(), lname.strip(), email, hash_pw(password), phone.strip(), city)
         )
         conn.commit(); cur.close(); conn.close()
@@ -382,15 +411,18 @@ def add_booking(data):
         cur.close(); conn.close()
 
 def get_bookings_by_tourist_email(email):
-    """Return all bookings for a tourist identified by email, newest first."""
+    """Return all bookings for a tourist identified by email, newest first.
+    Includes a 'reviewed' flag (1/0) so the UI knows not to show the rate button twice."""
     if not email:
         return []
     conn = get_conn(); cur = _cursor(conn)
     cur.execute("""
         SELECT b.*, g.fname, g.lname, g.phone AS guide_phone,
-               g.city AS guide_city, g.photo_url AS guide_photo
+               g.city AS gcity, g.photo_url AS guide_photo,
+               IF(gr.id IS NOT NULL, 1, 0) AS reviewed
         FROM bookings b
         JOIN tour_guides g ON g.id = b.guide_id
+        LEFT JOIN guide_ratings gr ON gr.booking_id = b.id
         WHERE b.tourist_email = %s
         ORDER BY b.created DESC
     """, (email.strip().lower(),))
@@ -424,9 +456,9 @@ def get_avg_rating(guide_id):
 def get_public_guides(city=None):
     conn = get_conn(); cur = _cursor(conn)
     if city and city != "All":
-        cur.execute("SELECT * FROM tour_guides WHERE status='active' AND city=%s ORDER BY id DESC", (city,))
+        cur.execute("SELECT * FROM tour_guides WHERE status='active' AND doc_status='approved' AND city=%s ORDER BY id DESC", (city,))
     else:
-        cur.execute("SELECT * FROM tour_guides WHERE status='active' ORDER BY id DESC")
+        cur.execute("SELECT * FROM tour_guides WHERE status='active' AND doc_status='approved' ORDER BY id DESC")
     rows = cur.fetchall(); cur.close(); conn.close()
     return rows
 
@@ -493,9 +525,14 @@ def get_all_guides():
     return rows
 
 def set_doc_status(guide_id, status):
-    """Alias used by admin panel — sets doc_status only."""
+    """Update doc_status. On approval, activates the guide; on rejection, reverts to pending."""
     conn = get_conn(); cur = _cursor(conn)
-    cur.execute("UPDATE tour_guides SET doc_status=%s WHERE id=%s", (status, guide_id))
+    if status == "approved":
+        cur.execute("UPDATE tour_guides SET doc_status=%s, status='active' WHERE id=%s", (status, guide_id))
+    elif status == "rejected":
+        cur.execute("UPDATE tour_guides SET doc_status=%s, status='pending' WHERE id=%s", (status, guide_id))
+    else:
+        cur.execute("UPDATE tour_guides SET doc_status=%s WHERE id=%s", (status, guide_id))
     conn.commit(); cur.close(); conn.close()
 
 def save_doc_ai_notes(guide_id, notes):
